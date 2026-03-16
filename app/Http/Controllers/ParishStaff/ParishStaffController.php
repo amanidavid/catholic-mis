@@ -19,6 +19,7 @@ use App\Models\People\Member;
 use App\Models\People\MemberJumuiyaHistory;
 use App\Models\Structure\Jumuiya;
 use App\Models\Structure\Parish;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

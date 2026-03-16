@@ -38,6 +38,25 @@ class MemberController extends Controller
             return null;
         }
 
+        $userMemberId = (int) ($request->user()?->member_id ?? $request->user()?->member?->id ?? 0);
+        if ($userMemberId) {
+            $today = now()->toDateString();
+
+            $leaderJumuiyaId = JumuiyaLeadership::query()
+                ->where('member_id', $userMemberId)
+                ->where('is_active', true)
+                ->whereDate('start_date', '<=', $today)
+                ->where(function ($q) use ($today) {
+                    $q->whereNull('end_date')->orWhereDate('end_date', '>=', $today);
+                })
+                ->orderByDesc('start_date')
+                ->value('jumuiya_id');
+
+            if ($leaderJumuiyaId) {
+                return (int) $leaderJumuiyaId;
+            }
+        }
+
         return $request->user()?->member?->jumuiya_id;
     }
 
@@ -210,6 +229,8 @@ class MemberController extends Controller
 
         $q = $request->query('q');
         $jumuiyaUuid = $request->query('jumuiya_uuid');
+        $familyUuid = $request->query('family_uuid');
+        $excludeUuids = $request->query('exclude_uuids');
 
         $q = is_string($q) ? trim($q) : '';
 
@@ -218,6 +239,16 @@ class MemberController extends Controller
         $selectedJumuiyaId = null;
         if (is_string($jumuiyaUuid) && $jumuiyaUuid !== '') {
             $selectedJumuiyaId = Jumuiya::query()->where('uuid', $jumuiyaUuid)->value('id');
+        }
+
+        $selectedFamilyId = null;
+        if (is_string($familyUuid) && $familyUuid !== '') {
+            $selectedFamilyId = Family::query()->where('uuid', $familyUuid)->value('id');
+        }
+
+        $excluded = [];
+        if (is_string($excludeUuids) && trim($excludeUuids) !== '') {
+            $excluded = array_values(array_filter(array_map('trim', explode(',', $excludeUuids))));
         }
 
         if ($scopedJumuiyaId && $selectedJumuiyaId && $selectedJumuiyaId !== $scopedJumuiyaId) {
@@ -231,6 +262,8 @@ class MemberController extends Controller
             ->with(['jumuiya:id,uuid,name'])
             ->when($scopedJumuiyaId, fn (Builder $qb) => $qb->where('jumuiya_id', $scopedJumuiyaId))
             ->when($selectedJumuiyaId, fn (Builder $qb) => $qb->where('jumuiya_id', $selectedJumuiyaId))
+            ->when($selectedFamilyId, fn (Builder $qb) => $qb->where('family_id', $selectedFamilyId))
+            ->when(! empty($excluded), fn (Builder $qb) => $qb->whereNotIn('uuid', $excluded))
             ->when($q !== '', function (Builder $qb) use ($safe) {
                 $qb->where(function (Builder $sub) use ($safe) {
                     $sub->where('first_name', 'like', $safe.'%')

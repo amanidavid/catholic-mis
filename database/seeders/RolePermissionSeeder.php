@@ -78,6 +78,18 @@ class RolePermissionSeeder extends Seeder
             'permissions.manage',
             'workflows.manage',
             'settings.manage',
+
+            'baptisms.view',
+            'baptisms.request.create',
+            'baptisms.request.submit',
+            'baptisms.approve',
+            'baptisms.reject',
+            'baptisms.schedule.manage',
+            'baptisms.issue',
+
+            'certificates.view',
+            'certificates.issue',
+            'certificates.verify',
         ];
 
         foreach ($permissions as $permissionName) {

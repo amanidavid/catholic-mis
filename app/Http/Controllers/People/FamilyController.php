@@ -9,6 +9,8 @@ use App\Http\Requests\Family\UpdateFamilyRequest;
 use App\Http\Resources\People\FamilyResource;
 use App\Models\Leadership\JumuiyaLeadership;
 use App\Models\People\Family;
+use App\Models\People\FamilyRelationship;
+use App\Models\People\Member;
 use App\Models\Structure\Jumuiya;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -72,10 +74,83 @@ class FamilyController extends Controller
         return response()->json(['data' => $families]);
     }
 
+    public function parentsLookup(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Family::class);
+
+        $familyUuid = $request->query('family_uuid');
+        if (! is_string($familyUuid) || trim($familyUuid) === '') {
+            return response()->json(['data' => ['father' => null, 'mother' => null]]);
+        }
+
+        $family = Family::query()->where('uuid', trim($familyUuid))->first();
+        if (! $family) {
+            return response()->json(['data' => ['father' => null, 'mother' => null]]);
+        }
+
+        $scopedJumuiyaId = $this->scopedJumuiyaId($request);
+        if ($scopedJumuiyaId && (int) $family->jumuiya_id !== (int) $scopedJumuiyaId) {
+            return response()->json(['data' => ['father' => null, 'mother' => null]]);
+        }
+
+        $fatherRelId = (int) (FamilyRelationship::query()->where('name', 'father')->value('id') ?? 0);
+        $motherRelId = (int) (FamilyRelationship::query()->where('name', 'mother')->value('id') ?? 0);
+
+        $father = $fatherRelId
+            ? Member::query()
+                ->where('family_id', (int) $family->id)
+                ->where('family_relationship_id', $fatherRelId)
+                ->select(['uuid', 'first_name', 'middle_name', 'last_name', 'marital_status'])
+                ->first()
+            : null;
+
+        $mother = $motherRelId
+            ? Member::query()
+                ->where('family_id', (int) $family->id)
+                ->where('family_relationship_id', $motherRelId)
+                ->select(['uuid', 'first_name', 'middle_name', 'last_name', 'marital_status'])
+                ->first()
+            : null;
+
+        $fmt = function ($m) {
+            if (! $m) return null;
+            $name = trim(implode(' ', array_filter([$m->first_name, $m->middle_name, $m->last_name])));
+            return [
+                'uuid' => $m->uuid,
+                'name' => $name,
+                'marital_status' => $m->marital_status,
+            ];
+        };
+
+        return response()->json(['data' => [
+            'father' => $fmt($father),
+            'mother' => $fmt($mother),
+        ]]);
+    }
+
     protected function scopedJumuiyaId(Request $request): ?int
     {
         if ($request->user()?->can('jumuiyas.view')) {
             return null;
+        }
+
+        $userMemberId = (int) ($request->user()?->member_id ?? $request->user()?->member?->id ?? 0);
+        if ($userMemberId) {
+            $today = now()->toDateString();
+
+            $leaderJumuiyaId = JumuiyaLeadership::query()
+                ->where('member_id', $userMemberId)
+                ->where('is_active', true)
+                ->whereDate('start_date', '<=', $today)
+                ->where(function ($q) use ($today) {
+                    $q->whereNull('end_date')->orWhereDate('end_date', '>=', $today);
+                })
+                ->orderByDesc('start_date')
+                ->value('jumuiya_id');
+
+            if ($leaderJumuiyaId) {
+                return (int) $leaderJumuiyaId;
+            }
         }
 
         return $request->user()?->member?->jumuiya_id;

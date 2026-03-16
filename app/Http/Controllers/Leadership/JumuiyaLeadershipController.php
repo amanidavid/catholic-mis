@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
@@ -186,6 +187,51 @@ class JumuiyaLeadershipController extends Controller
         }
     }
 
+    public function createLogin(Request $request, JumuiyaLeadership $jumuiyaLeadership): RedirectResponse
+    {
+        $this->authorize('update', $jumuiyaLeadership);
+
+        $member = $jumuiyaLeadership->member()->first();
+        if (! $member) {
+            return back()->with('error', 'Invalid member record.');
+        }
+
+        try {
+            $role = $jumuiyaLeadership->role()->first();
+            $tempPassword = $this->provisionLeaderAccount($member, $role?->system_role_name);
+
+            if ($tempPassword) {
+                return back()->with('success', 'Login enabled. Temporary password: '.$tempPassword.' (user will be forced to change password at first login)');
+            }
+
+            return back()->with('success', 'Login enabled.');
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Leadership login provision failed', ['exception' => $e, 'leadership_uuid' => $jumuiyaLeadership->uuid]);
+            return back()->with('error', 'Unable to enable login. Please try again.');
+        }
+    }
+
+    public function disableLogin(Request $request, JumuiyaLeadership $jumuiyaLeadership): RedirectResponse
+    {
+        $this->authorize('update', $jumuiyaLeadership);
+
+        try {
+            $user = User::query()->where('member_id', (int) $jumuiyaLeadership->member_id)->first();
+            if (! $user) {
+                return back()->with('error', 'No login account found for this member.');
+            }
+
+            $user->forceFill(['is_active' => false])->save();
+
+            return back()->with('success', 'Login disabled.');
+        } catch (\Throwable $e) {
+            Log::error('Leadership login disable failed', ['exception' => $e, 'leadership_uuid' => $jumuiyaLeadership->uuid]);
+            return back()->with('error', 'Unable to disable login. Please try again.');
+        }
+    }
+
     public function destroy(JumuiyaLeadership $jumuiyaLeadership): RedirectResponse
     {
         $this->authorize('delete', $jumuiyaLeadership);
@@ -218,11 +264,27 @@ class JumuiyaLeadershipController extends Controller
         $validated = $request->validated();
 
         try {
-            $nextEndDate = array_key_exists('end_date', $validated) ? $validated['end_date'] : $jumuiyaLeadership->end_date;
+            $nextStartDate = array_key_exists('start_date', $validated) ? $validated['start_date'] : ($jumuiyaLeadership->start_date?->format('Y-m-d'));
+            $nextEndDate = array_key_exists('end_date', $validated) ? $validated['end_date'] : ($jumuiyaLeadership->end_date?->format('Y-m-d'));
             $nextIsActive = array_key_exists('is_active', $validated) ? (bool) $validated['is_active'] : (bool) $jumuiyaLeadership->is_active;
 
-            if ($nextEndDate && $jumuiyaLeadership->start_date && Date::parse($nextEndDate)->lessThan(Date::parse($jumuiyaLeadership->start_date))) {
+            $nextRoleId = (int) $jumuiyaLeadership->jumuiya_leadership_role_id;
+            $nextRoleSystemName = $jumuiyaLeadership->role?->system_role_name;
+            if (! empty($validated['role_uuid'])) {
+                $role = JumuiyaLeadershipRole::query()->where('uuid', $validated['role_uuid'])->firstOrFail();
+                if (! $role->is_active) {
+                    return back()->with('error', 'Invalid leadership role.');
+                }
+                $nextRoleId = (int) $role->id;
+                $nextRoleSystemName = $role->system_role_name;
+            }
+
+            if ($nextStartDate && $nextEndDate && Date::parse($nextEndDate)->lessThan(Date::parse($nextStartDate))) {
                 return back()->with('error', 'End date cannot be before start date.');
+            }
+
+            if ($nextStartDate && Date::parse($nextStartDate)->isFuture() && $nextIsActive) {
+                return back()->with('error', 'Start date cannot be in the future for an active assignment.');
             }
 
             $isEffectiveActive = $nextIsActive && (! $nextEndDate || Date::parse($nextEndDate)->greaterThanOrEqualTo(Date::today()));
@@ -243,7 +305,7 @@ class JumuiyaLeadershipController extends Controller
 
                 $roleAlreadyTaken = JumuiyaLeadership::query()
                     ->where('jumuiya_id', $jumuiyaLeadership->jumuiya_id)
-                    ->where('jumuiya_leadership_role_id', $jumuiyaLeadership->jumuiya_leadership_role_id)
+                    ->where('jumuiya_leadership_role_id', $nextRoleId)
                     ->where('id', '!=', $jumuiyaLeadership->id)
                     ->where('is_active', true)
                     ->where(function ($q) {
@@ -256,14 +318,24 @@ class JumuiyaLeadershipController extends Controller
                 }
             }
 
-            $jumuiyaLeadership->end_date = $nextEndDate;
-            $jumuiyaLeadership->is_active = $nextIsActive;
+            DB::transaction(function () use ($jumuiyaLeadership, $nextStartDate, $nextEndDate, $nextIsActive, $nextRoleId, $nextRoleSystemName): void {
+                $jumuiyaLeadership->start_date = $nextStartDate ? Date::parse($nextStartDate) : $jumuiyaLeadership->start_date;
+                $jumuiyaLeadership->end_date = $nextEndDate ? Date::parse($nextEndDate) : null;
+                $jumuiyaLeadership->is_active = $nextIsActive;
+                $jumuiyaLeadership->jumuiya_leadership_role_id = $nextRoleId;
 
-            if ($jumuiyaLeadership->end_date && Date::parse($jumuiyaLeadership->end_date)->isPast()) {
-                $jumuiyaLeadership->is_active = false;
-            }
+                if ($jumuiyaLeadership->end_date && Date::parse($jumuiyaLeadership->end_date)->isPast()) {
+                    $jumuiyaLeadership->is_active = false;
+                }
 
-            $jumuiyaLeadership->save();
+                $jumuiyaLeadership->save();
+
+                $user = User::query()->where('member_id', (int) $jumuiyaLeadership->member_id)->first();
+                if ($user && $nextRoleSystemName) {
+                    Role::findOrCreate($nextRoleSystemName, 'web');
+                    $user->assignRole($nextRoleSystemName);
+                }
+            });
 
             $this->syncLeaderLoginStatus($jumuiyaLeadership->member_id);
 
@@ -296,16 +368,19 @@ class JumuiyaLeadershipController extends Controller
 
         $existingByMember = User::query()->where('member_id', $member->id)->first();
         if ($existingByMember) {
+            $tempPassword = Str::password(12);
+
             $existingByMember->forceFill([
                 'is_active' => true,
                 'must_change_password' => true,
+                'password' => Hash::make($tempPassword),
             ])->save();
 
             if ($systemRoleName) {
                 $existingByMember->assignRole($systemRoleName);
             }
 
-            return null;
+            return $tempPassword;
         }
 
         $existingByEmail = User::query()->where('email', $email)->first();
@@ -314,20 +389,23 @@ class JumuiyaLeadershipController extends Controller
                 throw new \RuntimeException('This email is already used by another account.');
             }
 
+            $tempPassword = Str::password(12);
+
             $existingByEmail->forceFill([
                 'member_id' => $member->id,
                 'is_active' => true,
                 'must_change_password' => true,
+                'password' => Hash::make($tempPassword),
             ])->save();
 
             if ($systemRoleName) {
                 $existingByEmail->assignRole($systemRoleName);
             }
 
-            return null;
+            return $tempPassword;
         }
 
-        $tempPassword = Str::password(10);
+        $tempPassword = Str::password(12);
 
         $fullName = trim(implode(' ', array_filter([
             $member->first_name,

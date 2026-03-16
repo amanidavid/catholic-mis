@@ -19,6 +19,8 @@ class UpdateJumuiyaLeadershipRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'role_uuid' => ['nullable', 'uuid'],
+            'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date'],
             'is_active' => ['nullable', 'boolean'],
         ];

@@ -85,6 +85,8 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
         clearErrors: clearEditErrors,
         reset: resetEdit,
     } = useForm({
+        role_uuid: '',
+        start_date: '',
         end_date: '',
         is_active: true,
     });
@@ -110,6 +112,8 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
         clearEditErrors();
         resetEdit();
         setEditData({
+            role_uuid: editing?.role_uuid ?? '',
+            start_date: editing?.start_date ?? '',
             end_date: editing?.end_date ?? '',
             is_active: editing?.is_active ?? true,
         });
@@ -122,6 +126,30 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
     const openEdit = (row) => {
         setEditing(row);
         setEditOpen(true);
+    };
+
+    const enableLogin = (row) => {
+        if (!row?.uuid) return;
+        router.post(
+            route('jumuiya-leaderships.login.create', row.uuid),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    router.reload({ only: ['leaderships'] });
+                },
+            },
+        );
+    };
+
+    const disableLogin = (row) => {
+        if (!row?.uuid) return;
+        router.delete(route('jumuiya-leaderships.login.disable', row.uuid), {
+            preserveScroll: true,
+            onSuccess: () => {
+                router.reload({ only: ['leaderships'] });
+            },
+        });
     };
 
     const submitAssign = (e) => {
@@ -239,6 +267,8 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
                                                     canUpdate={canUpdate}
                                                     canDelete={canDelete}
                                                     onEdit={() => openEdit(row)}
+                                                    onEnableLogin={() => enableLogin(row)}
+                                                    onDisableLogin={() => disableLogin(row)}
                                                 />
                                             ))}
 
@@ -405,6 +435,28 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
 
                     <form onSubmit={submitEdit} className="space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
+                            <FloatingSelect
+                                id="edit_role_uuid"
+                                label="Role"
+                                value={editData.role_uuid}
+                                onChange={(e) => setEditData('role_uuid', e.target.value)}
+                                error={editErrors.role_uuid}
+                            >
+                                <option value="">Select role</option>
+                                {(roles ?? []).map((r) => (
+                                    <option key={r.uuid} value={r.uuid}>{r.name}</option>
+                                ))}
+                            </FloatingSelect>
+
+                            <FloatingInput
+                                id="edit_start_date"
+                                label="Start date"
+                                type="date"
+                                value={editData.start_date}
+                                onChange={(e) => setEditData('start_date', e.target.value)}
+                                error={editErrors.start_date}
+                            />
+
                             <FloatingInput
                                 id="edit_end_date"
                                 label="End date"
@@ -451,7 +503,7 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
     );
 }
 
-function LeadershipRow({ row, striped = false, index, canUpdate, canDelete, onEdit }) {
+function LeadershipRow({ row, striped = false, index, canUpdate, canDelete, onEdit, onEnableLogin, onDisableLogin }) {
     const [confirmOpen, setConfirmOpen] = useState(false);
 
     const destroy = () => {
@@ -483,6 +535,32 @@ function LeadershipRow({ row, striped = false, index, canUpdate, canDelete, onEd
                 {(canUpdate || canDelete) && (
                     <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
+                            {canUpdate && (
+                                row.has_login ? (
+                                    <button
+                                        type="button"
+                                        onClick={onDisableLogin}
+                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                                        title="Disable login"
+                                    >
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M18 6L6 18M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={onEnableLogin}
+                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                                        title="Create login"
+                                    >
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 11c1.657 0 3-1.567 3-3.5S13.657 4 12 4 9 5.567 9 7.5 10.343 11 12 11z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 20a7 7 0 0114 0" />
+                                        </svg>
+                                    </button>
+                                )
+                            )}
                             {canUpdate && (
                                 <button
                                     type="button"

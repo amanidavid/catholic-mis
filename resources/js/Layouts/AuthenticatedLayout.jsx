@@ -162,6 +162,12 @@ export default function AuthenticatedLayout({ header, children }) {
                 ],
             },
             {
+                group: 'Sacraments',
+                items: [
+                    { label: 'Baptisms', routeName: 'baptisms.*', href: () => route('baptisms.index'), icon: icons.church, show: can('baptisms.view') },
+                ],
+            },
+            {
                 group: 'Parish Administration',
                 items: [
                     { label: 'Parish Staff', routeName: 'parish-staff.*', href: () => route('parish-staff.index'), icon: icons.briefcase, show: can('parish-staff.view') },

@@ -18,6 +18,9 @@ use App\Http\Controllers\ParishStaff\ParishStaffPositionController;
 use App\Http\Controllers\Setup\SetupController;
 use App\Http\Controllers\Zones\ZoneController;
 use App\Http\Controllers\Clergy\InstitutionController;
+use App\Http\Controllers\Sacraments\BaptismAttachmentController;
+use App\Http\Controllers\Sacraments\BaptismController;
+use App\Http\Controllers\Sacraments\BaptismSponsorController;
 use App\Models\Structure\Parish;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -45,8 +48,6 @@ Route::get('/dashboard', function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/setup', [SetupController::class, 'index'])->name('setup.index');
     Route::post('/setup', [SetupController::class, 'store'])->name('setup.store');
@@ -81,6 +82,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/jumuiya-leaderships', [JumuiyaLeadershipController::class, 'store'])->name('jumuiya-leaderships.store');
     Route::patch('/jumuiya-leaderships/{jumuiyaLeadership}', [JumuiyaLeadershipController::class, 'update'])->name('jumuiya-leaderships.update');
     Route::delete('/jumuiya-leaderships/{jumuiyaLeadership}', [JumuiyaLeadershipController::class, 'destroy'])->name('jumuiya-leaderships.destroy');
+    Route::post('/jumuiya-leaderships/{jumuiyaLeadership}/login', [JumuiyaLeadershipController::class, 'createLogin'])->name('jumuiya-leaderships.login.create');
+    Route::delete('/jumuiya-leaderships/{jumuiyaLeadership}/login', [JumuiyaLeadershipController::class, 'disableLogin'])->name('jumuiya-leaderships.login.disable');
 
     Route::get('/jumuiya-leaderships', [JumuiyaLeadershipController::class, 'index'])->name('jumuiya-leaderships.index');
 
@@ -93,6 +96,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/families', [FamilyController::class, 'index'])->name('families.index');
     Route::get('/jumuiyas/lookup', [JumuiyaController::class, 'lookup'])->name('jumuiyas.lookup');
     Route::get('/families/lookup', [FamilyController::class, 'lookup'])->name('families.lookup');
+    Route::get('/families/parents-lookup', [FamilyController::class, 'parentsLookup'])->name('families.parents-lookup');
     Route::get('/family-relationships/lookup', [FamilyRelationshipController::class, 'lookup'])->name('family-relationships.lookup');
     Route::get('/members/lookup', [MemberController::class, 'lookup'])->name('members.lookup');
     Route::get('/institutions/lookup', [InstitutionController::class, 'lookup'])->name('institutions.lookup');
@@ -169,6 +173,25 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/{staff}/login', [ParishStaffController::class, 'createLogin'])->name('parish-staff.login.create');
         Route::delete('/{staff}/login', [ParishStaffController::class, 'disableLogin'])->name('parish-staff.login.disable');
+    });
+
+    Route::prefix('baptisms')->group(function () {
+        Route::get('/', [BaptismController::class, 'index'])->middleware('can:baptisms.view')->name('baptisms.index');
+        Route::get('/create', [BaptismController::class, 'create'])->middleware('can:baptisms.request.create')->name('baptisms.create');
+        Route::get('/{baptism}/certificate', [BaptismController::class, 'certificate'])->middleware('can:certificates.view')->name('baptisms.certificate');
+        Route::get('/{baptism}', [BaptismController::class, 'show'])->middleware('can:baptisms.view')->name('baptisms.show');
+        Route::post('/', [BaptismController::class, 'store'])->middleware('can:baptisms.request.create')->name('baptisms.store');
+        Route::post('/{baptism}/draft', [BaptismController::class, 'saveDraft'])->middleware('can:baptisms.request.create')->name('baptisms.draft.save');
+        Route::post('/{baptism}/sponsors', [BaptismSponsorController::class, 'store'])->middleware('can:baptisms.request.create')->name('baptisms.sponsors.store');
+        Route::delete('/{baptism}/sponsors/{sponsor}', [BaptismSponsorController::class, 'destroy'])->middleware('can:baptisms.request.create')->name('baptisms.sponsors.destroy');
+        Route::post('/{baptism}/attachments', [BaptismAttachmentController::class, 'store'])->middleware('can:baptisms.request.create')->name('baptisms.attachments.store');
+        Route::get('/{baptism}/attachments/{attachment}', [BaptismAttachmentController::class, 'download'])->middleware('can:baptisms.view')->name('baptisms.attachments.download');
+        Route::post('/{baptism}/submit', [BaptismController::class, 'submit'])->middleware('can:baptisms.request.submit')->name('baptisms.submit');
+        Route::post('/{baptism}/approve', [BaptismController::class, 'approve'])->middleware('can:baptisms.approve')->name('baptisms.approve');
+        Route::post('/{baptism}/reject', [BaptismController::class, 'reject'])->middleware('can:baptisms.reject')->name('baptisms.reject');
+        Route::post('/{baptism}/schedule', [BaptismController::class, 'schedule'])->middleware('can:baptisms.schedule.manage')->name('baptisms.schedule');
+        Route::post('/{baptism}/complete', [BaptismController::class, 'complete'])->middleware('can:baptisms.schedule.manage')->name('baptisms.complete');
+        Route::post('/{baptism}/issue', [BaptismController::class, 'issue'])->middleware('can:baptisms.issue')->name('baptisms.issue');
     });
 });
 

@@ -9,6 +9,8 @@ export default function SearchableMemberSelect({
     onChange,
     onSelect,
     jumuiyaUuid,
+    familyUuid,
+    excludeUuids,
     disabled = false,
     error,
 }) {
@@ -33,6 +35,8 @@ export default function SearchableMemberSelect({
                 params: {
                     q: typeof nextQuery === 'string' ? nextQuery.trim() : '',
                     jumuiya_uuid: jumuiyaUuid || undefined,
+                    family_uuid: familyUuid || undefined,
+                    exclude_uuids: Array.isArray(excludeUuids) && excludeUuids.length ? excludeUuids.join(',') : undefined,
                 },
             });
 
@@ -57,7 +61,7 @@ export default function SearchableMemberSelect({
         }, 250);
 
         return () => clearTimeout(t);
-    }, [query, jumuiyaUuid, disabled]);
+    }, [query, jumuiyaUuid, familyUuid, disabled]);
 
     useEffect(() => {
         if (disabled) {

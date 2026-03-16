@@ -1,7 +1,5 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
+import FloatingInput from '@/Components/FloatingInput';
 import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm } from '@inertiajs/react';
 
@@ -29,19 +27,17 @@ export default function ConfirmPassword() {
 
             <form onSubmit={submit}>
                 <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
-                    <TextInput
+                    <FloatingInput
                         id="password"
+                        label="Password"
                         type="password"
                         name="password"
                         value={data.password}
-                        className="mt-1 block w-full"
-                        isFocused={true}
                         onChange={(e) => setData('password', e.target.value)}
+                        error={errors.password}
+                        required
+                        isFocused={true}
                     />
-
-                    <InputError message={errors.password} className="mt-2" />
                 </div>
 
                 <div className="mt-4 flex items-center justify-end">
