@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\People\Member;
 use App\Models\Sacraments\Baptism;
 use App\Models\Sacraments\BaptismSponsor;
+use App\Traits\NormalizesNames;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -54,8 +55,8 @@ class BaptismSponsorController extends Controller
                     'baptism_id' => (int) $baptism->id,
                     'role' => $request->input('role') ?: null,
                     'member_id' => $memberId,
-                    'full_name' => $hasMember ? null : trim((string) $request->input('full_name')),
-                    'parish_name' => $request->input('parish_name') ?: null,
+                    'full_name' => $hasMember ? null : NormalizesNames::normalize($request->input('full_name'), true),
+                    'parish_name' => NormalizesNames::normalize($request->input('parish_name'), true),
                     'phone' => $request->input('phone') ?: null,
                     'email' => $request->input('email') ?: null,
                 ]);

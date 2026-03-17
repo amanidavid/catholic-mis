@@ -61,7 +61,7 @@ class UpdateParishStaffRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:20',
-                'regex:/^(\+255|0)?[67]\d{8}$/',
+                'regex:'.PhoneNormalizer::TZ_REGEX,
                 Rule::unique('parish_staff', 'phone')
                     ->ignore($staffId)
                     ->where(fn ($q) => $q->where('parish_id', $parishId)),

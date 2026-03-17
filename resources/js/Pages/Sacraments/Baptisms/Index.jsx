@@ -101,7 +101,7 @@ export default function BaptismsIndex({ baptisms, filters }) {
                             <SecondaryButton type="button" className="h-11" onClick={clearSearch}>
                                 Clear
                             </SecondaryButton>
-                            <PrimaryButton type="submit" className="h-11 bg-slate-900 hover:bg-slate-800">
+                            <PrimaryButton type="submit" className="h-11">
                                 Search
                             </PrimaryButton>
                         </div>

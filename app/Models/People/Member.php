@@ -11,10 +11,27 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Schema;
 
 class Member extends BaseModel
 {
     use Auditable;
+
+    private static ?bool $hasNameKeyColumns = null;
+
+    private static function hasNameKeyColumns(): bool
+    {
+        if (self::$hasNameKeyColumns !== null) {
+            return self::$hasNameKeyColumns;
+        }
+
+        $has = Schema::hasColumn('members', 'first_name_key')
+            && Schema::hasColumn('members', 'middle_name_key')
+            && Schema::hasColumn('members', 'last_name_key')
+            && Schema::hasColumn('members', 'full_name_key');
+
+        return self::$hasNameKeyColumns = $has;
+    }
 
     protected static function booted()
     {
@@ -24,6 +41,21 @@ class Member extends BaseModel
             $model->first_name = NormalizesNames::normalize($model->first_name);
             $model->middle_name = NormalizesNames::normalize($model->middle_name, true);
             $model->last_name = NormalizesNames::normalize($model->last_name);
+
+            if (! self::hasNameKeyColumns()) {
+                return;
+            }
+
+            $first = is_string($model->first_name ?? null) ? trim((string) $model->first_name) : '';
+            $middle = is_string($model->middle_name ?? null) ? trim((string) $model->middle_name) : '';
+            $last = is_string($model->last_name ?? null) ? trim((string) $model->last_name) : '';
+
+            $model->first_name_key = $first !== '' ? mb_strtolower($first, 'UTF-8') : null;
+            $model->middle_name_key = $middle !== '' ? mb_strtolower($middle, 'UTF-8') : null;
+            $model->last_name_key = $last !== '' ? mb_strtolower($last, 'UTF-8') : null;
+
+            $full = trim(preg_replace('/\s+/u', ' ', trim($first.' '.$middle.' '.$last)) ?? '');
+            $model->full_name_key = $full !== '' ? mb_strtolower($full, 'UTF-8') : null;
         });
     }
 

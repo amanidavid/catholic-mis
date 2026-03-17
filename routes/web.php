@@ -21,6 +21,8 @@ use App\Http\Controllers\Clergy\InstitutionController;
 use App\Http\Controllers\Sacraments\BaptismAttachmentController;
 use App\Http\Controllers\Sacraments\BaptismController;
 use App\Http\Controllers\Sacraments\BaptismSponsorController;
+use App\Http\Controllers\Sacraments\MarriageAttachmentController;
+use App\Http\Controllers\Sacraments\MarriageController;
 use App\Models\Structure\Parish;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -181,17 +183,38 @@ Route::middleware('auth')->group(function () {
         Route::get('/{baptism}/certificate', [BaptismController::class, 'certificate'])->middleware('can:certificates.view')->name('baptisms.certificate');
         Route::get('/{baptism}', [BaptismController::class, 'show'])->middleware('can:baptisms.view')->name('baptisms.show');
         Route::post('/', [BaptismController::class, 'store'])->middleware('can:baptisms.request.create')->name('baptisms.store');
-        Route::post('/{baptism}/draft', [BaptismController::class, 'saveDraft'])->middleware('can:baptisms.request.create')->name('baptisms.draft.save');
-        Route::post('/{baptism}/sponsors', [BaptismSponsorController::class, 'store'])->middleware('can:baptisms.request.create')->name('baptisms.sponsors.store');
-        Route::delete('/{baptism}/sponsors/{sponsor}', [BaptismSponsorController::class, 'destroy'])->middleware('can:baptisms.request.create')->name('baptisms.sponsors.destroy');
-        Route::post('/{baptism}/attachments', [BaptismAttachmentController::class, 'store'])->middleware('can:baptisms.request.create')->name('baptisms.attachments.store');
+        Route::post('/{baptism}/draft', [BaptismController::class, 'saveDraft'])->middleware('can:baptisms.request.edit')->name('baptisms.draft.save');
+        Route::post('/{baptism}/sponsors', [BaptismSponsorController::class, 'store'])->middleware('can:baptisms.request.edit')->name('baptisms.sponsors.store');
+        Route::delete('/{baptism}/sponsors/{sponsor}', [BaptismSponsorController::class, 'destroy'])->middleware('can:baptisms.request.edit')->name('baptisms.sponsors.destroy');
+        Route::post('/{baptism}/attachments', [BaptismAttachmentController::class, 'store'])->middleware('can:baptisms.request.edit')->name('baptisms.attachments.store');
         Route::get('/{baptism}/attachments/{attachment}', [BaptismAttachmentController::class, 'download'])->middleware('can:baptisms.view')->name('baptisms.attachments.download');
+        Route::delete('/{baptism}/attachments/{attachment}', [BaptismAttachmentController::class, 'destroy'])->middleware('can:baptisms.request.edit')->name('baptisms.attachments.destroy');
+        Route::post('/{baptism}/change-subject', [BaptismController::class, 'changeSubject'])->middleware('can:baptisms.request.edit')->name('baptisms.change-subject');
         Route::post('/{baptism}/submit', [BaptismController::class, 'submit'])->middleware('can:baptisms.request.submit')->name('baptisms.submit');
         Route::post('/{baptism}/approve', [BaptismController::class, 'approve'])->middleware('can:baptisms.approve')->name('baptisms.approve');
         Route::post('/{baptism}/reject', [BaptismController::class, 'reject'])->middleware('can:baptisms.reject')->name('baptisms.reject');
         Route::post('/{baptism}/schedule', [BaptismController::class, 'schedule'])->middleware('can:baptisms.schedule.manage')->name('baptisms.schedule');
         Route::post('/{baptism}/complete', [BaptismController::class, 'complete'])->middleware('can:baptisms.schedule.manage')->name('baptisms.complete');
         Route::post('/{baptism}/issue', [BaptismController::class, 'issue'])->middleware('can:baptisms.issue')->name('baptisms.issue');
+    });
+
+    Route::prefix('marriages')->group(function () {
+        Route::get('/', [MarriageController::class, 'index'])->middleware('can:marriages.view')->name('marriages.index');
+        Route::get('/create', [MarriageController::class, 'create'])->middleware('can:marriages.request.create')->name('marriages.create');
+        Route::get('/{marriage}', [MarriageController::class, 'show'])->middleware('can:marriages.view')->name('marriages.show');
+        Route::post('/', [MarriageController::class, 'store'])->middleware('can:marriages.request.create')->name('marriages.store');
+        Route::post('/{marriage}/draft', [MarriageController::class, 'saveDraft'])->middleware('can:marriages.request.edit')->name('marriages.draft.save');
+
+        Route::post('/{marriage}/attachments', [MarriageAttachmentController::class, 'store'])->middleware('can:marriages.request.edit')->name('marriages.attachments.store');
+        Route::get('/{marriage}/attachments/{attachment}', [MarriageAttachmentController::class, 'download'])->middleware('can:marriages.view')->name('marriages.attachments.download');
+        Route::delete('/{marriage}/attachments/{attachment}', [MarriageAttachmentController::class, 'destroy'])->middleware('can:marriages.request.edit')->name('marriages.attachments.destroy');
+
+        Route::post('/{marriage}/submit', [MarriageController::class, 'submit'])->middleware('can:marriages.request.submit')->name('marriages.submit');
+        Route::post('/{marriage}/approve', [MarriageController::class, 'approve'])->middleware('can:marriages.approve')->name('marriages.approve');
+        Route::post('/{marriage}/reject', [MarriageController::class, 'reject'])->middleware('can:marriages.reject')->name('marriages.reject');
+        Route::post('/{marriage}/schedule', [MarriageController::class, 'schedule'])->middleware('can:marriages.schedule.manage')->name('marriages.schedule');
+        Route::post('/{marriage}/complete', [MarriageController::class, 'complete'])->middleware('can:marriages.schedule.manage')->name('marriages.complete');
+        Route::post('/{marriage}/issue', [MarriageController::class, 'issue'])->middleware('can:marriages.issue')->name('marriages.issue');
     });
 });
 

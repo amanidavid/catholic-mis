@@ -32,7 +32,7 @@ class UpdateMemberRequest extends FormRequest
 
     public function rules(): array
     {
-        $memberId = $this->route('member')?->id;
+        $uuid = (string) ($this->route('member')?->uuid ?? '');
 
         return [
             'zone_uuid' => ['nullable', 'uuid'],
@@ -44,12 +44,12 @@ class UpdateMemberRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:100'],
             'gender' => ['nullable', 'in:male,female'],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'phone' => ['nullable', 'string', 'max:20', 'regex:/^(\+255|0)?[67]\d{8}$/', Rule::unique('members', 'phone')->ignore($memberId)],
+            'phone' => ['nullable', 'string', 'max:20', 'regex:'.PhoneNormalizer::TZ_REGEX, Rule::unique('members', 'phone')->ignore($uuid, 'uuid')],
             'email' => ['nullable', 'email', 'max:255'],
-            'national_id' => ['nullable', 'string', 'regex:/^\d{20}$/', Rule::unique('members', 'national_id')->ignore($memberId)],
+            'national_id' => ['nullable', 'string', 'regex:/^\d{20}$/', Rule::unique('members', 'national_id')->ignore($uuid, 'uuid')],
             'marital_status' => ['nullable', 'in:single,married,widowed,divorced'],
             'is_head_of_family' => ['sometimes', 'boolean'],
-            'is_active' => ['required', 'boolean'],
+            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 }

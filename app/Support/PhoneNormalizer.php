@@ -4,6 +4,8 @@ namespace App\Support;
 
 class PhoneNormalizer
 {
+    public const TZ_REGEX = '/^(\+255|0)?[67]\d{8}$/';
+
     public static function normalize(?string $phone): ?string
     {
         if (! is_string($phone)) {

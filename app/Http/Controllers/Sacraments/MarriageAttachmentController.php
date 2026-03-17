@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Sacraments;
 
 use App\Http\Controllers\Controller;
-use App\Models\Sacraments\Baptism;
+use App\Models\Sacraments\Marriage;
 use App\Models\Sacraments\SacramentAttachment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,15 +11,25 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class BaptismAttachmentController extends Controller
+class MarriageAttachmentController extends Controller
 {
     private const ALLOWED_TYPES = [
-        'parents_marriage_certificate',
-        'birth_certificate',
-        'sponsor_confirmation_certificate',
+        'groom_baptism_certificate',
+        'bride_baptism_certificate',
+        'groom_confirmation_certificate',
+        'bride_confirmation_certificate',
+        'groom_id_document',
+        'bride_id_document',
+        'bride_home_parish_letter',
+        'groom_home_parish_letter',
+        'groom_parents_marriage_certificate',
+        'bride_parents_marriage_certificate',
+        'marriage_class_certificate',
+        'death_certificate_previous_spouse',
+        'annulment_document',
     ];
 
-    public function store(Request $request, Baptism $baptism): RedirectResponse
+    public function store(Request $request, Marriage $marriage): RedirectResponse
     {
         $validated = $request->validate([
             'type' => ['required', 'string', 'max:100'],
@@ -29,12 +39,17 @@ class BaptismAttachmentController extends Controller
         $user = $request->user();
         $parishId = (int) ($user?->parish_id ?? 0);
 
-        if ($parishId && (int) $baptism->parish_id !== $parishId) {
+        if ($parishId && (int) $marriage->parish_id !== $parishId) {
             abort(403);
         }
 
-        if (in_array($baptism->status, [Baptism::STATUS_APPROVED, Baptism::STATUS_COMPLETED, Baptism::STATUS_ISSUED], true)) {
+        if (in_array($marriage->status, [Marriage::STATUS_APPROVED, Marriage::STATUS_COMPLETED, Marriage::STATUS_ISSUED], true)) {
             return back()->with('error', 'This request can no longer be updated.');
+        }
+
+        $type = strtolower(trim((string) $validated['type']));
+        if (! in_array($type, self::ALLOWED_TYPES, true)) {
+            return back()->with('error', 'Invalid document type.');
         }
 
         $file = $request->file('file');
@@ -43,13 +58,7 @@ class BaptismAttachmentController extends Controller
         $ext = $file->getClientOriginalExtension();
         $ext = is_string($ext) && $ext !== '' ? strtolower($ext) : 'bin';
 
-        $type = strtolower(trim((string) $validated['type']));
-
-        if (! in_array($type, self::ALLOWED_TYPES, true)) {
-            return back()->with('error', 'Invalid document type.');
-        }
-
-        $relativePath = 'sacraments/baptisms/'.$baptism->uuid.'/'.$type.'/'.$attachmentUuid.'.'.$ext;
+        $relativePath = 'sacraments/marriages/'.$marriage->uuid.'/'.$type.'/'.$attachmentUuid.'.'.$ext;
 
         $stored = Storage::disk('local')->putFileAs(
             dirname($relativePath),
@@ -61,14 +70,31 @@ class BaptismAttachmentController extends Controller
             return back()->with('error', 'Failed to upload file.');
         }
 
+        $oldDisk = null;
+        $oldPath = null;
+
         try {
             $sha256 = hash_file('sha256', Storage::disk('local')->path($relativePath));
 
-            DB::transaction(function () use ($baptism, $file, $relativePath, $sha256, $type, $user): void {
+            DB::transaction(function () use ($marriage, $type, $file, $relativePath, $sha256, $user, &$oldDisk, &$oldPath): void {
+                $existing = SacramentAttachment::query()
+                    ->where('entity_type', 'marriage')
+                    ->where('entity_id', (int) $marriage->id)
+                    ->where('type', $type)
+                    ->orderByDesc('id')
+                    ->first();
+
+                if ($existing) {
+                    $oldDisk = $existing->storage_disk ?: 'local';
+                    $oldPath = $existing->storage_path;
+                    $existing->delete();
+                }
+
                 SacramentAttachment::create([
-                    'parish_id' => (int) $baptism->parish_id,
-                    'entity_type' => 'baptism',
-                    'entity_id' => (int) $baptism->id,
+                    'uuid' => (string) Str::uuid(),
+                    'parish_id' => (int) $marriage->parish_id,
+                    'entity_type' => 'marriage',
+                    'entity_id' => (int) $marriage->id,
                     'type' => $type,
                     'original_name' => (string) $file->getClientOriginalName(),
                     'mime_type' => 'application/pdf',
@@ -84,19 +110,29 @@ class BaptismAttachmentController extends Controller
             return back()->with('error', 'Failed to save uploaded file.');
         }
 
+        if (is_string($oldPath) && $oldPath !== '') {
+            try {
+                $disk = Storage::disk(is_string($oldDisk) && $oldDisk !== '' ? $oldDisk : 'local');
+                if ($disk->exists($oldPath)) {
+                    $disk->delete($oldPath);
+                }
+            } catch (\Throwable) {
+            }
+        }
+
         return back()->with('success', 'File uploaded.');
     }
 
-    public function destroy(Request $request, Baptism $baptism, SacramentAttachment $attachment): RedirectResponse
+    public function destroy(Request $request, Marriage $marriage, SacramentAttachment $attachment): RedirectResponse
     {
         $user = $request->user();
         $parishId = (int) ($user?->parish_id ?? 0);
 
-        if ($parishId && (int) $baptism->parish_id !== $parishId) {
+        if ($parishId && (int) $marriage->parish_id !== $parishId) {
             abort(403);
         }
 
-        if ($attachment->entity_type !== 'baptism' || (int) $attachment->entity_id !== (int) $baptism->id) {
+        if ($attachment->entity_type !== 'marriage' || (int) $attachment->entity_id !== (int) $marriage->id) {
             abort(404);
         }
 
@@ -104,7 +140,7 @@ class BaptismAttachmentController extends Controller
             abort(403);
         }
 
-        if (in_array($baptism->status, [Baptism::STATUS_APPROVED, Baptism::STATUS_COMPLETED, Baptism::STATUS_ISSUED], true)) {
+        if (in_array($marriage->status, [Marriage::STATUS_APPROVED, Marriage::STATUS_COMPLETED, Marriage::STATUS_ISSUED], true)) {
             return back()->with('error', 'This request can no longer be updated.');
         }
 
@@ -124,16 +160,16 @@ class BaptismAttachmentController extends Controller
         }
     }
 
-    public function download(Request $request, Baptism $baptism, SacramentAttachment $attachment)
+    public function download(Request $request, Marriage $marriage, SacramentAttachment $attachment)
     {
         $user = $request->user();
         $parishId = (int) ($user?->parish_id ?? 0);
 
-        if ($parishId && (int) $baptism->parish_id !== $parishId) {
+        if ($parishId && (int) $marriage->parish_id !== $parishId) {
             abort(403);
         }
 
-        if ($attachment->entity_type !== 'baptism' || (int) $attachment->entity_id !== (int) $baptism->id) {
+        if ($attachment->entity_type !== 'marriage' || (int) $attachment->entity_id !== (int) $marriage->id) {
             abort(404);
         }
 

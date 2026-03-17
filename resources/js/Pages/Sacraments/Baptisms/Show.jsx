@@ -3,9 +3,11 @@ import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import SearchableMemberSelect from '@/Components/SearchableMemberSelect';
+import SearchableFamilySelect from '@/Components/SearchableFamilySelect';
 import Modal from '@/Components/Modal';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
+import axios from 'axios';
 
 export default function BaptismsShow({ baptism, marriageCertificate, schedule, scheduleChanges }) {
     const { auth } = usePage().props;
@@ -16,6 +18,8 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
 
     const [rejectOpen, setRejectOpen] = useState(false);
     const [scheduleOpen, setScheduleOpen] = useState(false);
+    const [editBaptismOpen, setEditBaptismOpen] = useState(false);
+    const [changeSubjectOpen, setChangeSubjectOpen] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewUrl, setPreviewUrl] = useState('');
     const [previewTitle, setPreviewTitle] = useState('Document preview');
@@ -35,6 +39,18 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
 
     const approveForm = useForm({});
     const rejectForm = useForm({ reason: '' });
+    const editBaptismForm = useForm({
+        birth_date: baptismData?.birth_date ?? '',
+        birth_town: baptismData?.birth_town ?? '',
+        residence: baptismData?.residence ?? '',
+    });
+
+    const changeSubjectForm = useForm({
+        family_uuid: baptismData?.family?.uuid ?? '',
+        member_uuid: baptismData?.member?.uuid ?? '',
+    });
+
+    const [subjectParents, setSubjectParents] = useState({ father: null, mother: null });
     const scheduleForm = useForm({
         scheduled_for: schedule?.scheduled_for ? schedule.scheduled_for.replace(' ', 'T') : '',
         location_text: schedule?.location_text ?? '',
@@ -60,7 +76,7 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
     }, [baptismData, submitForm.data.sponsor_member_uuid, submitForm.data.sponsor_full_name]);
 
     const attachmentsComplete = useMemo(() => {
-        const hasMarriageExisting = !!marriageCertificate;
+        const hasMarriageExisting = (baptismData?.attachments ?? []).some((a) => a?.type === 'parents_marriage_certificate') || !!marriageCertificate;
         const hasSponsorConfirmExisting = (baptismData?.attachments ?? []).some((a) => a?.type === 'sponsor_confirmation_certificate');
 
         const hasMarriage = hasMarriageExisting || !!submitForm.data.parents_marriage_certificate;
@@ -68,6 +84,149 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
 
         return hasMarriage && hasSponsorConfirm;
     }, [baptismData, marriageCertificate, submitForm.data.parents_marriage_certificate, submitForm.data.sponsor_confirmation_certificate]);
+
+    const attachmentsByType = useMemo(() => {
+        const all = Array.isArray(baptismData?.attachments) ? baptismData.attachments : [];
+        const byType = {
+            parents_marriage_certificate: [],
+            sponsor_confirmation_certificate: [],
+            birth_certificate: [],
+        };
+
+        all.forEach((a) => {
+            const t = (a?.type ?? '').toString();
+            if (byType[t]) byType[t].push(a);
+        });
+
+        Object.keys(byType).forEach((k) => {
+            byType[k] = byType[k].slice().sort((x, y) => (y?.id ?? 0) - (x?.id ?? 0));
+        });
+
+        return byType;
+    }, [baptismData]);
+
+    const fetchSubjectParents = async (familyUuid) => {
+        if (!familyUuid) {
+            setSubjectParents({ father: null, mother: null });
+            return;
+        }
+
+        try {
+            const res = await axios.get(route('families.parents-lookup'), {
+                params: { family_uuid: familyUuid },
+            });
+            const d = res?.data?.data;
+            setSubjectParents({ father: d?.father ?? null, mother: d?.mother ?? null });
+        } catch {
+            setSubjectParents({ father: null, mother: null });
+        }
+    };
+
+    const onChangeSubject = (e) => {
+        e?.preventDefault();
+        changeSubjectForm.post(route('baptisms.change-subject', baptismData.uuid), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setChangeSubjectOpen(false);
+                router.reload({ only: ['baptism', 'marriageCertificate'] });
+            },
+        });
+    };
+
+    const AttachmentList = ({ type, title, hint, fileField, error }) => {
+        const items = attachmentsByType?.[type] ?? [];
+
+        return (
+            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                <div className="text-sm font-semibold text-slate-900">{title}</div>
+                {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
+
+                {items.length === 0 ? (
+                    <div className="mt-4 text-sm text-rose-700">Not uploaded.</div>
+                ) : (
+                    <div className="mt-4 space-y-2">
+                        {items.map((a) => (
+                            <div key={a.uuid} className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <div className="text-sm font-semibold text-slate-900">{a.original_name}</div>
+                                    <div className="mt-0.5 text-xs text-slate-500">{a.created_at ?? ''}</div>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <SecondaryButton
+                                        type="button"
+                                        className="h-10"
+                                        onClick={() => openPreview(
+                                            route('baptisms.attachments.download', { baptism: baptismData.uuid, attachment: a.uuid, disposition: 'inline' }),
+                                            a.original_name
+                                        )}
+                                    >
+                                        Preview
+                                    </SecondaryButton>
+                                    <SecondaryButton
+                                        type="button"
+                                        className="h-10"
+                                        onClick={() => window.location.assign(route('baptisms.attachments.download', { baptism: baptismData.uuid, attachment: a.uuid }))}
+                                    >
+                                        Download
+                                    </SecondaryButton>
+                                    {canEditDraft && (
+                                        <SecondaryButton
+                                            type="button"
+                                            className="h-10 border border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100"
+                                            onClick={() => removeAttachment(a.uuid)}
+                                        >
+                                            Remove
+                                        </SecondaryButton>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {canEditDraft && (
+                    <form
+                        className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            const file = submitForm.data?.[fileField];
+                            if (!file) return;
+                            router.post(
+                                route('baptisms.attachments.store', baptismData.uuid),
+                                { type, file },
+                                {
+                                    forceFormData: true,
+                                    preserveScroll: true,
+                                    onSuccess: () => {
+                                        submitForm.setData(fileField, null);
+                                        router.reload({ only: ['baptism', 'marriageCertificate'] });
+                                    },
+                                }
+                            );
+                        }}
+                    >
+                        <div className="flex-1">
+                            <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor={`${type}_add`}>Add document</label>
+                            <input
+                                id={`${type}_add`}
+                                type="file"
+                                accept="application/pdf"
+                                disabled={submitForm.processing}
+                                onChange={(e) => submitForm.setData(fileField, e.target.files?.[0] ?? null)}
+                                className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                            />
+                            <InputError className="mt-2" message={error} />
+                        </div>
+                        <div className="sm:pl-2">
+                            <PrimaryButton type="submit" className="h-11" disabled={submitForm.processing || !submitForm.data?.[fileField]}>
+                                Add
+                            </PrimaryButton>
+                        </div>
+                    </form>
+                )}
+            </div>
+        );
+    };
 
     const allComplete = basicComplete && sponsorComplete && attachmentsComplete;
 
@@ -87,6 +246,17 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
         });
     };
 
+    const onSaveBaptismDetails = (e) => {
+        e?.preventDefault();
+        editBaptismForm.post(route('baptisms.draft.save', baptismData.uuid), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditBaptismOpen(false);
+                router.reload({ only: ['baptism'] });
+            },
+        });
+    };
+
     const removeSponsor = (sponsorUuid) => {
         router.delete(route('baptisms.sponsors.destroy', { baptism: baptismData.uuid, sponsor: sponsorUuid }), {
             preserveScroll: true,
@@ -96,7 +266,17 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
         });
     };
 
-    const canEditDraft = can('baptisms.request.create') && baptismData?.status === 'draft';
+    const removeAttachment = (attachmentUuid) => {
+        router.delete(route('baptisms.attachments.destroy', { baptism: baptismData.uuid, attachment: attachmentUuid }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                router.reload({ only: ['baptism', 'marriageCertificate'] });
+            },
+        });
+    };
+
+    const canEditDraft = can('baptisms.request.edit')
+        && ['draft', 'submitted', 'rejected'].includes(baptismData?.status);
     const canSubmit = can('baptisms.request.submit') && baptismData?.status === 'draft';
 
     const canApprove = can('baptisms.approve') && baptismData?.status === 'submitted';
@@ -262,7 +442,29 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
                     <div className={canEditDraft ? 'lg:col-span-2' : 'lg:col-span-5'}>
                         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                            <div className="text-sm font-semibold text-slate-900">Request details</div>
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="text-sm font-semibold text-slate-900">Request details</div>
+                                {canEditDraft && (
+                                    <div className="flex items-center gap-2">
+                                        <SecondaryButton type="button" className="h-10" onClick={() => {
+                                            changeSubjectForm.setData('family_uuid', baptismData?.family?.uuid ?? '');
+                                            changeSubjectForm.setData('member_uuid', baptismData?.member?.uuid ?? '');
+                                            fetchSubjectParents(baptismData?.family?.uuid ?? '');
+                                            setChangeSubjectOpen(true);
+                                        }}>
+                                            Change child
+                                        </SecondaryButton>
+                                        <SecondaryButton type="button" className="h-10" onClick={() => {
+                                            editBaptismForm.setData('birth_date', baptismData?.birth_date ?? '');
+                                            editBaptismForm.setData('birth_town', baptismData?.birth_town ?? '');
+                                            editBaptismForm.setData('residence', baptismData?.residence ?? '');
+                                            setEditBaptismOpen(true);
+                                        }}>
+                                            Edit
+                                        </SecondaryButton>
+                                    </div>
+                                )}
+                            </div>
                             <dl className="mt-4 space-y-3 text-sm">
                                 <div className="flex items-start justify-between gap-3">
                                     <dt className="text-slate-500">Child</dt>
@@ -312,39 +514,49 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                                     <dt className="text-slate-500">Created</dt>
                                     <dd className="text-right text-slate-900">{baptismData?.created_at ?? '—'}</dd>
                                 </div>
+                                <div className="flex items-start justify-between gap-3">
+                                    <dt className="text-slate-500">Birth date</dt>
+                                    <dd className="text-right text-slate-900">{baptismData?.birth_date ?? '—'}</dd>
+                                </div>
+                                <div className="flex items-start justify-between gap-3">
+                                    <dt className="text-slate-500">Birth town</dt>
+                                    <dd className="text-right text-slate-900">{baptismData?.birth_town ?? '—'}</dd>
+                                </div>
+                                <div className="flex items-start justify-between gap-3">
+                                    <dt className="text-slate-500">Residence</dt>
+                                    <dd className="text-right text-slate-900">{baptismData?.residence ?? '—'}</dd>
+                                </div>
                             </dl>
                         </div>
 
-                        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                            <div className="text-sm font-semibold text-slate-900">Parents marriage certificate</div>
-                            <p className="mt-1 text-xs text-slate-500">Required before submission. This is for the parents (not the sponsor). PDF only, max 3MB.</p>
+                        <div className="mt-6">
+                            <AttachmentList
+                                type="parents_marriage_certificate"
+                                title="Parents marriage certificate"
+                                hint="Required before submission. This is for the parents (not the sponsor). PDF only, max 3MB."
+                                fileField="parents_marriage_certificate"
+                                error={submitForm.errors.parents_marriage_certificate}
+                            />
+                        </div>
 
-                            {marriageCertificate ? (
-                                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                    <div className="text-sm font-semibold text-slate-900">{marriageCertificate.original_name}</div>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        <SecondaryButton
-                                            type="button"
-                                            className="h-11"
-                                            onClick={() => openPreview(
-                                                route('baptisms.attachments.download', { baptism: baptismData.uuid, attachment: marriageCertificate.uuid, disposition: 'inline' }),
-                                                marriageCertificate.original_name
-                                            )}
-                                        >
-                                            Preview
-                                        </SecondaryButton>
-                                        <SecondaryButton
-                                            type="button"
-                                            className="h-11"
-                                            onClick={() => window.location.assign(route('baptisms.attachments.download', { baptism: baptismData.uuid, attachment: marriageCertificate.uuid }))}
-                                        >
-                                            Download
-                                        </SecondaryButton>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="mt-4 text-sm text-rose-700">Not uploaded.</div>
-                            )}
+                        <div className="mt-6">
+                            <AttachmentList
+                                type="sponsor_confirmation_certificate"
+                                title="Sponsor confirmation certificate"
+                                hint="Required before submission. This is for the sponsor (not the parents). PDF only, max 3MB."
+                                fileField="sponsor_confirmation_certificate"
+                                error={submitForm.errors.sponsor_confirmation_certificate}
+                            />
+                        </div>
+
+                        <div className="mt-6">
+                            <AttachmentList
+                                type="birth_certificate"
+                                title="Birth certificate"
+                                hint="Optional. PDF only, max 3MB."
+                                fileField="birth_certificate"
+                                error={submitForm.errors.birth_certificate}
+                            />
                         </div>
 
                         <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
@@ -372,7 +584,7 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                                                     {(s?.member?.email ?? s?.email) ? ` • ${s?.member?.email ?? s?.email}` : ''}
                                                 </div>
                                             </div>
-                                            {baptismData?.status === 'draft' && can('baptisms.request.create') && (
+                                            {canEditDraft && (
                                                 <button
                                                     type="button"
                                                     onClick={() => removeSponsor(s.uuid)}
@@ -394,8 +606,8 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                     {canEditDraft && (
                         <div className="lg:col-span-3">
                             <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                                <div className="text-sm font-semibold text-slate-900">Edit draft</div>
-                                <p className="mt-1 text-xs text-slate-500">Save progress now, then submit for parish review when ready.</p>
+                                <div className="text-sm font-semibold text-slate-900">Edit request</div>
+                                <p className="mt-1 text-xs text-slate-500">You can edit while the request is not approved. If it was rejected, fix the issues then submit again.</p>
 
                                 <form onSubmit={onSubmitRequest} className="mt-4 space-y-4">
                                     {submitForm.errors.draft && (
@@ -490,51 +702,6 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                                         </div>
 
                                         <InputError className="mt-2" message={submitForm.errors.sponsor_member_uuid} />
-                                    </div>
-
-                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">Documents</div>
-
-                                        <div className="mt-3 grid gap-4 md:grid-cols-2">
-                                            <div>
-                                                <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="parents_marriage_certificate">Parents marriage certificate (required)</label>
-                                                <input
-                                                    id="parents_marriage_certificate"
-                                                    type="file"
-                                                    accept="application/pdf"
-                                                    disabled={submitForm.processing}
-                                                    onChange={(e) => submitForm.setData('parents_marriage_certificate', e.target.files?.[0] ?? null)}
-                                                    className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
-                                                />
-                                                <InputError className="mt-2" message={submitForm.errors.parents_marriage_certificate} />
-                                            </div>
-
-                                            <div>
-                                                <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="sponsor_confirmation_certificate">Sponsor confirmation certificate (required)</label>
-                                                <input
-                                                    id="sponsor_confirmation_certificate"
-                                                    type="file"
-                                                    accept="application/pdf"
-                                                    disabled={submitForm.processing}
-                                                    onChange={(e) => submitForm.setData('sponsor_confirmation_certificate', e.target.files?.[0] ?? null)}
-                                                    className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
-                                                />
-                                                <InputError className="mt-2" message={submitForm.errors.sponsor_confirmation_certificate} />
-                                            </div>
-
-                                            <div className="md:col-span-2">
-                                                <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="birth_certificate">Birth certificate (optional)</label>
-                                                <input
-                                                    id="birth_certificate"
-                                                    type="file"
-                                                    accept="application/pdf"
-                                                    disabled={submitForm.processing}
-                                                    onChange={(e) => submitForm.setData('birth_certificate', e.target.files?.[0] ?? null)}
-                                                    className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
-                                                />
-                                                <InputError className="mt-2" message={submitForm.errors.birth_certificate} />
-                                            </div>
-                                        </div>
                                     </div>
 
                                     {!allComplete && (
@@ -661,6 +828,122 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                             <div className="p-6 text-sm text-slate-600">No document selected.</div>
                         )}
                     </div>
+                </div>
+            </Modal>
+
+            <Modal show={editBaptismOpen} onClose={() => setEditBaptismOpen(false)}>
+                <div className="p-6">
+                    <div className="text-lg font-semibold text-slate-900">Edit baptism request</div>
+                    <p className="mt-1 text-sm text-slate-600">Update the baptism request details. Allowed only before approval.</p>
+
+                    <form onSubmit={onSaveBaptismDetails} className="mt-4 space-y-4">
+                        <div>
+                            <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="edit_birth_date">Birth date</label>
+                            <input
+                                id="edit_birth_date"
+                                type="date"
+                                value={editBaptismForm.data.birth_date}
+                                onChange={(e) => editBaptismForm.setData('birth_date', e.target.value)}
+                                disabled={editBaptismForm.processing}
+                                className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                            />
+                            <InputError className="mt-2" message={editBaptismForm.errors.birth_date} />
+                        </div>
+
+                        <div>
+                            <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="edit_birth_town">Birth town</label>
+                            <input
+                                id="edit_birth_town"
+                                type="text"
+                                value={editBaptismForm.data.birth_town}
+                                onChange={(e) => editBaptismForm.setData('birth_town', e.target.value)}
+                                disabled={editBaptismForm.processing}
+                                className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                            />
+                            <InputError className="mt-2" message={editBaptismForm.errors.birth_town} />
+                        </div>
+
+                        <div>
+                            <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="edit_residence">Residence</label>
+                            <input
+                                id="edit_residence"
+                                type="text"
+                                value={editBaptismForm.data.residence}
+                                onChange={(e) => editBaptismForm.setData('residence', e.target.value)}
+                                disabled={editBaptismForm.processing}
+                                className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                            />
+                            <InputError className="mt-2" message={editBaptismForm.errors.residence} />
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-2">
+                            <SecondaryButton type="button" className="h-11" onClick={() => setEditBaptismOpen(false)}>
+                                Cancel
+                            </SecondaryButton>
+                            <PrimaryButton type="submit" className="h-11" disabled={editBaptismForm.processing}>
+                                Save
+                            </PrimaryButton>
+                        </div>
+                    </form>
+                </div>
+            </Modal>
+
+            <Modal show={changeSubjectOpen} onClose={() => setChangeSubjectOpen(false)}>
+                <div className="p-6">
+                    <div className="text-lg font-semibold text-slate-900">Change family & child</div>
+                    <p className="mt-1 text-sm text-slate-600">This will clear sponsors and uploaded documents so you can start again with the correct child.</p>
+
+                    <form onSubmit={onChangeSubject} className="mt-4 space-y-4">
+                        <div>
+                            <SearchableFamilySelect
+                                id="change_family_uuid"
+                                label="Family"
+                                value={changeSubjectForm.data.family_uuid}
+                                onChange={(uuid) => {
+                                    changeSubjectForm.setData('family_uuid', uuid);
+                                    changeSubjectForm.setData('member_uuid', '');
+                                    fetchSubjectParents(uuid);
+                                }}
+                                disabled={changeSubjectForm.processing}
+                                error={changeSubjectForm.errors.family_uuid}
+                            />
+                        </div>
+
+                        <div>
+                            <SearchableMemberSelect
+                                id="change_member_uuid"
+                                label="Child"
+                                value={changeSubjectForm.data.member_uuid}
+                                onChange={(uuid) => changeSubjectForm.setData('member_uuid', uuid)}
+                                familyUuid={changeSubjectForm.data.family_uuid}
+                                excludeUuids={[subjectParents?.father?.uuid, subjectParents?.mother?.uuid].filter(Boolean)}
+                                disabled={changeSubjectForm.processing || !changeSubjectForm.data.family_uuid}
+                                error={changeSubjectForm.errors.member_uuid}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Father</div>
+                                <div className="mt-1 text-sm font-semibold text-slate-900">{subjectParents?.father?.name ?? '—'}</div>
+                                <div className="mt-1 text-xs text-slate-500">{subjectParents?.father?.marital_status ?? ''}</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mother</div>
+                                <div className="mt-1 text-sm font-semibold text-slate-900">{subjectParents?.mother?.name ?? '—'}</div>
+                                <div className="mt-1 text-xs text-slate-500">{subjectParents?.mother?.marital_status ?? ''}</div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-2">
+                            <SecondaryButton type="button" className="h-11" onClick={() => setChangeSubjectOpen(false)}>
+                                Cancel
+                            </SecondaryButton>
+                            <PrimaryButton type="submit" className="h-11" disabled={changeSubjectForm.processing}>
+                                Save
+                            </PrimaryButton>
+                        </div>
+                    </form>
                 </div>
             </Modal>
         </AuthenticatedLayout>

@@ -80,12 +80,27 @@ class RolePermissionSeeder extends Seeder
             'settings.manage',
 
             'baptisms.view',
+            'baptisms.parish.view',
             'baptisms.request.create',
+            'baptisms.request.edit',
             'baptisms.request.submit',
             'baptisms.approve',
             'baptisms.reject',
             'baptisms.schedule.manage',
             'baptisms.issue',
+
+            'marriages.view',
+            'marriages.parish.view',
+            'marriages.request.create',
+            'marriages.request.edit',
+            'marriages.request.submit',
+            'marriages.approve',
+            'marriages.reject',
+            'marriages.schedule.manage',
+            'marriages.issue',
+
+            'marriages.cross_parish.search',
+            'marriages.cross_parish.create',
 
             'certificates.view',
             'certificates.issue',

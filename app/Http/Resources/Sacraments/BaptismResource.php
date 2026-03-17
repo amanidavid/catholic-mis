@@ -38,6 +38,8 @@ class BaptismResource extends JsonResource
             'certificate_no' => $this->certificate_no,
 
             'birth_date' => $this->birth_date?->format('Y-m-d'),
+            'birth_town' => $this->birth_town,
+            'residence' => $this->residence,
             'baptism_date' => $this->baptism_date?->format('Y-m-d'),
 
             'created_at' => $this->created_at?->format('Y-m-d H:i'),
@@ -91,31 +93,83 @@ class BaptismResource extends JsonResource
                 ]
                 : null,
 
-            'father' => $this->whenLoaded('fatherMember', function () {
-                $f = $this->fatherMember;
-                if (! $f) return null;
-                return [
-                    'id' => (int) $f->id,
-                    'uuid' => (string) $f->uuid,
-                    'full_name' => trim(implode(' ', array_filter([$f->first_name, $f->middle_name, $f->last_name]))),
-                    'marital_status' => $f->marital_status,
-                    'phone' => $f->phone,
-                    'email' => $f->email,
-                ];
-            }),
+            'father' => $this->relationLoaded('fatherMember')
+                ? (function () {
+                    $f = $this->fatherMember;
+                    if (! $f) {
+                        $name = is_string($this->father_name ?? null) ? trim((string) $this->father_name) : '';
+                        return $name !== ''
+                            ? [
+                                'id' => null,
+                                'uuid' => null,
+                                'full_name' => $name,
+                                'marital_status' => null,
+                                'phone' => null,
+                                'email' => null,
+                            ]
+                            : null;
+                    }
+                    return [
+                        'id' => (int) $f->id,
+                        'uuid' => (string) $f->uuid,
+                        'full_name' => trim(implode(' ', array_filter([$f->first_name, $f->middle_name, $f->last_name]))),
+                        'marital_status' => $f->marital_status,
+                        'phone' => $f->phone,
+                        'email' => $f->email,
+                    ];
+                })()
+                : (function () {
+                    $name = is_string($this->father_name ?? null) ? trim((string) $this->father_name) : '';
+                    return $name !== ''
+                        ? [
+                            'id' => null,
+                            'uuid' => null,
+                            'full_name' => $name,
+                            'marital_status' => null,
+                            'phone' => null,
+                            'email' => null,
+                        ]
+                        : null;
+                })(),
 
-            'mother' => $this->whenLoaded('motherMember', function () {
-                $m = $this->motherMember;
-                if (! $m) return null;
-                return [
-                    'id' => (int) $m->id,
-                    'uuid' => (string) $m->uuid,
-                    'full_name' => trim(implode(' ', array_filter([$m->first_name, $m->middle_name, $m->last_name]))),
-                    'marital_status' => $m->marital_status,
-                    'phone' => $m->phone,
-                    'email' => $m->email,
-                ];
-            }),
+            'mother' => $this->relationLoaded('motherMember')
+                ? (function () {
+                    $m = $this->motherMember;
+                    if (! $m) {
+                        $name = is_string($this->mother_name ?? null) ? trim((string) $this->mother_name) : '';
+                        return $name !== ''
+                            ? [
+                                'id' => null,
+                                'uuid' => null,
+                                'full_name' => $name,
+                                'marital_status' => null,
+                                'phone' => null,
+                                'email' => null,
+                            ]
+                            : null;
+                    }
+                    return [
+                        'id' => (int) $m->id,
+                        'uuid' => (string) $m->uuid,
+                        'full_name' => trim(implode(' ', array_filter([$m->first_name, $m->middle_name, $m->last_name]))),
+                        'marital_status' => $m->marital_status,
+                        'phone' => $m->phone,
+                        'email' => $m->email,
+                    ];
+                })()
+                : (function () {
+                    $name = is_string($this->mother_name ?? null) ? trim((string) $this->mother_name) : '';
+                    return $name !== ''
+                        ? [
+                            'id' => null,
+                            'uuid' => null,
+                            'full_name' => $name,
+                            'marital_status' => null,
+                            'phone' => null,
+                            'email' => null,
+                        ]
+                        : null;
+                })(),
 
             'issued_by' => $this->whenLoaded('issuedBy', function () {
                 $u = $this->issuedBy;

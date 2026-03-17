@@ -11,6 +11,7 @@ export default function SearchableMemberSelect({
     jumuiyaUuid,
     familyUuid,
     excludeUuids,
+    allowExternal = false,
     disabled = false,
     error,
 }) {
@@ -37,6 +38,7 @@ export default function SearchableMemberSelect({
                     jumuiya_uuid: jumuiyaUuid || undefined,
                     family_uuid: familyUuid || undefined,
                     exclude_uuids: Array.isArray(excludeUuids) && excludeUuids.length ? excludeUuids.join(',') : undefined,
+                    allow_external: allowExternal ? 1 : undefined,
                 },
             });
 
@@ -165,7 +167,9 @@ export default function SearchableMemberSelect({
                                     >
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="font-semibold">{opt.name}</div>
-                                            <div className="text-xs text-slate-500">{opt.email || opt.phone || ''}</div>
+                                            <div className="text-xs text-slate-500">
+                                                {opt.jumuiya_name ? opt.jumuiya_name : (opt.email || opt.phone || '')}
+                                            </div>
                                         </div>
                                     </Combobox.Option>
                                 ))

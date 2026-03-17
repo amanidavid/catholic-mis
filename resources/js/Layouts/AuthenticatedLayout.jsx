@@ -16,6 +16,19 @@ const icons = {
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 21v-6a3 3 0 016 0v6" />
         </svg>
     ),
+    baptism: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 2s5 6 5 10a5 5 0 01-10 0c0-4 5-10 5-10z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 20c2.5-1.5 5.5-1.5 8 0s5.5 1.5 8 0" />
+        </svg>
+    ),
+    marriage: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.5 14.5a4.5 4.5 0 116.4-6.4" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.5 9.5a4.5 4.5 0 11-6.4 6.4" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.2 10.2l3.6 3.6" />
+        </svg>
+    ),
     map: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z" />
@@ -164,7 +177,8 @@ export default function AuthenticatedLayout({ header, children }) {
             {
                 group: 'Sacraments',
                 items: [
-                    { label: 'Baptisms', routeName: 'baptisms.*', href: () => route('baptisms.index'), icon: icons.church, show: can('baptisms.view') },
+                    { label: 'Baptisms', routeName: 'baptisms.*', href: () => route('baptisms.index'), icon: icons.baptism, show: can('baptisms.view') },
+                    { label: 'Marriages', routeName: 'marriages.*', href: () => route('marriages.index'), icon: icons.marriage, show: can('marriages.view') },
                 ],
             },
             {

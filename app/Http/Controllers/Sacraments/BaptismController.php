@@ -15,6 +15,7 @@ use App\Models\Structure\Jumuiya;
 use App\Http\Resources\Sacraments\BaptismResource;
 use App\Services\Certificates\CertificateService;
 use App\Support\PhoneNormalizer;
+use App\Traits\NormalizesNames;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -22,6 +23,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -29,6 +31,92 @@ use Inertia\Response;
 
 class BaptismController extends Controller
 {
+    private static ?bool $membersHaveNameKeyColumns = null;
+    private static ?array $parentRelationshipIds = null;
+
+    private function membersHaveNameKeyColumns(): bool
+    {
+        if (self::$membersHaveNameKeyColumns !== null) {
+            return self::$membersHaveNameKeyColumns;
+        }
+
+        $has = Schema::hasColumn('members', 'first_name_key')
+            && Schema::hasColumn('members', 'middle_name_key')
+            && Schema::hasColumn('members', 'last_name_key')
+            && Schema::hasColumn('members', 'full_name_key');
+
+        return self::$membersHaveNameKeyColumns = $has;
+    }
+
+    private function parentRelationshipIds(): array
+    {
+        if (self::$parentRelationshipIds !== null) {
+            return self::$parentRelationshipIds;
+        }
+
+        $fatherId = (int) (FamilyRelationship::query()->where('name', 'father')->value('id') ?? 0);
+        if (! $fatherId) {
+            $fatherId = (int) (FamilyRelationship::query()->whereRaw('lower(name) = ?', ['father'])->value('id') ?? 0);
+        }
+
+        $motherId = (int) (FamilyRelationship::query()->where('name', 'mother')->value('id') ?? 0);
+        if (! $motherId) {
+            $motherId = (int) (FamilyRelationship::query()->whereRaw('lower(name) = ?', ['mother'])->value('id') ?? 0);
+        }
+
+        return self::$parentRelationshipIds = ['father' => $fatherId, 'mother' => $motherId];
+    }
+
+    private function activeLeadershipJumuiyaIds(int $memberId): array
+    {
+        if (! $memberId) {
+            return [];
+        }
+
+        $today = now()->toDateString();
+
+        return JumuiyaLeadership::query()
+            ->where('member_id', $memberId)
+            ->where('is_active', true)
+            ->where(function ($q) use ($today) {
+                $q->whereNull('start_date')->orWhere('start_date', '<=', $today);
+            })
+            ->where(function ($q) use ($today) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', $today);
+            })
+            ->pluck('jumuiya_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->values()
+            ->all();
+    }
+
+    private function canViewBaptism(Request $request, Baptism $baptism): bool
+    {
+        $user = $request->user();
+        if (! $user) {
+            return false;
+        }
+
+        $canGlobalView = $user->can('users.manage')
+            || $user->can('permissions.manage');
+
+        if ($canGlobalView) {
+            return true;
+        }
+
+        $parishId = (int) ($user->parish_id ?? 0);
+        if ($parishId && (int) $baptism->parish_id === $parishId && $user->can('baptisms.parish.view')) {
+            return true;
+        }
+
+        $memberId = (int) ($user->member_id ?? $user->member?->id ?? 0);
+        $leaderJumuiyaIds = $this->activeLeadershipJumuiyaIds($memberId);
+
+        return (int) $baptism->origin_jumuiya_id > 0
+            && in_array((int) $baptism->origin_jumuiya_id, $leaderJumuiyaIds, true);
+    }
+
     public function create(Request $request): Response
     {
         return Inertia::render('Sacraments/Baptisms/Create');
@@ -36,8 +124,7 @@ class BaptismController extends Controller
 
     public function show(Request $request, Baptism $baptism): Response
     {
-        $parishId = (int) ($request->user()?->parish_id ?? 0);
-        if ($parishId && (int) $baptism->parish_id !== $parishId) {
+        if (! $this->canViewBaptism($request, $baptism)) {
             abort(404);
         }
 
@@ -52,6 +139,32 @@ class BaptismController extends Controller
             'attachments',
             'sponsors.member:id,uuid,first_name,middle_name,last_name,phone,email',
         ]);
+
+        if (! $baptism->fatherMember || ! $baptism->motherMember) {
+            $familyId = (int) ($baptism->family_id ?: ($baptism->member?->family_id ?? 0));
+            if ($familyId) {
+                $parentRel = $this->parentRelationshipIds();
+                $fatherRelId = (int) ($parentRel['father'] ?? 0);
+                $motherRelId = (int) ($parentRel['mother'] ?? 0);
+
+                $relIds = array_values(array_filter([$fatherRelId, $motherRelId]));
+                if (count($relIds) > 0) {
+                    $members = Member::query()
+                        ->select(['id', 'uuid', 'first_name', 'middle_name', 'last_name', 'marital_status', 'phone', 'email', 'family_relationship_id'])
+                        ->where('family_id', $familyId)
+                        ->whereIn('family_relationship_id', $relIds)
+                        ->get()
+                        ->keyBy('family_relationship_id');
+
+                    if (! $baptism->fatherMember && $fatherRelId && $members->has($fatherRelId)) {
+                        $baptism->setRelation('fatherMember', $members->get($fatherRelId));
+                    }
+                    if (! $baptism->motherMember && $motherRelId && $members->has($motherRelId)) {
+                        $baptism->setRelation('motherMember', $members->get($motherRelId));
+                    }
+                }
+            }
+        }
 
         $schedule = SacramentSchedule::query()
             ->where('entity_type', 'baptism')
@@ -123,19 +236,40 @@ class BaptismController extends Controller
         $from = is_string($from) ? trim($from) : '';
         $to = is_string($to) ? trim($to) : '';
 
-        $parishId = (int) ($request->user()?->parish_id ?? 0);
+        $user = $request->user();
+        $parishId = (int) ($user?->parish_id ?? 0);
+        $memberId = (int) ($user?->member_id ?? $user?->member?->id ?? 0);
 
-        $query = Baptism::query()->with([
-            'member:id,uuid,first_name,middle_name,last_name,jumuiya_id',
-            'originJumuiya:id,uuid,zone_id,name',
-            'originJumuiya.zone:id,uuid,parish_id,name',
-            'originJumuiya.zone.parish:id,uuid,name',
-            'family:id,uuid,family_name',
-        ]);
+        $leaderJumuiyaIds = $this->activeLeadershipJumuiyaIds($memberId);
 
-        if ($parishId) {
-            $query->where('parish_id', $parishId);
-        }
+        $canGlobalView = (bool) ($user?->can('users.manage')
+            || $user?->can('permissions.manage'));
+
+        $canParishView = (bool) ($user?->can('baptisms.parish.view'));
+
+        $hasAnyScope = $canGlobalView || ($canParishView && $parishId > 0) || ! empty($leaderJumuiyaIds);
+
+        $membersHaveKeys = $this->membersHaveNameKeyColumns();
+
+        $idQuery = Baptism::query()
+            ->select('baptisms.id')
+            ->when($q !== '', function ($qb) {
+                $qb->join('members', 'members.id', '=', 'baptisms.member_id');
+            });
+
+        $idQuery
+            ->when(! $hasAnyScope, fn ($qb) => $qb->whereRaw('1=0'))
+            ->when(! $canGlobalView, function ($qb) use ($parishId, $leaderJumuiyaIds, $canParishView) {
+                $qb->where(function ($qq) use ($parishId, $leaderJumuiyaIds, $canParishView) {
+                    if ($parishId && $canParishView) {
+                        $qq->where('parish_id', $parishId);
+                    }
+
+                    if (! empty($leaderJumuiyaIds)) {
+                        $qq->orWhereIn('origin_jumuiya_id', $leaderJumuiyaIds);
+                    }
+                });
+            });
 
         if ($q !== '') {
             $qLower = mb_strtolower($q, 'UTF-8');
@@ -147,26 +281,30 @@ class BaptismController extends Controller
                 $phonePrefix = PhoneNormalizer::normalize($q);
             }
 
-            $query->whereHas('member', function ($mq) use ($qLower, $tokens, $phonePrefix) {
-                $mq->where(function ($w) use ($qLower, $tokens, $phonePrefix) {
-                    if (count($tokens) > 0) {
-                        foreach ($tokens as $t) {
-                            $w->where(function ($x) use ($t) {
-                                $x->whereRaw('lower(first_name) like ?', [$t.'%'])
-                                    ->orWhereRaw('lower(middle_name) like ?', [$t.'%'])
-                                    ->orWhereRaw('lower(last_name) like ?', [$t.'%']);
-                            });
-                        }
-                    } else {
-                        $w->whereRaw('lower(first_name) like ?', [$qLower.'%'])
-                            ->orWhereRaw('lower(middle_name) like ?', [$qLower.'%'])
-                            ->orWhereRaw('lower(last_name) like ?', [$qLower.'%']);
-                    }
+            $idQuery->where(function ($w) use ($qLower, $tokens, $phonePrefix, $membersHaveKeys) {
+                $nameCols = $membersHaveKeys
+                    ? ['members.first_name_key', 'members.middle_name_key', 'members.last_name_key', 'members.full_name_key']
+                    : ['members.first_name', 'members.middle_name', 'members.last_name'];
 
-                    if (is_string($phonePrefix) && trim($phonePrefix) !== '') {
-                        $w->orWhere('phone', 'like', trim($phonePrefix).'%');
+                $applyToken = function ($builder, string $t) use ($nameCols): void {
+                    $builder->where(function ($x) use ($t, $nameCols) {
+                        foreach ($nameCols as $col) {
+                            $x->orWhere($col, 'like', $t.'%');
+                        }
+                    });
+                };
+
+                if (count($tokens) > 0) {
+                    foreach ($tokens as $t) {
+                        $applyToken($w, $t);
                     }
-                });
+                } else {
+                    $applyToken($w, $qLower);
+                }
+
+                if (is_string($phonePrefix) && trim($phonePrefix) !== '') {
+                    $w->orWhere('members.phone', 'like', trim($phonePrefix).'%');
+                }
             });
         }
 
@@ -174,21 +312,67 @@ class BaptismController extends Controller
             $fromDate = Carbon::parse($from)->startOfDay();
             $toDate = Carbon::parse($to)->endOfDay();
             if ($fromDate->greaterThan($toDate)) {
+                $idRows = $idQuery
+                    ->orderByDesc('baptisms.id')
+                    ->paginate(15)
+                    ->withQueryString();
+
+                $ids = $idRows->getCollection()->map(fn ($r) => (int) $r->id)->filter()->values()->all();
+
+                $models = empty($ids)
+                    ? collect()
+                    : Baptism::query()
+                        ->whereIn('id', $ids)
+                        ->with([
+                            'member:id,uuid,first_name,middle_name,last_name,jumuiya_id',
+                            'originJumuiya:id,uuid,zone_id,name',
+                            'originJumuiya.zone:id,uuid,parish_id,name',
+                            'originJumuiya.zone.parish:id,uuid,name',
+                            'family:id,uuid,family_name',
+                        ])
+                        ->orderByRaw('FIELD(id,'.implode(',', $ids).')')
+                        ->get();
+
+                $idRows->setCollection($models);
+
                 return Inertia::render('Sacraments/Baptisms/Index', [
                     'filters' => [
                         'q' => $q,
                         'from' => $from,
                         'to' => $to,
                     ],
-                    'baptisms' => BaptismResource::collection($query->orderByDesc('created_at')->paginate(15)->withQueryString()),
+                    'baptisms' => BaptismResource::collection($idRows),
                     'error' => 'Invalid date range.',
                 ]);
             }
 
-            $query->whereBetween('created_at', [$fromDate, $toDate]);
+            $idQuery->whereBetween('baptisms.created_at', [$fromDate, $toDate]);
         }
 
-        $baptisms = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
+        $idRows = $idQuery
+            ->orderByDesc('baptisms.id')
+            ->paginate(15)
+            ->withQueryString();
+
+        $ids = $idRows->getCollection()->map(fn ($r) => (int) $r->id)->filter()->values()->all();
+
+        $models = empty($ids)
+            ? collect()
+            : Baptism::query()
+                ->whereIn('id', $ids)
+                ->with([
+                    'member:id,uuid,first_name,middle_name,last_name,jumuiya_id',
+                    'originJumuiya:id,uuid,zone_id,name',
+                    'originJumuiya.zone:id,uuid,parish_id,name',
+                    'originJumuiya.zone.parish:id,uuid,name',
+                    'family:id,uuid,family_name',
+                ])
+                ->orderByRaw('FIELD(id,'.implode(',', $ids).')')
+                ->get();
+
+        $idRows->setCollection($models);
+
+        $baptisms = $idRows;
 
         return Inertia::render('Sacraments/Baptisms/Index', [
             'filters' => [
@@ -211,8 +395,9 @@ class BaptismController extends Controller
         $parishId = (int) ($user?->parish_id ?? 0);
 
         $member = Member::query()->where('uuid', $validated['member_uuid'])->firstOrFail();
-        $familyId = (int) DB::table('families')->where('uuid', $validated['family_uuid'])->value('id');
-        $familyJumuiyaId = (int) DB::table('families')->where('id', $familyId)->value('jumuiya_id');
+        $family = DB::table('families')->where('uuid', $validated['family_uuid'])->first(['id', 'jumuiya_id']);
+        $familyId = (int) ($family?->id ?? 0);
+        $familyJumuiyaId = (int) ($family?->jumuiya_id ?? 0);
 
         if (! $parishId && $familyJumuiyaId) {
             $parishId = (int) DB::table('jumuiyas')
@@ -284,8 +469,8 @@ class BaptismController extends Controller
 
         $this->ensureActiveJumuiyaLeaderForMember($user?->id, (int) ($user?->member_id ?? $user?->member?->id), (int) $baptism->origin_jumuiya_id);
 
-        if ($baptism->status !== Baptism::STATUS_DRAFT) {
-            return back()->with('error', 'Only draft requests can be updated.');
+        if (! in_array($baptism->status, [Baptism::STATUS_DRAFT, Baptism::STATUS_SUBMITTED, Baptism::STATUS_REJECTED], true)) {
+            return back()->with('error', 'This request can no longer be updated.');
         }
 
         $incomingPhone = $request->input('sponsor_phone');
@@ -296,6 +481,10 @@ class BaptismController extends Controller
         }
 
         $validated = $request->validate([
+            'birth_date' => ['nullable', 'date'],
+            'birth_town' => ['nullable', 'string', 'max:190'],
+            'residence' => ['nullable', 'string', 'max:190'],
+
             'sponsor_role' => ['nullable', 'string', 'max:100'],
             'sponsor_member_uuid' => ['nullable', 'uuid'],
             'sponsor_full_name' => ['nullable', 'string', 'max:190', "regex:/^[\\pL\\pM\\s\\-\\.\'\"()]+$/u"],
@@ -314,6 +503,12 @@ class BaptismController extends Controller
         if (is_string($validated['sponsor_parish_name'] ?? null)) {
             $validated['sponsor_parish_name'] = trim((string) $validated['sponsor_parish_name']);
         }
+        if (is_string($validated['birth_town'] ?? null)) {
+            $validated['birth_town'] = trim((string) $validated['birth_town']);
+        }
+        if (is_string($validated['residence'] ?? null)) {
+            $validated['residence'] = trim((string) $validated['residence']);
+        }
         if (is_string($validated['sponsor_role'] ?? null)) {
             $validated['sponsor_role'] = trim((string) $validated['sponsor_role']);
         }
@@ -331,16 +526,6 @@ class BaptismController extends Controller
                 $file = $request->file($type);
                 if (! $file) {
                     continue;
-                }
-
-                $already = SacramentAttachment::query()
-                    ->where('entity_type', 'baptism')
-                    ->where('entity_id', (int) $baptism->id)
-                    ->where('type', $type)
-                    ->exists();
-
-                if ($already) {
-                    return back()->withErrors([$type => 'This document type was already uploaded.'])->withInput();
                 }
 
                 $attachmentUuid = (string) Str::uuid();
@@ -362,6 +547,23 @@ class BaptismController extends Controller
             }
 
             DB::transaction(function () use ($validated, $baptism, $user, $hasSponsorAlready, $hasSponsorMember, $hasSponsorInput, $storedPaths, $request): void {
+                if (in_array($baptism->status, [Baptism::STATUS_SUBMITTED, Baptism::STATUS_REJECTED], true)) {
+                    $baptism->forceFill([
+                        'status' => Baptism::STATUS_DRAFT,
+                        'rejected_at' => null,
+                        'rejected_by_user_id' => null,
+                        'rejection_reason' => null,
+                        'submitted_at' => null,
+                        'submitted_by_user_id' => null,
+                    ])->save();
+                }
+
+                $baptism->forceFill([
+                    'birth_date' => $validated['birth_date'] ?? $baptism->birth_date,
+                    'birth_town' => $validated['birth_town'] ?? $baptism->birth_town,
+                    'residence' => $validated['residence'] ?? $baptism->residence,
+                ])->save();
+
                 if (! $hasSponsorAlready && $hasSponsorInput) {
                     $memberId = null;
                     if ($hasSponsorMember) {
@@ -376,13 +578,14 @@ class BaptismController extends Controller
                         'baptism_id' => (int) $baptism->id,
                         'role' => $validated['sponsor_role'] ?: null,
                         'member_id' => $memberId,
-                        'full_name' => $hasSponsorMember ? null : ($validated['sponsor_full_name'] ?: null),
-                        'parish_name' => $validated['sponsor_parish_name'] ?: null,
+                        'full_name' => $hasSponsorMember ? null : NormalizesNames::normalize($validated['sponsor_full_name'] ?: null, true),
+                        'parish_name' => NormalizesNames::normalize($validated['sponsor_parish_name'] ?: null, true),
                         'phone' => $validated['sponsor_phone'] ?: null,
                         'email' => $validated['sponsor_email'] ?? null,
                     ]);
                 }
 
+                $bulk = [];
                 foreach ($storedPaths as $type => $relativePath) {
                     $file = $request->file($type);
                     if (! $file) {
@@ -391,7 +594,8 @@ class BaptismController extends Controller
 
                     $sha256 = hash_file('sha256', Storage::disk('local')->path($relativePath));
 
-                    SacramentAttachment::create([
+                    $now = now();
+                    $bulk[] = [
                         'uuid' => (string) Str::uuid(),
                         'parish_id' => (int) $baptism->parish_id,
                         'entity_type' => 'baptism',
@@ -404,7 +608,13 @@ class BaptismController extends Controller
                         'storage_path' => $relativePath,
                         'sha256' => $sha256,
                         'uploaded_by_user_id' => (int) $user->id,
-                    ]);
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+
+                if (! empty($bulk)) {
+                    SacramentAttachment::query()->insert($bulk);
                 }
             });
         } catch (\RuntimeException $e) {
@@ -427,6 +637,114 @@ class BaptismController extends Controller
         }
 
         return back()->with('success', 'Draft saved.');
+    }
+
+    public function changeSubject(Request $request, Baptism $baptism): RedirectResponse
+    {
+        $validated = $request->validate([
+            'family_uuid' => ['required', 'string', 'max:190'],
+            'member_uuid' => ['required', 'string', 'max:190'],
+        ]);
+
+        $user = $request->user();
+        $parishId = (int) ($user?->parish_id ?? 0);
+
+        if ($parishId && (int) $baptism->parish_id !== $parishId) {
+            abort(404);
+        }
+
+        if (in_array($baptism->status, [Baptism::STATUS_APPROVED, Baptism::STATUS_COMPLETED, Baptism::STATUS_ISSUED], true)) {
+            return back()->with('error', 'This request can no longer be updated.');
+        }
+
+        $member = Member::query()->where('uuid', $validated['member_uuid'])->firstOrFail();
+        $family = DB::table('families')->where('uuid', $validated['family_uuid'])->first(['id', 'jumuiya_id']);
+        $familyId = (int) ($family?->id ?? 0);
+        $familyJumuiyaId = (int) ($family?->jumuiya_id ?? 0);
+
+        if (! $familyId) {
+            return back()->with('error', 'Invalid family.');
+        }
+
+        if (! $familyJumuiyaId) {
+            return back()->with('error', 'Invalid family Christian Community.');
+        }
+
+        if ((int) $member->family_id !== $familyId) {
+            return back()->with('error', 'Child must belong to the selected family.');
+        }
+
+        if ((int) $member->jumuiya_id !== $familyJumuiyaId) {
+            return back()->with('error', 'Selected child does not belong to the same Christian Community as the selected family.');
+        }
+
+        $this->ensureActiveJumuiyaLeaderForMember($user?->id, (int) ($user?->member_id ?? $user?->member?->id), $familyJumuiyaId);
+
+        if (! $parishId && $familyJumuiyaId) {
+            $parishId = (int) DB::table('jumuiyas')
+                ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                ->where('jumuiyas.id', $familyJumuiyaId)
+                ->value('zones.parish_id');
+        }
+
+        if (! $parishId) {
+            return back()->with('error', 'Your user account is missing parish assignment. Please contact the admin to set your parish.');
+        }
+
+        $attachmentFiles = SacramentAttachment::query()
+            ->where('entity_type', 'baptism')
+            ->where('entity_id', (int) $baptism->id)
+            ->get(['storage_disk', 'storage_path']);
+
+        try {
+            DB::transaction(function () use ($baptism, $parishId, $familyId, $familyJumuiyaId, $member): void {
+                if (in_array($baptism->status, [Baptism::STATUS_SUBMITTED, Baptism::STATUS_REJECTED], true)) {
+                    $baptism->forceFill([
+                        'status' => Baptism::STATUS_DRAFT,
+                        'rejected_at' => null,
+                        'rejected_by_user_id' => null,
+                        'rejection_reason' => null,
+                        'submitted_at' => null,
+                        'submitted_by_user_id' => null,
+                    ])->save();
+                }
+
+                BaptismSponsor::query()->where('baptism_id', (int) $baptism->id)->delete();
+                SacramentAttachment::query()->where('entity_type', 'baptism')->where('entity_id', (int) $baptism->id)->delete();
+
+                $baptism->forceFill([
+                    'parish_id' => $parishId,
+                    'origin_jumuiya_id' => $familyJumuiyaId,
+                    'family_id' => $familyId,
+                    'member_id' => (int) $member->id,
+                    'father_member_id' => null,
+                    'mother_member_id' => null,
+                    'father_name' => null,
+                    'mother_name' => null,
+                ])->save();
+            });
+        } catch (\Throwable $e) {
+            Log::error('Baptism change subject failed', ['exception' => $e, 'baptism_uuid' => $baptism->uuid]);
+            return back()->with('error', 'Unable to update request. Please try again.');
+        }
+
+        foreach ($attachmentFiles as $f) {
+            $diskName = is_string($f->storage_disk ?? null) && $f->storage_disk !== '' ? $f->storage_disk : 'local';
+            $p = is_string($f->storage_path ?? null) ? $f->storage_path : '';
+            if ($p === '') {
+                continue;
+            }
+
+            try {
+                $d = Storage::disk($diskName);
+                if ($d->exists($p)) {
+                    $d->delete($p);
+                }
+            } catch (\Throwable) {
+            }
+        }
+
+        return back()->with('success', 'Family/child updated. Please re-add sponsors and documents.');
     }
 
     public function submit(Request $request, Baptism $baptism): RedirectResponse
@@ -453,7 +771,7 @@ class BaptismController extends Controller
             'birth_certificate' => ['nullable', 'file', 'max:3072', 'mimetypes:application/pdf'],
         ]);
 
-        $member = $baptism->member()->first();
+        $member = $baptism->member;
         $this->ensureActiveJumuiyaLeaderForMember($user?->id, (int) ($user?->member_id ?? $user?->member?->id), (int) $baptism->origin_jumuiya_id);
 
         if ($baptism->status !== Baptism::STATUS_DRAFT) {
@@ -470,8 +788,9 @@ class BaptismController extends Controller
             return back()->with('error', 'Family is required.');
         }
 
-        $fatherRelId = (int) (FamilyRelationship::query()->whereRaw('lower(name) = ?', ['father'])->value('id') ?? 0);
-        $motherRelId = (int) (FamilyRelationship::query()->whereRaw('lower(name) = ?', ['mother'])->value('id') ?? 0);
+        $parentRel = $this->parentRelationshipIds();
+        $fatherRelId = (int) ($parentRel['father'] ?? 0);
+        $motherRelId = (int) ($parentRel['mother'] ?? 0);
 
         $father = $fatherRelId
             ? Member::query()->where('family_id', $familyId)->where('family_relationship_id', $fatherRelId)->first()
@@ -601,12 +920,14 @@ class BaptismController extends Controller
                         'baptism_id' => (int) $baptism->id,
                         'role' => $validated['sponsor_role'] ?: null,
                         'member_id' => $memberId,
-                        'full_name' => $hasSponsorMember ? null : ($validated['sponsor_full_name'] ?: null),
-                        'parish_name' => $validated['sponsor_parish_name'] ?: null,
+                        'full_name' => $hasSponsorMember ? null : NormalizesNames::normalize($validated['sponsor_full_name'] ?: null, true),
+                        'parish_name' => NormalizesNames::normalize($validated['sponsor_parish_name'] ?: null, true),
                         'phone' => $validated['sponsor_phone'] ?: null,
                         'email' => $validated['sponsor_email'] ?? null,
                     ]);
                 }
+
+                $bulk = [];
 
                 foreach ($storedPaths as $type => $relativePath) {
                     $file = $request->file($type);
@@ -616,7 +937,9 @@ class BaptismController extends Controller
 
                     $sha256 = hash_file('sha256', Storage::disk('local')->path($relativePath));
 
-                    SacramentAttachment::create([
+                    $now = now();
+                    $bulk[] = [
+                        'uuid' => (string) Str::uuid(),
                         'parish_id' => (int) $baptism->parish_id,
                         'entity_type' => 'baptism',
                         'entity_id' => (int) $baptism->id,
@@ -628,7 +951,13 @@ class BaptismController extends Controller
                         'storage_path' => $relativePath,
                         'sha256' => $sha256,
                         'uploaded_by_user_id' => (int) $user->id,
-                    ]);
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+
+                if (! empty($bulk)) {
+                    SacramentAttachment::query()->insert($bulk);
                 }
 
                 $baptism->forceFill([

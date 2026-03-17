@@ -64,7 +64,7 @@ class StoreInstitutionRequest extends FormRequest
             'type' => ['bail', 'required', 'string', 'max:100', 'regex:/^(?=.*[A-Za-z])[A-Za-z0-9\s\-\/]{2,100}$/'],
             'location' => ['bail', 'nullable', 'string', 'max:255'],
             'country' => ['bail', 'nullable', 'string', 'max:100'],
-            'contact' => ['bail', 'nullable', 'string', 'max:20', 'regex:/^(\+255|0)?[67]\d{8}$/'],
+            'contact' => ['bail', 'nullable', 'string', 'max:20', 'regex:'.PhoneNormalizer::TZ_REGEX],
             'is_active' => ['bail', 'sometimes', 'boolean'],
         ];
     }

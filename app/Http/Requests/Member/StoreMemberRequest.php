@@ -42,7 +42,7 @@ class StoreMemberRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:100'],
             'gender' => ['nullable', 'in:male,female'],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'phone' => ['nullable', 'string', 'max:20', 'regex:/^(\+255|0)?[67]\d{8}$/', Rule::unique('members', 'phone')],
+            'phone' => ['nullable', 'string', 'max:20', 'regex:'.PhoneNormalizer::TZ_REGEX, Rule::unique('members', 'phone')],
             'email' => ['nullable', 'email', 'max:255'],
             'national_id' => ['nullable', 'string', 'regex:/^\d{20}$/', Rule::unique('members', 'national_id')],
             'marital_status' => ['nullable', 'in:single,married,widowed,divorced'],

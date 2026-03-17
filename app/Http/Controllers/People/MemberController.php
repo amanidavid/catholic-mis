@@ -231,10 +231,23 @@ class MemberController extends Controller
         $jumuiyaUuid = $request->query('jumuiya_uuid');
         $familyUuid = $request->query('family_uuid');
         $excludeUuids = $request->query('exclude_uuids');
+        $allowExternal = $request->query('allow_external');
 
         $q = is_string($q) ? trim($q) : '';
 
         $scopedJumuiyaId = $this->scopedJumuiyaId($request);
+        $allowExternal = in_array((string) $allowExternal, ['1', 'true', 'yes', 'on'], true);
+
+        if ($allowExternal) {
+            $user = $request->user();
+            $canUseExternal = $user && ($user->can('marriages.request.create') || $user->can('marriages.request.edit'));
+            if ($canUseExternal) {
+                $canCrossParishSearch = $user->can('marriages.cross_parish.search');
+                if ($canCrossParishSearch) {
+                    $scopedJumuiyaId = null;
+                }
+            }
+        }
 
         $selectedJumuiyaId = null;
         if (is_string($jumuiyaUuid) && $jumuiyaUuid !== '') {
@@ -257,10 +270,22 @@ class MemberController extends Controller
 
         $safe = addcslashes($q, '%_\\');
 
+        $userParishId = (int) ($request->user()?->parish_id ?? 0);
+        $parishScopedExternal = $allowExternal && $userParishId && $request->user() && ! $request->user()->can('marriages.cross_parish.search');
+
         $members = Member::query()
             ->select(['id', 'uuid', 'jumuiya_id', 'first_name', 'middle_name', 'last_name', 'gender', 'email', 'phone'])
             ->with(['jumuiya:id,uuid,name'])
             ->when($scopedJumuiyaId, fn (Builder $qb) => $qb->where('jumuiya_id', $scopedJumuiyaId))
+            ->when($parishScopedExternal, function (Builder $qb) use ($userParishId) {
+                $qb->whereExists(function ($sub) use ($userParishId) {
+                    $sub->select(DB::raw(1))
+                        ->from('jumuiyas')
+                        ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                        ->whereColumn('jumuiyas.id', 'members.jumuiya_id')
+                        ->where('zones.parish_id', $userParishId);
+                });
+            })
             ->when($selectedJumuiyaId, fn (Builder $qb) => $qb->where('jumuiya_id', $selectedJumuiyaId))
             ->when($selectedFamilyId, fn (Builder $qb) => $qb->where('family_id', $selectedFamilyId))
             ->when(! empty($excluded), fn (Builder $qb) => $qb->whereNotIn('uuid', $excluded))
