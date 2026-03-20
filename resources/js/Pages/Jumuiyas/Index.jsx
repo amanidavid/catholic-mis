@@ -122,18 +122,18 @@ export default function JumuiyasIndex({ jumuiyas, zones, filters }) {
 
                     <div className="mt-6 overflow-x-auto">
                         <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                            <table className="min-w-full divide-y divide-slate-200">
-                                <thead className="bg-slate-50">
+                            <table className="mis-table divide-y divide-slate-200">
+                                <thead>
                                     <tr>
-                                        <th className="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">#</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Name</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Zone</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Year</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Status</th>
-                                        {canManage && <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Actions</th>}
+                                        <th className="w-16">#</th>
+                                        <th>Name</th>
+                                        <th>Zone</th>
+                                        <th>Year</th>
+                                        <th>Status</th>
+                                        {canManage && <th className="text-right">Actions</th>}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
+                                <tbody className="divide-y divide-slate-100">
                                     {(jumuiyas?.data ?? []).map((j, idx) => (
                                         <JumuiyaRow
                                             key={j.uuid}

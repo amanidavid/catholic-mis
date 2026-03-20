@@ -57,6 +57,14 @@ class RolePermissionSeeder extends Seeder
             'weekly-attendance.reports.view',
             'weekly-attendance.export',
 
+            'reports.view',
+            'reports.dashboard.view',
+            'reports.scope.parish',
+            'reports.scope.zone',
+            'reports.scope.jumuiya',
+            'reports.community.view',
+            'reports.sacraments.view',
+
             'parish-staff.view',
             'parish-staff.create',
             'parish-staff.update',
@@ -101,6 +109,26 @@ class RolePermissionSeeder extends Seeder
 
             'marriages.cross_parish.search',
             'marriages.cross_parish.create',
+
+            'communions.view',
+            'communions.parish.view',
+            'communions.register',
+            'communions.approve',
+            'communions.reject',
+            'communions.complete',
+            'communions.issue',
+            'communions.cycles.manage',
+
+            'confirmations.view',
+            'confirmations.parish.view',
+            'confirmations.register',
+            'confirmations.approve',
+            'confirmations.reject',
+            'confirmations.complete',
+            'confirmations.issue',
+            'confirmations.cycles.manage',
+
+            'sacraments.cycle.override',
 
             'certificates.view',
             'certificates.issue',

@@ -74,6 +74,8 @@ class Marriage extends BaseModel
         'bride_external_phone',
         'bride_external_address',
         'bride_external_home_parish_name',
+        'bride_external_zone_name',
+        'bride_external_jumuiya_name',
         'bride_family_id',
         'bride_jumuiya_id',
         'bride_parish_id',

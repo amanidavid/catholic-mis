@@ -12,6 +12,7 @@ use App\Http\Controllers\People\MemberController;
 use App\Http\Controllers\Audit\AuditLogController;
 use App\Http\Controllers\Attendance\WeeklyAttendanceController;
 use App\Http\Controllers\Attendance\WeeklyAttendanceReportController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Jumuiyas\JumuiyaController;
 use App\Http\Controllers\ParishStaff\ParishStaffController;
 use App\Http\Controllers\ParishStaff\ParishStaffPositionController;
@@ -21,13 +22,17 @@ use App\Http\Controllers\Clergy\InstitutionController;
 use App\Http\Controllers\Sacraments\BaptismAttachmentController;
 use App\Http\Controllers\Sacraments\BaptismController;
 use App\Http\Controllers\Sacraments\BaptismSponsorController;
+use App\Http\Controllers\Sacraments\CommunionController;
+use App\Http\Controllers\Sacraments\CommunionCyclesController;
+use App\Http\Controllers\Sacraments\ConfirmationController;
+use App\Http\Controllers\Sacraments\ConfirmationCyclesController;
 use App\Http\Controllers\Sacraments\MarriageAttachmentController;
 use App\Http\Controllers\Sacraments\MarriageController;
-use App\Models\Structure\Parish;
+use App\Http\Controllers\Sacraments\ProgramRegistrationAttachmentController;
+use App\Http\Controllers\Reports\CommunityReportController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -37,22 +42,21 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    if (!Parish::query()->exists()) {
-        return redirect()->route('setup.index');
-    }
-
-    return Inertia::render('Dashboard', [
-        'postCount' => 0,
-        'recentPosts' => [],
-    ]);
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
 
     Route::get('/setup', [SetupController::class, 'index'])->name('setup.index');
     Route::post('/setup', [SetupController::class, 'store'])->name('setup.store');
+
+    Route::prefix('reports')->group(function () {
+        Route::get('/community/members-by-jumuiya', [CommunityReportController::class, 'membersByJumuiya'])
+            ->middleware('can:reports.community.view')
+            ->name('reports.community.members-by-jumuiya');
+    });
 
     Route::middleware('can:permissions.manage')->prefix('access-control')->group(function () {
         Route::get('/roles', [RoleController::class, 'index'])->name('access-control.roles.index');
@@ -96,7 +100,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/jumuiya-leadership-roles', [JumuiyaLeadershipRoleController::class, 'index'])->name('jumuiya-leadership-roles.index');
 
     Route::get('/families', [FamilyController::class, 'index'])->name('families.index');
-    Route::get('/jumuiyas/lookup', [JumuiyaController::class, 'lookup'])->name('jumuiyas.lookup');
     Route::get('/families/lookup', [FamilyController::class, 'lookup'])->name('families.lookup');
     Route::get('/families/parents-lookup', [FamilyController::class, 'parentsLookup'])->name('families.parents-lookup');
     Route::get('/family-relationships/lookup', [FamilyRelationshipController::class, 'lookup'])->name('family-relationships.lookup');
@@ -215,6 +218,54 @@ Route::middleware('auth')->group(function () {
         Route::post('/{marriage}/schedule', [MarriageController::class, 'schedule'])->middleware('can:marriages.schedule.manage')->name('marriages.schedule');
         Route::post('/{marriage}/complete', [MarriageController::class, 'complete'])->middleware('can:marriages.schedule.manage')->name('marriages.complete');
         Route::post('/{marriage}/issue', [MarriageController::class, 'issue'])->middleware('can:marriages.issue')->name('marriages.issue');
+    });
+
+    Route::prefix('communions')->group(function () {
+        Route::get('/', [CommunionController::class, 'index'])->middleware('can:communions.view')->name('communions.index');
+        Route::prefix('cycles')->group(function () {
+            Route::get('/', [CommunionCyclesController::class, 'index'])->middleware('can:communions.cycles.manage')->name('communions.cycles.index');
+            Route::get('/create', [CommunionCyclesController::class, 'create'])->middleware('can:communions.cycles.manage')->name('communions.cycles.create');
+            Route::post('/', [CommunionCyclesController::class, 'store'])->middleware('can:communions.cycles.manage')->name('communions.cycles.store');
+            Route::get('/{cycle}/edit', [CommunionCyclesController::class, 'edit'])->middleware('can:communions.cycles.manage')->name('communions.cycles.edit');
+            Route::patch('/{cycle}', [CommunionCyclesController::class, 'update'])->middleware('can:communions.cycles.manage')->name('communions.cycles.update');
+            Route::post('/{cycle}/status', [CommunionCyclesController::class, 'setStatus'])->middleware('can:communions.cycles.manage')->name('communions.cycles.status');
+        });
+        Route::get('/create', [CommunionController::class, 'create'])->middleware('can:communions.register')->name('communions.create');
+        Route::get('/{registration}', [CommunionController::class, 'show'])->middleware('can:communions.view')->name('communions.show');
+        Route::post('/', [CommunionController::class, 'store'])->middleware('can:communions.register')->name('communions.store');
+        Route::post('/{registration}/draft', [CommunionController::class, 'saveDraft'])->middleware('can:communions.register')->name('communions.draft.save');
+        Route::post('/{registration}/submit', [CommunionController::class, 'submit'])->middleware('can:communions.register')->name('communions.submit');
+        Route::post('/{registration}/approve', [CommunionController::class, 'approve'])->middleware('can:communions.approve')->name('communions.approve');
+        Route::post('/{registration}/reject', [CommunionController::class, 'reject'])->middleware('can:communions.reject')->name('communions.reject');
+        Route::post('/{registration}/complete', [CommunionController::class, 'complete'])->middleware('can:communions.complete')->name('communions.complete');
+        Route::post('/{registration}/issue', [CommunionController::class, 'issue'])->middleware('can:communions.issue')->name('communions.issue');
+    });
+
+    Route::prefix('confirmations')->group(function () {
+        Route::get('/', [ConfirmationController::class, 'index'])->middleware('can:confirmations.view')->name('confirmations.index');
+        Route::prefix('cycles')->group(function () {
+            Route::get('/', [ConfirmationCyclesController::class, 'index'])->middleware('can:confirmations.cycles.manage')->name('confirmations.cycles.index');
+            Route::get('/create', [ConfirmationCyclesController::class, 'create'])->middleware('can:confirmations.cycles.manage')->name('confirmations.cycles.create');
+            Route::post('/', [ConfirmationCyclesController::class, 'store'])->middleware('can:confirmations.cycles.manage')->name('confirmations.cycles.store');
+            Route::get('/{cycle}/edit', [ConfirmationCyclesController::class, 'edit'])->middleware('can:confirmations.cycles.manage')->name('confirmations.cycles.edit');
+            Route::patch('/{cycle}', [ConfirmationCyclesController::class, 'update'])->middleware('can:confirmations.cycles.manage')->name('confirmations.cycles.update');
+            Route::post('/{cycle}/status', [ConfirmationCyclesController::class, 'setStatus'])->middleware('can:confirmations.cycles.manage')->name('confirmations.cycles.status');
+        });
+        Route::get('/create', [ConfirmationController::class, 'create'])->middleware('can:confirmations.register')->name('confirmations.create');
+        Route::get('/{registration}', [ConfirmationController::class, 'show'])->middleware('can:confirmations.view')->name('confirmations.show');
+        Route::post('/', [ConfirmationController::class, 'store'])->middleware('can:confirmations.register')->name('confirmations.store');
+        Route::post('/{registration}/draft', [ConfirmationController::class, 'saveDraft'])->middleware('can:confirmations.register')->name('confirmations.draft.save');
+        Route::post('/{registration}/submit', [ConfirmationController::class, 'submit'])->middleware('can:confirmations.register')->name('confirmations.submit');
+        Route::post('/{registration}/approve', [ConfirmationController::class, 'approve'])->middleware('can:confirmations.approve')->name('confirmations.approve');
+        Route::post('/{registration}/reject', [ConfirmationController::class, 'reject'])->middleware('can:confirmations.reject')->name('confirmations.reject');
+        Route::post('/{registration}/complete', [ConfirmationController::class, 'complete'])->middleware('can:confirmations.complete')->name('confirmations.complete');
+        Route::post('/{registration}/issue', [ConfirmationController::class, 'issue'])->middleware('can:confirmations.issue')->name('confirmations.issue');
+    });
+
+    Route::prefix('program-registrations')->group(function () {
+        Route::post('/{registration}/attachments', [ProgramRegistrationAttachmentController::class, 'store'])->name('program-registrations.attachments.store');
+        Route::get('/{registration}/attachments/{attachment}', [ProgramRegistrationAttachmentController::class, 'download'])->name('program-registrations.attachments.download');
+        Route::delete('/{registration}/attachments/{attachment}', [ProgramRegistrationAttachmentController::class, 'destroy'])->name('program-registrations.attachments.destroy');
     });
 });
 

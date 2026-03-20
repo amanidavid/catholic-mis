@@ -129,18 +129,18 @@ export default function ParishStaffPositionsIndex({ positions }) {
                     ) : (
                         <div className="overflow-x-auto">
                             <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                                <table className="min-w-full divide-y divide-slate-200">
-                                    <thead className="bg-slate-50">
+                                <table className="mis-table divide-y divide-slate-200">
+                                    <thead>
                                         <tr>
-                                            <th className="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">#</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Position</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Status</th>
+                                            <th className="w-16">#</th>
+                                            <th>Position</th>
+                                            <th>Status</th>
                                             {(canUpdate || canDelete) && (
-                                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Actions</th>
+                                                <th className="text-right">Actions</th>
                                             )}
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 bg-white">
+                                    <tbody className="divide-y divide-slate-100">
                                         {(dataList ?? []).map((p, idx) => (
                                             <tr key={p.uuid} className={idx % 2 === 1 ? 'bg-slate-50/40' : ''}>
                                                 <td className="px-4 py-3 text-sm text-slate-600">{idx + 1}</td>

@@ -91,6 +91,8 @@ class MarriageResource extends JsonResource
                 'phone' => $this->bride_external_phone,
                 'address' => $this->bride_external_address,
                 'home_parish_name' => $this->bride_external_home_parish_name,
+                'zone_name' => $this->bride_external_zone_name,
+                'jumuiya_name' => $this->bride_external_jumuiya_name,
             ],
 
             'groom_jumuiya' => $groomJumuiya
@@ -146,9 +148,11 @@ class MarriageResource extends JsonResource
                         'id' => (int) $p->id,
                         'party' => (string) $p->party,
                         'father_name' => $p->father_name,
+                        'father_phone' => $p->father_phone,
                         'father_religion' => $p->father_religion,
                         'father_is_alive' => is_null($p->father_is_alive) ? null : (bool) $p->father_is_alive,
                         'mother_name' => $p->mother_name,
+                        'mother_phone' => $p->mother_phone,
                         'mother_religion' => $p->mother_religion,
                         'mother_is_alive' => is_null($p->mother_is_alive) ? null : (bool) $p->mother_is_alive,
                     ])->values()->all()

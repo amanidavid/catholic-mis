@@ -1,3 +1,49 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+    .mis-table {
+        @apply min-w-full;
+    }
+
+    .mis-table thead {
+        @apply bg-slate-50;
+    }
+
+    .mis-table thead th {
+        @apply px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600;
+    }
+
+    .mis-table thead th:not(.text-right) {
+        text-align: left;
+    }
+
+    .mis-table thead th.text-right {
+        text-align: right;
+    }
+
+    .mis-table-sticky thead th {
+        @apply sticky top-0 z-10;
+    }
+
+    .mis-table tbody {
+        @apply bg-white;
+    }
+
+    .mis-table tbody tr {
+        @apply transition;
+    }
+
+    .mis-table tbody tr:nth-child(even) {
+        @apply bg-slate-50/50;
+    }
+
+    .mis-table tbody tr:hover {
+        @apply bg-indigo-50/40;
+    }
+
+    .mis-table tbody td {
+        @apply px-4 py-4 text-sm text-slate-700;
+    }
+}

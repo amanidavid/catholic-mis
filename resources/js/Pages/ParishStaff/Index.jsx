@@ -176,16 +176,16 @@ export default function ParishStaffIndex({ staff, filters, assignmentRoles }) {
 
                     <div className="mt-6 overflow-x-auto">
                         <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                            <table className="min-w-full divide-y divide-slate-200">
-                                <thead className="bg-slate-50">
+                            <table className="mis-table divide-y divide-slate-200">
+                                <thead>
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Name</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Current assignment</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Status</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Actions</th>
+                                        <th>Name</th>
+                                        <th>Current assignment</th>
+                                        <th>Status</th>
+                                        <th className="text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
+                                <tbody className="divide-y divide-slate-100">
                                     {(staff?.data ?? []).map((s) => (
                                         <StaffRow
                                             key={s.uuid}
@@ -927,32 +927,40 @@ function AssignmentsModal({ open, onClose, staff, canManage, assignmentRoles }) 
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto px-5 py-5">
+                <div className="max-h-[65vh] overflow-y-auto">
                     {(staff.assignments ?? []).length === 0 ? (
                         <div className="text-sm text-slate-600">No assignment history.</div>
                     ) : (
                         <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                            <table className="min-w-full divide-y divide-slate-200">
-                                <thead className="bg-slate-50">
+                            <table className="mis-table divide-y divide-slate-200">
+                                <thead>
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Type</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Institution</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Title</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Start</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">End</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Active</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Action</th>
+                                        <th>Type</th>
+                                        <th>Institution</th>
+                                        <th>Title</th>
+                                        <th>Start</th>
+                                        <th>End</th>
+                                        <th>Active</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
+                                <tbody className="divide-y divide-slate-100">
                                     {(staff.assignments ?? []).map((a) => (
-                                        <tr key={a.uuid} className="hover:bg-slate-50">
-                                            <td className="px-4 py-3 text-sm font-semibold text-slate-900">{a.assignment_type}</td>
+                                        <tr key={a.uuid}>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{a.assignment_type ?? '-'}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{a.institution?.name ? toTitleCase(a.institution.name) : '-'}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{a.title ?? '-'}</td>
+                                            <td className="px-4 py-3 text-sm font-semibold text-slate-900">{a.title ?? '-'}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{a.start_date ?? '-'}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{a.end_date ?? '-'}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{a.is_active ? 'Yes' : 'No'}</td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${a.is_active
+                                                    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                                                    : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'
+                                                    }`}
+                                                >
+                                                    {a.is_active ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </td>
                                             <td className="px-4 py-3 text-right">
                                                 {canManage && (
                                                     <button

@@ -29,6 +29,51 @@ const icons = {
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.2 10.2l3.6 3.6" />
         </svg>
     ),
+    communion: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 5h8v4a4 4 0 01-8 0V5z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 21h6" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 15h4" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v6" />
+        </svg>
+    ),
+    confirmation: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 2c3 2.5 6 6.5 6 10.5A6 6 0 116 12.5C6 8.5 9 4.5 12 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v8" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6" />
+        </svg>
+    ),
+    calendar: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 3v3M16 3v3" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 11h4" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 15h4" />
+        </svg>
+    ),
+    calendarSettings: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 3v3M16 3v3" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5h14a2 2 0 012 2v7" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 23a2 2 0 01-2-2V7a2 2 0 012-2" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19a4 4 0 108 0 4 4 0 00-8 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 16.5v1.1" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 20.4v1.1" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.6 19h1.1" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M20.3 19h1.1" />
+        </svg>
+    ),
+    calendarCheck: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 3v3M16 3v3" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 14l2 2 4-4" />
+        </svg>
+    ),
     map: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z" />
@@ -158,13 +203,19 @@ export default function AuthenticatedLayout({ header, children }) {
                 ],
             },
             {
-                group: 'Reports',
+                group: 'Attendance Reports',
                 items: [
                     { label: 'Community Summaries', routeName: 'weekly-attendance.reports.community', href: () => route('weekly-attendance.reports.community'), icon: icons.group, show: can('weekly-attendance.view') },
                     { label: 'Action Lists', routeName: 'weekly-attendance.reports.action-list', href: () => route('weekly-attendance.reports.action-list'), icon: icons.list, show: can('weekly-attendance.view') },
                     { label: 'Family Attendances', routeName: 'weekly-attendance.reports.families', href: () => route('weekly-attendance.reports.families'), icon: icons.house, show: can('weekly-attendance.view') },
                     { label: 'Member Attendances', routeName: 'weekly-attendance.reports.members', href: () => route('weekly-attendance.reports.members'), icon: icons.user, show: can('weekly-attendance.view') },
                     { label: 'Attendance Audit Logs', routeName: 'weekly-attendance.reports.audit-logs', href: () => route('weekly-attendance.reports.audit-logs'), icon: icons.history, show: can('weekly-attendance.view') },
+                ],
+            },
+            {
+                group: 'Reports',
+                items: [
+                    { label: 'Community Summary', routeName: 'reports.community.members-by-jumuiya', href: () => route('reports.community.members-by-jumuiya'), icon: icons.group, show: can('reports.community.view') },
                 ],
             },
             {
@@ -179,6 +230,10 @@ export default function AuthenticatedLayout({ header, children }) {
                 items: [
                     { label: 'Baptisms', routeName: 'baptisms.*', href: () => route('baptisms.index'), icon: icons.baptism, show: can('baptisms.view') },
                     { label: 'Marriages', routeName: 'marriages.*', href: () => route('marriages.index'), icon: icons.marriage, show: can('marriages.view') },
+                    { label: 'Communions', routeName: 'communions.*', href: () => route('communions.index'), icon: icons.communion, show: can('communions.view') || can('communions.parish.view') },
+                    { label: 'Communion Cycles', routeName: 'communions.cycles.*', href: () => route('communions.cycles.index'), icon: icons.calendarSettings, show: can('communions.cycles.manage') || can('permissions.manage') || can('sacraments.cycle.override') },
+                    { label: 'Confirmations', routeName: 'confirmations.*', href: () => route('confirmations.index'), icon: icons.confirmation, show: can('confirmations.view') || can('confirmations.parish.view') },
+                    { label: 'Confirmation Cycles', routeName: 'confirmations.cycles.*', href: () => route('confirmations.cycles.index'), icon: icons.calendarCheck, show: can('confirmations.cycles.manage') || can('permissions.manage') || can('sacraments.cycle.override') },
                 ],
             },
             {
@@ -278,22 +333,30 @@ export default function AuthenticatedLayout({ header, children }) {
                 <div className="px-3 py-4">
                     {navGroups.map((group) => (
                         <div key={group.group} className="mb-6">
-                            <button
-                                type="button"
-                                onClick={() => toggleGroup(group.group)}
-                                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 hover:bg-white/5"
-                            >
-                                <span>{group.group}</span>
-                                <svg
-                                    className={`h-4 w-4 transition ${openGroups?.[group.group] ? 'rotate-180' : ''}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
+                            {(() => {
+                                const groupActive = (group.items ?? []).some((i) => route().current(i.routeName));
+                                return (
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleGroup(group.group)}
+                                        className={`flex w-full items-center justify-between rounded-lg border-l-4 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider transition ${groupActive
+                                            ? 'border-white/90 bg-indigo-600/20 text-white hover:bg-indigo-600/25'
+                                            : 'border-transparent text-slate-200/80 hover:bg-white/10'
+                                            }`}
+                                    >
+                                        <span>{group.group}</span>
+                                        <svg
+                                            className={`h-4 w-4 transition ${openGroups?.[group.group] ? 'rotate-180' : ''}`}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+                                );
+                            })()}
 
                             {openGroups?.[group.group] && (
                                 <nav className="mt-2 space-y-1">
@@ -303,15 +366,15 @@ export default function AuthenticatedLayout({ header, children }) {
                                             <Link
                                                 key={item.label}
                                                 href={item.href()}
-                                                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${active
-                                                    ? 'bg-white/10 text-white ring-1 ring-white/10'
-                                                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
+                                                className={`flex items-center gap-3 rounded-lg py-2 text-sm font-medium transition ${active
+                                                    ? 'border-l-4 border-white/90 bg-indigo-600/25 pl-2 pr-3 text-white ring-1 ring-indigo-300/10'
+                                                    : 'border-l-4 border-transparent px-3 text-slate-200/90 hover:bg-white/10 hover:text-white'
                                                     }`}
                                             >
                                                 <span
                                                     className={`flex h-8 w-8 items-center justify-center rounded-md ${active
-                                                        ? 'bg-indigo-500/20 text-indigo-200 ring-1 ring-indigo-400/20'
-                                                        : 'bg-white/10 text-slate-200'
+                                                        ? 'bg-indigo-500/25 text-indigo-100 ring-1 ring-indigo-200/20'
+                                                        : 'bg-white/10 text-slate-100/90'
                                                         }`}
                                                 >
                                                     {item.icon}

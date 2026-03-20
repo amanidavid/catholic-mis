@@ -439,8 +439,8 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-                    <div className={canEditDraft ? 'lg:col-span-2' : 'lg:col-span-5'}>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                    <div className={canEditDraft ? 'space-y-6 lg:col-span-4' : 'space-y-6 lg:col-span-12'}>
                         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                             <div className="flex items-center justify-between gap-3">
                                 <div className="text-sm font-semibold text-slate-900">Request details</div>
@@ -529,7 +529,7 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                             </dl>
                         </div>
 
-                        <div className="mt-6">
+                        <div>
                             <AttachmentList
                                 type="parents_marriage_certificate"
                                 title="Parents marriage certificate"
@@ -539,7 +539,7 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                             />
                         </div>
 
-                        <div className="mt-6">
+                        <div>
                             <AttachmentList
                                 type="sponsor_confirmation_certificate"
                                 title="Sponsor confirmation certificate"
@@ -549,7 +549,7 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                             />
                         </div>
 
-                        <div className="mt-6">
+                        <div>
                             <AttachmentList
                                 type="birth_certificate"
                                 title="Birth certificate"
@@ -559,7 +559,7 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                             />
                         </div>
 
-                        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                             <div className="text-sm font-semibold text-slate-900">Sponsors</div>
                             <p className="mt-1 text-xs text-slate-500">At least one sponsor is required before submission.</p>
 
@@ -604,7 +604,7 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                     </div>
 
                     {canEditDraft && (
-                        <div className="lg:col-span-3">
+                        <div className="lg:col-span-8">
                             <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                                 <div className="text-sm font-semibold text-slate-900">Edit request</div>
                                 <p className="mt-1 text-xs text-slate-500">You can edit while the request is not approved. If it was rejected, fix the issues then submit again.</p>

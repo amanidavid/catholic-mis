@@ -137,30 +137,30 @@ export default function AuditLogsIndex({ logs, filters, modelTypes, actions }) {
 
                     <div className="mt-6 overflow-x-auto">
                         <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                            <table className="min-w-full divide-y divide-slate-200">
-                                <thead className="bg-slate-50">
+                            <table className="mis-table divide-y divide-slate-200">
+                                <thead>
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Date/Time</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Model</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Action</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Changed by</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Description</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Changes</th>
+                                        <th>Date/Time</th>
+                                        <th>Model</th>
+                                        <th>Action</th>
+                                        <th>Changed by</th>
+                                        <th>Description</th>
+                                        <th className="text-right">Changes</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
+                                <tbody className="divide-y divide-slate-100">
                                     {rows.map((r, idx) => (
-                                        <tr key={idx} className="hover:bg-indigo-50/40 transition">
-                                            <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{r.created_at ?? '-'}</td>
-                                            <td className="px-4 py-3 text-sm font-semibold text-slate-900">{r.model ?? '-'}</td>
-                                            <td className="px-4 py-3 text-sm">
+                                        <tr key={idx}>
+                                            <td className="text-sm text-slate-700 whitespace-nowrap">{r.created_at ?? '-'}</td>
+                                            <td className="text-sm font-semibold text-slate-900">{r.model ?? '-'}</td>
+                                            <td className="text-sm">
                                                 <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
                                                     {r.action ?? '-'}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{r.changed_by ?? '-'}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{r.description ?? '-'}</td>
-                                            <td className="px-4 py-3 text-right">
+                                            <td className="text-sm text-slate-700">{r.changed_by ?? '-'}</td>
+                                            <td className="text-sm text-slate-700">{r.description ?? '-'}</td>
+                                            <td className="text-right">
                                                 <button
                                                     type="button"
                                                     onClick={() => setViewing(r)}
@@ -211,20 +211,20 @@ export default function AuditLogsIndex({ logs, filters, modelTypes, actions }) {
                             <div className="text-sm text-slate-600">No changes recorded.</div>
                         ) : (
                             <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                                <table className="min-w-full divide-y divide-slate-200">
-                                    <thead className="bg-slate-50">
+                                <table className="mis-table divide-y divide-slate-200">
+                                    <thead>
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Field</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">From</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">To</th>
+                                            <th>Field</th>
+                                            <th>From</th>
+                                            <th>To</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 bg-white">
+                                    <tbody className="divide-y divide-slate-100">
                                         {(viewing?.changes ?? []).map((c, idx) => (
                                             <tr key={idx} className="align-top">
-                                                <td className="px-4 py-3 text-sm font-semibold text-slate-900">{c.field}</td>
-                                                <td className="px-4 py-3 text-sm text-slate-700">{c.from}</td>
-                                                <td className="px-4 py-3 text-sm text-slate-700">{c.to}</td>
+                                                <td className="text-sm font-semibold text-slate-900">{c.field}</td>
+                                                <td className="text-sm text-slate-700">{c.from}</td>
+                                                <td className="text-sm text-slate-700">{c.to}</td>
                                             </tr>
                                         ))}
                                     </tbody>

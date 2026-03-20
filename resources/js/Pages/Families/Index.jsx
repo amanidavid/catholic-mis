@@ -197,21 +197,21 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
 
                     <div className="mt-6 overflow-x-auto">
                         <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                            <table className="min-w-full divide-y divide-slate-200">
-                                <thead className="bg-slate-50">
+                            <table className="mis-table divide-y divide-slate-200">
+                                <thead>
                                     <tr>
-                                        <th className="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">#</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Family</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Code</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Christian Community</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Head</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Status</th>
+                                        <th className="w-16">#</th>
+                                        <th>Family</th>
+                                        <th>Code</th>
+                                        <th>Christian Community</th>
+                                        <th>Head</th>
+                                        <th>Status</th>
                                         {(canUpdate || canDelete) && (
-                                            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Actions</th>
+                                            <th className="text-right">Actions</th>
                                         )}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
+                                <tbody className="divide-y divide-slate-100">
                                     {(families?.data ?? []).map((f, idx) => (
                                         <FamilyRow
                                             key={f.uuid}

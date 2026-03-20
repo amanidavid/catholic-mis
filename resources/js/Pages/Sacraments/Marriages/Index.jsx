@@ -111,17 +111,17 @@ export default function MarriagesIndex({ marriages, pagination, filters }) {
 
                 <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
+                        <table className="mis-table divide-y divide-slate-200">
+                            <thead>
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Groom</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Bride</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Created</th>
-                                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">Actions</th>
+                                    <th>Groom</th>
+                                    <th>Bride</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-200 bg-white">
+                            <tbody className="divide-y divide-slate-200">
                                 {rows.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="px-6 py-8 text-sm text-slate-600">No marriage requests found.</td>
@@ -130,12 +130,12 @@ export default function MarriagesIndex({ marriages, pagination, filters }) {
                                     rows.map((m) => {
                                         const brideName = m?.bride?.full_name ?? m?.bride_external?.full_name ?? '—';
                                         return (
-                                            <tr key={m.uuid} className="hover:bg-slate-50">
-                                                <td className="px-6 py-4 text-sm font-semibold text-slate-900">{m?.groom?.full_name ?? '—'}</td>
-                                                <td className="px-6 py-4 text-sm font-semibold text-slate-900">{brideName}</td>
-                                                <td className="px-6 py-4 text-sm"><StatusBadge status={m?.status} /></td>
-                                                <td className="px-6 py-4 text-sm text-slate-600">{m?.created_at ?? ''}</td>
-                                                <td className="px-6 py-4 text-right">
+                                            <tr key={m.uuid}>
+                                                <td className="text-sm font-semibold text-slate-900">{m?.groom?.full_name ?? '—'}</td>
+                                                <td className="text-sm font-semibold text-slate-900">{brideName}</td>
+                                                <td className="text-sm"><StatusBadge status={m?.status} /></td>
+                                                <td className="text-sm text-slate-600">{m?.created_at ?? ''}</td>
+                                                <td className="text-right">
                                                     <SecondaryButton type="button" className="h-10" onClick={() => router.get(route('marriages.show', m.uuid))}>
                                                         View
                                                     </SecondaryButton>

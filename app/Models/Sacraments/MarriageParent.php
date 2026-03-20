@@ -18,10 +18,12 @@ class MarriageParent extends BaseModel
         'party',
         'father_member_id',
         'father_name',
+        'father_phone',
         'father_religion',
         'father_is_alive',
         'mother_member_id',
         'mother_name',
+        'mother_phone',
         'mother_religion',
         'mother_is_alive',
     ];

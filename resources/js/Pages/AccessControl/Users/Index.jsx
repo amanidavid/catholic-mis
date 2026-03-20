@@ -191,17 +191,17 @@ export default function AccessControlUsersIndex({ users, roles, permissions, fil
 
                     <div className="mt-6 overflow-x-auto">
                         <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                            <table className="min-w-full divide-y divide-slate-200">
-                                <thead className="bg-slate-50">
+                            <table className="mis-table divide-y divide-slate-200">
+                                <thead>
                                     <tr>
-                                        <th className="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">#</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">User</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Roles</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Direct permissions</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Actions</th>
+                                        <th className="w-16">#</th>
+                                        <th>User</th>
+                                        <th>Roles</th>
+                                        <th>Direct permissions</th>
+                                        <th className="text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
+                                <tbody className="divide-y divide-slate-100">
                                     {rows.map((u, idx) => (
                                         <tr key={u.id} className={`${idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'} hover:bg-indigo-50/40 transition`}>
                                             <td className="px-4 py-3 text-sm font-semibold text-slate-700">{(users?.meta?.from ?? 1) + idx}</td>

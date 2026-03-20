@@ -110,17 +110,17 @@ export default function BaptismsIndex({ baptisms, filters }) {
 
                 <div className="mt-4 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
+                        <table className="mis-table divide-y divide-slate-200">
+                            <thead>
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Child</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Jumuiya</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Status</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Created</th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">Actions</th>
+                                    <th>Child</th>
+                                    <th>Jumuiya</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-200 bg-white">
+                            <tbody className="divide-y divide-slate-200">
                                 {rows.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">No baptism requests found.</td>
@@ -135,14 +135,14 @@ export default function BaptismsIndex({ baptisms, filters }) {
                                         const openLabel = (b?.status ?? '').toString().toLowerCase() === 'draft' ? 'Continue' : 'Open';
 
                                         return (
-                                            <tr key={b.uuid} className="cursor-pointer hover:bg-slate-50" onClick={() => router.get(route('baptisms.show', b.uuid))}>
-                                                <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900">{childName}</td>
-                                                <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">{b?.origin_jumuiya?.name ?? '—'}</td>
-                                                <td className="whitespace-nowrap px-4 py-3 text-sm">
+                                            <tr key={b.uuid} className="cursor-pointer" onClick={() => router.get(route('baptisms.show', b.uuid))}>
+                                                <td className="whitespace-nowrap font-medium text-slate-900">{childName}</td>
+                                                <td className="whitespace-nowrap">{b?.origin_jumuiya?.name ?? '—'}</td>
+                                                <td className="whitespace-nowrap">
                                                     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${meta.cls}`}>{meta.label}</span>
                                                 </td>
-                                                <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{b?.created_at ?? '—'}</td>
-                                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
+                                                <td className="whitespace-nowrap text-slate-600">{b?.created_at ?? '—'}</td>
+                                                <td className="whitespace-nowrap text-right">
                                                     <button
                                                         type="button"
                                                         className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"

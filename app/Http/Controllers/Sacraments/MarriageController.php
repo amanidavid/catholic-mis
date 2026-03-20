@@ -27,7 +27,7 @@ use Inertia\Response;
 
 class MarriageController extends Controller
 {
-    private const NAME_REGEX = "/^[\pL\pM][\pL\pM\s\-'.]*[\pL\pM.]$/u";
+    private const NAME_REGEX = "/^[\pL\pM]+(?:\s+[\pL\pM]+)*$/u";
     private const SAFE_TEXT_REGEX = "/^[^<>]*$/";
 
     private static ?bool $marriagesHasSearchKey = null;
@@ -360,6 +360,8 @@ class MarriageController extends Controller
             'bride_external_phone' => ['nullable', 'string', 'max:20', 'regex:'.PhoneNormalizer::TZ_REGEX],
             'bride_external_address' => ['nullable', 'string', 'max:190', 'regex:'.self::SAFE_TEXT_REGEX],
             'bride_external_home_parish_name' => ['nullable', 'string', 'max:190', 'regex:'.self::SAFE_TEXT_REGEX],
+            'bride_external_zone_name' => ['nullable', 'string', 'max:190', 'regex:'.self::NAME_REGEX, 'regex:'.self::SAFE_TEXT_REGEX],
+            'bride_external_jumuiya_name' => ['nullable', 'string', 'max:190', 'regex:'.self::NAME_REGEX, 'regex:'.self::SAFE_TEXT_REGEX],
         ]);
 
         $groom = Member::query()->where('uuid', $validated['groom_member_uuid'])->firstOrFail();
@@ -448,6 +450,8 @@ class MarriageController extends Controller
                 'bride_external_phone' => $bride ? null : (is_string($validated['bride_external_phone'] ?? null) && trim($validated['bride_external_phone']) !== '' ? PhoneNormalizer::normalize((string) $validated['bride_external_phone']) : null),
                 'bride_external_address' => $bride ? null : (is_string($validated['bride_external_address'] ?? null) && trim($validated['bride_external_address']) !== '' ? trim((string) $validated['bride_external_address']) : null),
                 'bride_external_home_parish_name' => $bride ? null : (is_string($validated['bride_external_home_parish_name'] ?? null) && trim($validated['bride_external_home_parish_name']) !== '' ? trim((string) $validated['bride_external_home_parish_name']) : null),
+                'bride_external_zone_name' => $bride ? null : NormalizesNames::normalize($validated['bride_external_zone_name'] ?? null, true),
+                'bride_external_jumuiya_name' => $bride ? null : NormalizesNames::normalize($validated['bride_external_jumuiya_name'] ?? null, true),
                 'bride_family_id' => $bride ? (int) $bride->family_id : null,
                 'bride_jumuiya_id' => $bride ? (int) $bride->jumuiya_id : null,
                 'bride_parish_id' => $bride ? ($brideParishId ?: null) : null,
@@ -521,6 +525,32 @@ class MarriageController extends Controller
             $request->merge(['sponsors' => $normalizedSponsors]);
         }
 
+        $incomingGroomParents = $request->input('groom_parents');
+        if (is_array($incomingGroomParents)) {
+            $fatherPhone = $incomingGroomParents['father_phone'] ?? null;
+            $motherPhone = $incomingGroomParents['mother_phone'] ?? null;
+            if (is_string($fatherPhone)) {
+                $incomingGroomParents['father_phone'] = PhoneNormalizer::normalize($fatherPhone);
+            }
+            if (is_string($motherPhone)) {
+                $incomingGroomParents['mother_phone'] = PhoneNormalizer::normalize($motherPhone);
+            }
+            $request->merge(['groom_parents' => $incomingGroomParents]);
+        }
+
+        $incomingBrideParents = $request->input('bride_parents');
+        if (is_array($incomingBrideParents)) {
+            $fatherPhone = $incomingBrideParents['father_phone'] ?? null;
+            $motherPhone = $incomingBrideParents['mother_phone'] ?? null;
+            if (is_string($fatherPhone)) {
+                $incomingBrideParents['father_phone'] = PhoneNormalizer::normalize($fatherPhone);
+            }
+            if (is_string($motherPhone)) {
+                $incomingBrideParents['mother_phone'] = PhoneNormalizer::normalize($motherPhone);
+            }
+            $request->merge(['bride_parents' => $incomingBrideParents]);
+        }
+
         $validated = $request->validate([
             'marriage_date' => ['nullable', 'date', 'after_or_equal:today'],
             'marriage_time' => ['nullable', 'date_format:H:i'],
@@ -531,6 +561,8 @@ class MarriageController extends Controller
             'bride_external_phone' => ['nullable', 'string', 'max:20', 'regex:'.PhoneNormalizer::TZ_REGEX],
             'bride_external_address' => ['nullable', 'string', 'max:190', 'regex:'.self::SAFE_TEXT_REGEX],
             'bride_external_home_parish_name' => ['nullable', 'string', 'max:190', 'regex:'.self::SAFE_TEXT_REGEX],
+            'bride_external_zone_name' => ['nullable', 'string', 'max:190', 'regex:'.self::NAME_REGEX, 'regex:'.self::SAFE_TEXT_REGEX],
+            'bride_external_jumuiya_name' => ['nullable', 'string', 'max:190', 'regex:'.self::NAME_REGEX, 'regex:'.self::SAFE_TEXT_REGEX],
 
             'male_witness_name' => ['nullable', 'string', 'max:190', 'regex:'.self::NAME_REGEX, 'regex:'.self::SAFE_TEXT_REGEX],
             'male_witness_phone' => ['nullable', 'string', 'max:20', 'regex:'.PhoneNormalizer::TZ_REGEX],
@@ -543,7 +575,11 @@ class MarriageController extends Controller
             'female_witness_relationship' => ['nullable', 'string', 'max:100', 'regex:'.self::SAFE_TEXT_REGEX],
 
             'groom_parents' => ['nullable', 'array'],
+            'groom_parents.father_phone' => ['nullable', 'string', 'max:20', 'regex:'.PhoneNormalizer::TZ_REGEX],
+            'groom_parents.mother_phone' => ['nullable', 'string', 'max:20', 'regex:'.PhoneNormalizer::TZ_REGEX],
             'bride_parents' => ['nullable', 'array'],
+            'bride_parents.father_phone' => ['nullable', 'string', 'max:20', 'regex:'.PhoneNormalizer::TZ_REGEX],
+            'bride_parents.mother_phone' => ['nullable', 'string', 'max:20', 'regex:'.PhoneNormalizer::TZ_REGEX],
 
             'sponsors' => ['nullable', 'array'],
             'sponsors.*.role' => ['required_with:sponsors', 'string', 'max:50'],
@@ -590,6 +626,8 @@ class MarriageController extends Controller
                     'bride_external_phone' => array_key_exists('bride_external_phone', $validated) ? $normPhone($validated['bride_external_phone']) : $marriage->bride_external_phone,
                     'bride_external_address' => array_key_exists('bride_external_address', $validated) ? $normText($validated['bride_external_address']) : $marriage->bride_external_address,
                     'bride_external_home_parish_name' => array_key_exists('bride_external_home_parish_name', $validated) ? $normText($validated['bride_external_home_parish_name']) : $marriage->bride_external_home_parish_name,
+                    'bride_external_zone_name' => array_key_exists('bride_external_zone_name', $validated) ? $normName($validated['bride_external_zone_name']) : $marriage->bride_external_zone_name,
+                    'bride_external_jumuiya_name' => array_key_exists('bride_external_jumuiya_name', $validated) ? $normName($validated['bride_external_jumuiya_name']) : $marriage->bride_external_jumuiya_name,
 
                     'male_witness_name' => array_key_exists('male_witness_name', $validated) ? $normName($validated['male_witness_name']) : $marriage->male_witness_name,
                     'male_witness_phone' => array_key_exists('male_witness_phone', $validated) ? $normPhone($validated['male_witness_phone']) : $marriage->male_witness_phone,
@@ -602,9 +640,12 @@ class MarriageController extends Controller
                     'female_witness_relationship' => array_key_exists('female_witness_relationship', $validated) ? $normText($validated['female_witness_relationship']) : $marriage->female_witness_relationship,
                 ])->save();
 
-                $upsertParents = function (string $party, array $data) use ($marriage, $normName): void {
+                $upsertParents = function (string $party, array $data) use ($marriage, $normName, $normPhone): void {
                     $fatherName = $normName($data['father_name'] ?? null);
                     $motherName = $normName($data['mother_name'] ?? null);
+
+                    $fatherPhone = $normPhone($data['father_phone'] ?? null);
+                    $motherPhone = $normPhone($data['mother_phone'] ?? null);
 
                     $fatherIsAlive = array_key_exists('father_is_alive', $data) ? (is_null($data['father_is_alive']) ? null : (bool) $data['father_is_alive']) : null;
                     $motherIsAlive = array_key_exists('mother_is_alive', $data) ? (is_null($data['mother_is_alive']) ? null : (bool) $data['mother_is_alive']) : null;
@@ -614,10 +655,12 @@ class MarriageController extends Controller
                         [
                             'father_member_id' => null,
                             'father_name' => $fatherName,
+                            'father_phone' => $fatherPhone,
                             'father_religion' => $data['father_religion'] ?? null,
                             'father_is_alive' => $fatherIsAlive,
                             'mother_member_id' => null,
                             'mother_name' => $motherName,
+                            'mother_phone' => $motherPhone,
                             'mother_religion' => $data['mother_religion'] ?? null,
                             'mother_is_alive' => $motherIsAlive,
                         ]

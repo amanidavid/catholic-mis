@@ -250,17 +250,17 @@ export default function Families({ scoped_jumuiya, can_select_jumuiya }) {
                     </div>
 
                     <div className="mt-4 overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
+                        <table className="mis-table divide-y divide-slate-200">
+                            <thead>
                                 <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Family</th>
+                                    <th>Family</th>
                                     {STATUS_COLS.map((c) => (
-                                        <th key={c.key} className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">{c.label}</th>
+                                        <th key={c.key} className="text-right">{c.label}</th>
                                     ))}
-                                    <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Attendance %</th>
+                                    <th className="text-right">Attendance %</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
+                            <tbody className="divide-y divide-slate-100">
                                 {rows.length === 0 ? (
                                     <tr>
                                         <td className="px-3 py-4 text-sm text-slate-500" colSpan={STATUS_COLS.length + 2}>
@@ -270,11 +270,11 @@ export default function Families({ scoped_jumuiya, can_select_jumuiya }) {
                                 ) : (
                                     rows.map((r) => (
                                         <tr key={r.family_uuid}>
-                                            <td className="px-3 py-2 text-sm font-semibold text-slate-900">{r.family_name}</td>
+                                            <td className="text-sm font-semibold text-slate-900">{r.family_name}</td>
                                             {STATUS_COLS.map((c) => (
-                                                <td key={c.key} className="px-3 py-2 text-right text-sm text-slate-700">{r[c.key] ?? 0}</td>
+                                                <td key={c.key} className="text-right text-sm text-slate-700">{r[c.key] ?? 0}</td>
                                             ))}
-                                            <td className="px-3 py-2 text-right text-sm font-semibold text-slate-900">{r.attendance_percent ?? 0}%</td>
+                                            <td className="text-right text-sm font-semibold text-slate-900">{r.attendance_percent ?? 0}%</td>
                                         </tr>
                                     ))
                                 )}

@@ -72,7 +72,7 @@ export default function SearchableMemberSelect({
     }, [disabled]);
 
     return (
-        <div>
+        <div className="relative">
             <Combobox
                 value={selected}
                 onChange={(opt) => {
@@ -83,17 +83,13 @@ export default function SearchableMemberSelect({
                 }}
                 disabled={disabled}
             >
-                <Combobox.Label className="mb-1 block text-sm font-semibold text-slate-700">
-                    {label}
-                </Combobox.Label>
-
                 <div className="relative">
                     <Combobox.Input
                         id={id}
-                        className={`w-full rounded-lg border px-3 py-2 pr-16 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${error
+                        className={`peer h-11 w-full rounded-lg border bg-white px-3 pt-5 pr-16 text-sm text-slate-900 shadow-sm transition focus:border-indigo-500 focus:ring-indigo-500 ${error
                             ? 'border-rose-300 focus:border-rose-400'
                             : 'border-slate-200 focus:border-indigo-300'
-                            }`}
+                            } ${disabled ? 'bg-slate-50 text-slate-500' : ''}`}
                         displayValue={(opt) => opt?.name ?? ''}
                         onChange={(event) => setQuery(event.target.value)}
                         placeholder="Search member..."
@@ -113,6 +109,13 @@ export default function SearchableMemberSelect({
                             window.setTimeout(() => setOpen(false), 150);
                         }}
                     />
+
+                    <Combobox.Label
+                        htmlFor={id}
+                        className="pointer-events-none absolute left-3 top-2.5 origin-[0] -translate-y-1 scale-75 text-xs font-semibold text-slate-500 transition-all peer-focus:top-2.5 peer-focus:-translate-y-1 peer-focus:scale-75 peer-focus:text-xs peer-focus:font-semibold peer-focus:text-indigo-600"
+                    >
+                        {label}
+                    </Combobox.Label>
 
                     {!!value && !disabled && (
                         <button

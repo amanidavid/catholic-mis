@@ -53,6 +53,8 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
         bride_external_phone: marriageData?.bride_external?.phone ?? '',
         bride_external_address: marriageData?.bride_external?.address ?? '',
         bride_external_home_parish_name: marriageData?.bride_external?.home_parish_name ?? '',
+        bride_external_zone_name: marriageData?.bride_external?.zone_name ?? '',
+        bride_external_jumuiya_name: marriageData?.bride_external?.jumuiya_name ?? '',
         male_witness_name: marriageData?.witnesses?.male?.name ?? '',
         male_witness_phone: marriageData?.witnesses?.male?.phone ?? '',
         male_witness_address: marriageData?.witnesses?.male?.address ?? '',
@@ -71,17 +73,21 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
         })) : [],
         groom_parents: {
             father_name: parentsByParty?.groom?.father_name ?? '',
+            father_phone: parentsByParty?.groom?.father_phone ?? '',
             father_religion: parentsByParty?.groom?.father_religion ?? '',
             father_is_alive: parentsByParty?.groom?.father_is_alive ?? null,
             mother_name: parentsByParty?.groom?.mother_name ?? '',
+            mother_phone: parentsByParty?.groom?.mother_phone ?? '',
             mother_religion: parentsByParty?.groom?.mother_religion ?? '',
             mother_is_alive: parentsByParty?.groom?.mother_is_alive ?? null,
         },
         bride_parents: {
             father_name: parentsByParty?.bride?.father_name ?? '',
+            father_phone: parentsByParty?.bride?.father_phone ?? '',
             father_religion: parentsByParty?.bride?.father_religion ?? '',
             father_is_alive: parentsByParty?.bride?.father_is_alive ?? null,
             mother_name: parentsByParty?.bride?.mother_name ?? '',
+            mother_phone: parentsByParty?.bride?.mother_phone ?? '',
             mother_religion: parentsByParty?.bride?.mother_religion ?? '',
             mother_is_alive: parentsByParty?.bride?.mother_is_alive ?? null,
         },
@@ -114,7 +120,10 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
 
     const requiredTypes = useMemo(() => {
         const req = ['groom_baptism_certificate', 'bride_baptism_certificate'];
-        if (marriageData?.bride_parish?.id && marriageData?.groom_parish?.id && marriageData.bride_parish.id !== marriageData.groom_parish.id) {
+        const isExternalBride = !marriageData?.bride?.id;
+        if (isExternalBride) {
+            req.push('bride_home_parish_letter');
+        } else if (marriageData?.bride_parish?.id && marriageData?.groom_parish?.id && marriageData.bride_parish.id !== marriageData.groom_parish.id) {
             req.push('bride_home_parish_letter');
         }
         return req;
@@ -297,8 +306,8 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-                    <div className="lg:col-span-2">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                    <div className="space-y-6 lg:col-span-4">
                         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                             <div className="text-sm font-semibold text-slate-900">Request details</div>
                             <dl className="mt-4 space-y-3 text-sm">
@@ -322,7 +331,7 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                                 </div>
                                 <div className="flex items-start justify-between gap-3">
                                     <dt className="text-slate-500">Bride parish</dt>
-                                    <dd className="text-right text-slate-900">{marriageData?.bride_parish?.name ?? '—'}</dd>
+                                    <dd className="text-right text-slate-900">{marriageData?.bride_parish?.name ?? marriageData?.bride_external?.home_parish_name ?? '—'}</dd>
                                 </div>
                                 {marriageData?.rejection_reason ? (
                                     <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
@@ -332,55 +341,56 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                             </dl>
                         </div>
 
-                        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                             <div className="text-sm font-semibold text-slate-900">Affiliations</div>
                             <p className="mt-1 text-xs text-slate-500">Bride and groom can belong to different Christian Communities, zones, and parishes.</p>
 
-                            {marriageData?.bride_parish?.id && marriageData?.groom_parish?.id && marriageData.bride_parish.id !== marriageData.groom_parish.id ? (
+                            {!marriageData?.bride?.id || (marriageData?.bride_parish?.id && marriageData?.groom_parish?.id && marriageData.bride_parish.id !== marriageData.groom_parish.id) ? (
                                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                                     External parish case: bride parish differs from groom parish. Bride home parish letter is required before submission.
                                 </div>
                             ) : null}
 
-                            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                                <div className="rounded-xl border border-slate-200 p-4">
+                            <div className="mt-4 space-y-4">
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                                     <div className="text-sm font-semibold text-slate-900">Groom</div>
-                                    <div className="mt-2 space-y-2 text-sm">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="text-slate-500">Jumuiya</div>
-                                            <div className="text-right text-slate-900">{marriageData?.groom_jumuiya?.name ?? '—'}</div>
+                                    <dl className="mt-3 grid gap-2 text-sm">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <dt className="text-slate-500">Jumuiya</dt>
+                                            <dd className="text-right font-medium text-slate-900">{marriageData?.groom_jumuiya?.name ?? '—'}</dd>
                                         </div>
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="text-slate-500">Zone</div>
-                                            <div className="text-right text-slate-900">{marriageData?.groom_zone?.name ?? '—'}</div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <dt className="text-slate-500">Zone</dt>
+                                            <dd className="text-right font-medium text-slate-900">{marriageData?.groom_zone?.name ?? '—'}</dd>
                                         </div>
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="text-slate-500">Parish</div>
-                                            <div className="text-right text-slate-900">{marriageData?.groom_parish?.name ?? '—'}</div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <dt className="text-slate-500">Parish</dt>
+                                            <dd className="text-right font-medium text-slate-900">{marriageData?.groom_parish?.name ?? '—'}</dd>
                                         </div>
-                                    </div>
+                                    </dl>
                                 </div>
-                                <div className="rounded-xl border border-slate-200 p-4">
+
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                                     <div className="text-sm font-semibold text-slate-900">Bride</div>
-                                    <div className="mt-2 space-y-2 text-sm">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="text-slate-500">Jumuiya</div>
-                                            <div className="text-right text-slate-900">{marriageData?.bride_jumuiya?.name ?? '—'}</div>
+                                    <dl className="mt-3 grid gap-2 text-sm">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <dt className="text-slate-500">Jumuiya</dt>
+                                            <dd className="text-right font-medium text-slate-900">{marriageData?.bride_jumuiya?.name ?? '—'}</dd>
                                         </div>
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="text-slate-500">Zone</div>
-                                            <div className="text-right text-slate-900">{marriageData?.bride_zone?.name ?? '—'}</div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <dt className="text-slate-500">Zone</dt>
+                                            <dd className="text-right font-medium text-slate-900">{marriageData?.bride_zone?.name ?? '—'}</dd>
                                         </div>
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="text-slate-500">Parish</div>
-                                            <div className="text-right text-slate-900">{marriageData?.bride_parish?.name ?? '—'}</div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <dt className="text-slate-500">Parish</dt>
+                                            <dd className="text-right font-medium text-slate-900">{marriageData?.bride_parish?.name ?? marriageData?.bride_external?.home_parish_name ?? '—'}</dd>
                                         </div>
-                                    </div>
+                                    </dl>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
                                     <div className="text-sm font-semibold text-slate-900">Submit readiness</div>
@@ -404,7 +414,7 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                             )}
                         </div>
 
-                        <div className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                             <div className="text-sm font-semibold text-slate-900">Upload documents</div>
                             <p className="mt-1 text-xs text-slate-500">One file per type. Re-upload will replace the previous file.</p>
 
@@ -450,7 +460,7 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                         </div>
                     </div>
 
-                    <div className="lg:col-span-3">
+                    <div className="lg:col-span-8">
                         <div className="space-y-4">
                             <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                                 <div className="flex items-start justify-between gap-4">
@@ -539,6 +549,28 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                                                             className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
                                                         />
                                                     </div>
+                                                    <div>
+                                                        <label className="mb-1 block text-xs font-semibold text-slate-700">Zone (optional)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={draftForm.data.bride_external_zone_name}
+                                                            onChange={(e) => draftForm.setData('bride_external_zone_name', e.target.value)}
+                                                            disabled={!canEditDraft}
+                                                            className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                                                        />
+                                                        <InputError className="mt-2" message={draftForm.errors.bride_external_zone_name} />
+                                                    </div>
+                                                    <div>
+                                                        <label className="mb-1 block text-xs font-semibold text-slate-700">Jumuiya (optional)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={draftForm.data.bride_external_jumuiya_name}
+                                                            onChange={(e) => draftForm.setData('bride_external_jumuiya_name', e.target.value)}
+                                                            disabled={!canEditDraft}
+                                                            className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                                                        />
+                                                        <InputError className="mt-2" message={draftForm.errors.bride_external_jumuiya_name} />
+                                                    </div>
                                                     <div className="sm:col-span-2">
                                                         <label className="mb-1 block text-xs font-semibold text-slate-700">Address</label>
                                                         <input
@@ -568,6 +600,17 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                                                         />
                                                     </div>
                                                     <div>
+                                                        <label className="mb-1 block text-xs font-semibold text-slate-700">Father phone (optional)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={draftForm.data.groom_parents.father_phone}
+                                                            onChange={(e) => draftForm.setData('groom_parents', { ...draftForm.data.groom_parents, father_phone: e.target.value })}
+                                                            disabled={!canEditDraft}
+                                                            className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                                                        />
+                                                        <InputError className="mt-2" message={draftForm.errors['groom_parents.father_phone']} />
+                                                    </div>
+                                                    <div>
                                                         <label className="mb-1 block text-xs font-semibold text-slate-700">Mother full name</label>
                                                         <input
                                                             type="text"
@@ -576,6 +619,17 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                                                             disabled={!canEditDraft}
                                                             className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
                                                         />
+                                                    </div>
+                                                    <div>
+                                                        <label className="mb-1 block text-xs font-semibold text-slate-700">Mother phone (optional)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={draftForm.data.groom_parents.mother_phone}
+                                                            onChange={(e) => draftForm.setData('groom_parents', { ...draftForm.data.groom_parents, mother_phone: e.target.value })}
+                                                            disabled={!canEditDraft}
+                                                            className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                                                        />
+                                                        <InputError className="mt-2" message={draftForm.errors['groom_parents.mother_phone']} />
                                                     </div>
                                                 </div>
                                             </div>
@@ -593,6 +647,17 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                                                         />
                                                     </div>
                                                     <div>
+                                                        <label className="mb-1 block text-xs font-semibold text-slate-700">Father phone (optional)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={draftForm.data.bride_parents.father_phone}
+                                                            onChange={(e) => draftForm.setData('bride_parents', { ...draftForm.data.bride_parents, father_phone: e.target.value })}
+                                                            disabled={!canEditDraft}
+                                                            className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                                                        />
+                                                        <InputError className="mt-2" message={draftForm.errors['bride_parents.father_phone']} />
+                                                    </div>
+                                                    <div>
                                                         <label className="mb-1 block text-xs font-semibold text-slate-700">Mother full name</label>
                                                         <input
                                                             type="text"
@@ -601,6 +666,17 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                                                             disabled={!canEditDraft}
                                                             className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
                                                         />
+                                                    </div>
+                                                    <div>
+                                                        <label className="mb-1 block text-xs font-semibold text-slate-700">Mother phone (optional)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={draftForm.data.bride_parents.mother_phone}
+                                                            onChange={(e) => draftForm.setData('bride_parents', { ...draftForm.data.bride_parents, mother_phone: e.target.value })}
+                                                            disabled={!canEditDraft}
+                                                            className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                                                        />
+                                                        <InputError className="mt-2" message={draftForm.errors['bride_parents.mother_phone']} />
                                                     </div>
                                                 </div>
                                             </div>

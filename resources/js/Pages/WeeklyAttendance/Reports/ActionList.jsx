@@ -201,15 +201,15 @@ export default function ActionList({ scoped_jumuiya, can_select_jumuiya }) {
                     </div>
 
                     <div className="mt-4 overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
+                        <table className="mis-table divide-y divide-slate-200">
+                            <thead>
                                 <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Member</th>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Family</th>
-                                    <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Consecutive Absences</th>
+                                    <th>Member</th>
+                                    <th>Family</th>
+                                    <th className="text-right">Consecutive Absences</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
+                            <tbody className="divide-y divide-slate-100">
                                 {rows.length === 0 ? (
                                     <tr>
                                         <td className="px-3 py-4 text-sm text-slate-500" colSpan={3}>
@@ -219,9 +219,9 @@ export default function ActionList({ scoped_jumuiya, can_select_jumuiya }) {
                                 ) : (
                                     rows.map((r) => (
                                         <tr key={r.member_uuid}>
-                                            <td className="px-3 py-2 text-sm font-semibold text-slate-900">{r.member_name}</td>
-                                            <td className="px-3 py-2 text-sm text-slate-700">{r.family_name ?? ''}</td>
-                                            <td className="px-3 py-2 text-right text-sm font-semibold text-slate-900">{r.consecutive_absences}</td>
+                                            <td className="text-sm font-semibold text-slate-900">{r.member_name}</td>
+                                            <td className="text-sm text-slate-700">{r.family_name ?? ''}</td>
+                                            <td className="text-right text-sm font-semibold text-slate-900">{r.consecutive_absences}</td>
                                         </tr>
                                     ))
                                 )}

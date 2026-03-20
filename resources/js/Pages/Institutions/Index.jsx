@@ -154,19 +154,19 @@ export default function InstitutionsIndex({ institutions, filters }) {
 
                             <div className="mt-6 overflow-x-auto">
                                 <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                                    <table className="min-w-full divide-y divide-slate-200">
-                                        <thead className="bg-slate-50">
+                                    <table className="mis-table divide-y divide-slate-200">
+                                        <thead>
                                             <tr>
-                                                <th className="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">#</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Name</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Type</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Status</th>
+                                                <th className="w-16">#</th>
+                                                <th>Name</th>
+                                                <th>Type</th>
+                                                <th>Status</th>
                                                 {(canUpdate || canDelete) && (
-                                                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Actions</th>
+                                                    <th className="text-right">Actions</th>
                                                 )}
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100 bg-white">
+                                        <tbody className="divide-y divide-slate-100">
                                             {(institutions?.data ?? []).map((i, idx) => (
                                                 <tr key={i.uuid} className={idx % 2 === 1 ? 'bg-slate-50/40' : ''}>
                                                     <td className="px-4 py-3 text-sm text-slate-600">{(institutions?.meta?.from ?? 1) + idx}</td>

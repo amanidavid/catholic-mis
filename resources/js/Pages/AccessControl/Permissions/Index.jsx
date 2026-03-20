@@ -94,15 +94,15 @@ export default function AccessControlPermissionsIndex({ permissions, filters, mo
 
                     <div className="mt-6 overflow-x-auto">
                         <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                            <table className="min-w-full divide-y divide-slate-200">
-                                <thead className="bg-slate-50">
+                            <table className="mis-table divide-y divide-slate-200">
+                                <thead>
                                     <tr>
-                                        <th className="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">#</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Module</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Permission</th>
+                                        <th className="w-16">#</th>
+                                        <th>Module</th>
+                                        <th>Permission</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
+                                <tbody className="divide-y divide-slate-100">
                                     {rows.map((p, idx) => (
                                         <tr key={p.name} className={`${idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'} hover:bg-indigo-50/40 transition`}>
                                             <td className="px-4 py-3 text-sm font-semibold text-slate-700">{(permissions?.meta?.from ?? 1) + idx}</td>

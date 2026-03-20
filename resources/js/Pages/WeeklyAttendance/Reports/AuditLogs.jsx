@@ -203,20 +203,20 @@ export default function AuditLogs({ scoped_jumuiya, can_select_jumuiya }) {
                     </div>
 
                     <div className="mt-4 overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
+                        <table className="mis-table divide-y divide-slate-200">
+                            <thead>
                                 <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Date/Time</th>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Meeting Date</th>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Member</th>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Action</th>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">From</th>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">To</th>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Performed By</th>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Notes</th>
+                                    <th>Date/Time</th>
+                                    <th>Meeting Date</th>
+                                    <th>Member</th>
+                                    <th>Action</th>
+                                    <th>From</th>
+                                    <th>To</th>
+                                    <th>Performed By</th>
+                                    <th>Notes</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
+                            <tbody className="divide-y divide-slate-100">
                                 {rows.length === 0 ? (
                                     <tr>
                                         <td className="px-3 py-4 text-sm text-slate-500" colSpan={8}>
@@ -226,14 +226,14 @@ export default function AuditLogs({ scoped_jumuiya, can_select_jumuiya }) {
                                 ) : (
                                     rows.map((r) => (
                                         <tr key={r.uuid}>
-                                            <td className="px-3 py-2 text-sm text-slate-700 whitespace-nowrap">{r.performed_at ?? '-'}</td>
-                                            <td className="px-3 py-2 text-sm text-slate-700 whitespace-nowrap">{r.meeting_date ?? '-'}</td>
-                                            <td className="px-3 py-2 text-sm font-semibold text-slate-900">{r.member_name ?? '-'}</td>
-                                            <td className="px-3 py-2 text-sm text-slate-700">{r.action ?? '-'}</td>
-                                            <td className="px-3 py-2 text-sm text-slate-700">{r.old_status ?? '-'}</td>
-                                            <td className="px-3 py-2 text-sm text-slate-700">{r.new_status ?? '-'}</td>
-                                            <td className="px-3 py-2 text-sm text-slate-700">{r.performed_by ?? '-'}</td>
-                                            <td className="px-3 py-2 text-sm text-slate-700">{r.notes ?? '-'}</td>
+                                            <td className="text-sm text-slate-700 whitespace-nowrap">{r.performed_at ?? '-'}</td>
+                                            <td className="text-sm text-slate-700 whitespace-nowrap">{r.meeting_date ?? '-'}</td>
+                                            <td className="text-sm font-semibold text-slate-900">{r.member_name ?? '-'}</td>
+                                            <td className="text-sm text-slate-700">{r.action ?? '-'}</td>
+                                            <td className="text-sm text-slate-700">{r.old_status ?? '-'}</td>
+                                            <td className="text-sm text-slate-700">{r.new_status ?? '-'}</td>
+                                            <td className="text-sm text-slate-700">{r.performed_by ?? '-'}</td>
+                                            <td className="text-sm text-slate-700">{r.notes ?? '-'}</td>
                                         </tr>
                                     ))
                                 )}

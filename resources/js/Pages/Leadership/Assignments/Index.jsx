@@ -242,22 +242,22 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
 
                             <div className="mt-6 overflow-x-auto">
                                 <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                                    <table className="min-w-full divide-y divide-slate-200">
-                                        <thead className="bg-slate-50">
+                                    <table className="mis-table divide-y divide-slate-200">
+                                        <thead>
                                             <tr>
-                                                <th className="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">#</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Christian Community</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Member</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Role</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Start</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">End</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Status</th>
+                                                <th className="w-16">#</th>
+                                                <th>Christian Community</th>
+                                                <th>Member</th>
+                                                <th>Role</th>
+                                                <th>Start</th>
+                                                <th>End</th>
+                                                <th>Status</th>
                                                 {(canUpdate || canDelete) && (
-                                                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Actions</th>
+                                                    <th className="text-right">Actions</th>
                                                 )}
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100 bg-white">
+                                        <tbody className="divide-y divide-slate-100">
                                             {(list ?? []).map((row, idx) => (
                                                 <LeadershipRow
                                                     key={row.uuid}
