@@ -22,6 +22,13 @@ class ConfirmationController extends Controller
 {
     private const TYPE_TRANSFER_APPROVAL_LETTER = 'transfer_approval_letter';
 
+    protected SacramentWorkflowEventService $workflowEvents;
+
+    public function __construct(SacramentWorkflowEventService $workflowEvents)
+    {
+        $this->workflowEvents = $workflowEvents;
+    }
+
     private function activeLeadershipJumuiyaIds(int $memberId): array
     {
         if (! $memberId) {
@@ -495,7 +502,7 @@ class ConfirmationController extends Controller
             'is_transfer' => false,
         ])->save();
 
-        app(SacramentWorkflowEventService::class)->record(
+        $this->workflowEvents->record(
             $request,
             (int) $registration->parish_id,
             SacramentWorkflowEventService::ENTITY_PROGRAM_REGISTRATION,
@@ -563,7 +570,7 @@ class ConfirmationController extends Controller
             'rejection_reason' => null,
         ])->save();
 
-        app(SacramentWorkflowEventService::class)->record(
+        $this->workflowEvents->record(
             $request,
             (int) $registration->parish_id,
             SacramentWorkflowEventService::ENTITY_PROGRAM_REGISTRATION,
@@ -602,7 +609,7 @@ class ConfirmationController extends Controller
             'approved_by_user_id' => (int) $user->id,
         ])->save();
 
-        app(SacramentWorkflowEventService::class)->record(
+        $this->workflowEvents->record(
             $request,
             (int) $registration->parish_id,
             SacramentWorkflowEventService::ENTITY_PROGRAM_REGISTRATION,
@@ -646,7 +653,7 @@ class ConfirmationController extends Controller
             'rejection_reason' => trim((string) $validated['reason']),
         ])->save();
 
-        app(SacramentWorkflowEventService::class)->record(
+        $this->workflowEvents->record(
             $request,
             (int) $registration->parish_id,
             SacramentWorkflowEventService::ENTITY_PROGRAM_REGISTRATION,
@@ -685,7 +692,7 @@ class ConfirmationController extends Controller
             'completed_at' => now(),
         ])->save();
 
-        app(SacramentWorkflowEventService::class)->record(
+        $this->workflowEvents->record(
             $request,
             (int) $registration->parish_id,
             SacramentWorkflowEventService::ENTITY_PROGRAM_REGISTRATION,
@@ -724,7 +731,7 @@ class ConfirmationController extends Controller
             'issued_by_user_id' => (int) $user->id,
         ])->save();
 
-        app(SacramentWorkflowEventService::class)->record(
+        $this->workflowEvents->record(
             $request,
             (int) $registration->parish_id,
             SacramentWorkflowEventService::ENTITY_PROGRAM_REGISTRATION,

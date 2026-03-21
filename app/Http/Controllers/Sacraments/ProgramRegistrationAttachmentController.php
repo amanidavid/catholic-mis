@@ -23,6 +23,13 @@ class ProgramRegistrationAttachmentController extends Controller
         'transfer_approval_letter',
     ];
 
+    protected SacramentWorkflowEventService $workflowEvents;
+
+    public function __construct(SacramentWorkflowEventService $workflowEvents)
+    {
+        $this->workflowEvents = $workflowEvents;
+    }
+
     private function activeLeadershipJumuiyaIds(int $memberId): array
     {
         if (! $memberId) {
@@ -247,7 +254,7 @@ class ProgramRegistrationAttachmentController extends Controller
         }
 
         if ($createdAttachment) {
-            app(SacramentWorkflowEventService::class)->record(
+            $this->workflowEvents->record(
                 $request,
                 (int) $registration->parish_id,
                 SacramentWorkflowEventService::ENTITY_PROGRAM_REGISTRATION,
@@ -322,12 +329,12 @@ class ProgramRegistrationAttachmentController extends Controller
                 $disk->delete($attachment->storage_path);
             }
 
-            app(SacramentWorkflowEventService::class)->record(
+            $this->workflowEvents->record(
                 $request,
                 (int) $registration->parish_id,
                 SacramentWorkflowEventService::ENTITY_PROGRAM_REGISTRATION,
                 (int) $registration->id,
-                'attachment_remove',
+                'attachment_delete',
                 null,
                 null,
                 $meta

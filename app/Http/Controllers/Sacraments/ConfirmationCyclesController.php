@@ -14,6 +14,13 @@ use Inertia\Response;
 
 class ConfirmationCyclesController extends Controller
 {
+    protected SacramentWorkflowEventService $workflowEvents;
+
+    public function __construct(SacramentWorkflowEventService $workflowEvents)
+    {
+        $this->workflowEvents = $workflowEvents;
+    }
+
     private function canGlobalOverride(?\App\Models\User $user): bool
     {
         return (bool) ($user?->can('users.manage')
@@ -105,7 +112,7 @@ class ConfirmationCyclesController extends Controller
             'created_by_user_id' => (int) $user->id,
         ]);
 
-        app(SacramentWorkflowEventService::class)->record(
+        $this->workflowEvents->record(
             $request,
             (int) $cycle->parish_id,
             SacramentWorkflowEventService::ENTITY_PROGRAM_CYCLE,
@@ -185,7 +192,7 @@ class ConfirmationCyclesController extends Controller
             'status' => (string) $validated['status'],
         ])->save();
 
-        app(SacramentWorkflowEventService::class)->record(
+        $this->workflowEvents->record(
             $request,
             (int) $cycle->parish_id,
             SacramentWorkflowEventService::ENTITY_PROGRAM_CYCLE,
@@ -238,12 +245,12 @@ class ConfirmationCyclesController extends Controller
         $fromStatus = (string) ($cycle->status ?? '');
         $cycle->forceFill(['status' => (string) $validated['status']])->save();
 
-        app(SacramentWorkflowEventService::class)->record(
+        $this->workflowEvents->record(
             $request,
             (int) $cycle->parish_id,
             SacramentWorkflowEventService::ENTITY_PROGRAM_CYCLE,
             (int) $cycle->id,
-            'cycle_status',
+            'cycle_status_update',
             $fromStatus,
             (string) ($cycle->status ?? null),
             [
