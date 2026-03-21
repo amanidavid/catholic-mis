@@ -12,6 +12,7 @@ use App\Models\People\Family;
 use App\Models\People\FamilyRelationship;
 use App\Models\People\Member;
 use App\Models\Structure\Jumuiya;
+use App\Models\Structure\Zone;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -163,6 +164,7 @@ class FamilyController extends Controller
         $validated = $request->validated();
         $q = $validated['q'] ?? null;
         $perPage = (int) ($validated['per_page'] ?? 10);
+        $zoneUuid = $validated['zone_uuid'] ?? null;
         $jumuiyaUuid = $validated['jumuiya_uuid'] ?? null;
 
         $scopedJumuiyaId = $this->scopedJumuiyaId($request);
@@ -181,6 +183,14 @@ class FamilyController extends Controller
             $selectedJumuiya = null;
         }
 
+        $selectedZoneId = null;
+        if (! $scopedJumuiyaId && is_string($zoneUuid) && $zoneUuid !== '') {
+            $selectedZoneId = (int) (Zone::query()->where('uuid', $zoneUuid)->value('id') ?? 0);
+            if (! $selectedZoneId) {
+                $zoneUuid = null;
+            }
+        }
+
         $familiesQuery = Family::query()
             ->with([
                 'jumuiya:id,uuid,name,zone_id',
@@ -188,6 +198,14 @@ class FamilyController extends Controller
                 'headOfFamily:id,uuid,first_name,middle_name,last_name',
             ])
             ->when($scopedJumuiyaId, fn (Builder $qb) => $qb->where('jumuiya_id', $scopedJumuiyaId))
+            ->when($selectedZoneId, function (Builder $qb) use ($selectedZoneId) {
+                $qb->whereExists(function ($sub) use ($selectedZoneId) {
+                    $sub->selectRaw('1')
+                        ->from('jumuiyas')
+                        ->whereColumn('jumuiyas.id', 'families.jumuiya_id')
+                        ->where('jumuiyas.zone_id', $selectedZoneId);
+                });
+            })
             ->when($selectedJumuiya, fn (Builder $qb) => $qb->where('jumuiya_id', $selectedJumuiya->id))
             ->when(is_string($q) && $q !== '', function (Builder $qb) use ($q) {
                 $safe = addcslashes($q, '%_\\');
@@ -203,6 +221,7 @@ class FamilyController extends Controller
         return Inertia::render('Families/Index', [
             'filters' => [
                 'q' => $q,
+                'zone_uuid' => $zoneUuid,
                 'jumuiya_uuid' => $jumuiyaUuid,
                 'per_page' => $perPage,
             ],

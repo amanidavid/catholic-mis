@@ -16,6 +16,7 @@ class IndexMembersRequest extends FormRequest
         return [
             'q' => ['nullable', 'string', 'max:100'],
             'search_by' => ['nullable', 'string', 'in:name,phone,email,national_id'],
+            'zone_uuid' => ['nullable', 'uuid'],
             'jumuiya_uuid' => ['nullable', 'uuid'],
             'family_uuid' => ['nullable', 'uuid'],
             'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],

@@ -102,6 +102,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/families', [FamilyController::class, 'index'])->name('families.index');
     Route::get('/families/lookup', [FamilyController::class, 'lookup'])->name('families.lookup');
     Route::get('/families/parents-lookup', [FamilyController::class, 'parentsLookup'])->name('families.parents-lookup');
+    Route::post('/families', [FamilyController::class, 'store'])->name('families.store');
+    Route::patch('/families/{family}', [FamilyController::class, 'update'])->name('families.update');
+    Route::delete('/families/{family}', [FamilyController::class, 'destroy'])->name('families.destroy');
     Route::get('/family-relationships/lookup', [FamilyRelationshipController::class, 'lookup'])->name('family-relationships.lookup');
     Route::get('/members/lookup', [MemberController::class, 'lookup'])->name('members.lookup');
     Route::get('/institutions/lookup', [InstitutionController::class, 'lookup'])->name('institutions.lookup');

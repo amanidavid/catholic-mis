@@ -14,6 +14,7 @@ use App\Models\People\FamilyRelationship;
 use App\Models\People\Member;
 use App\Models\People\MemberJumuiyaHistory;
 use App\Models\Structure\Jumuiya;
+use App\Models\Structure\Zone;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -68,6 +69,7 @@ class MemberController extends Controller
         $q = $validated['q'] ?? null;
         $searchBy = $validated['search_by'] ?? 'name';
         $perPage = (int) ($validated['per_page'] ?? 10);
+        $zoneUuid = $validated['zone_uuid'] ?? null;
         $jumuiyaUuid = $validated['jumuiya_uuid'] ?? null;
         $familyUuid = $validated['family_uuid'] ?? null;
 
@@ -97,14 +99,31 @@ class MemberController extends Controller
             }
         }
 
+        $selectedZoneId = null;
+        if (! $scopedJumuiyaId && is_string($zoneUuid) && $zoneUuid !== '') {
+            $selectedZoneId = (int) (Zone::query()->where('uuid', $zoneUuid)->value('id') ?? 0);
+            if (! $selectedZoneId) {
+                $zoneUuid = null;
+            }
+        }
+
         $membersQuery = Member::query()
             ->with([
-                'jumuiya:id,uuid,name',
+                'jumuiya:id,uuid,name,zone_id',
+                'jumuiya.zone:id,uuid,name',
                 'family:id,uuid,family_name',
                 'user:id,member_id',
                 'user.roles:id,name',
             ])
             ->when($scopedJumuiyaId, fn (Builder $qb) => $qb->where('jumuiya_id', $scopedJumuiyaId))
+            ->when($selectedZoneId, function (Builder $qb) use ($selectedZoneId) {
+                $qb->whereExists(function ($sub) use ($selectedZoneId) {
+                    $sub->select(DB::raw(1))
+                        ->from('jumuiyas')
+                        ->whereColumn('jumuiyas.id', 'members.jumuiya_id')
+                        ->where('jumuiyas.zone_id', $selectedZoneId);
+                });
+            })
             ->when($selectedJumuiya, fn (Builder $qb) => $qb->where('jumuiya_id', $selectedJumuiya->id))
             ->when($selectedFamily, fn (Builder $qb) => $qb->where('family_id', $selectedFamily->id))
             ->when(is_string($q) && $q !== '', function (Builder $qb) use ($q, $searchBy) {
@@ -145,6 +164,7 @@ class MemberController extends Controller
             'filters' => [
                 'q' => $q,
                 'search_by' => $searchBy,
+                'zone_uuid' => $zoneUuid,
                 'jumuiya_uuid' => $jumuiyaUuid,
                 'family_uuid' => $familyUuid,
                 'per_page' => $perPage,

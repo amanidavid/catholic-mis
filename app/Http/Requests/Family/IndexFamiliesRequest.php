@@ -15,6 +15,7 @@ class IndexFamiliesRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:100'],
+            'zone_uuid' => ['nullable', 'uuid'],
             'jumuiya_uuid' => ['nullable', 'uuid'],
             'per_page' => ['nullable', 'integer', 'min:5', 'max:100'],
         ];

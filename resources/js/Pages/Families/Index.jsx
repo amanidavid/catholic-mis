@@ -26,6 +26,7 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
     const canDelete = useMemo(() => Array.isArray(permissions) && permissions.includes('families.delete'), [permissions]);
 
     const [q, setQ] = useState(filters?.q ?? '');
+    const [zoneUuid, setZoneUuid] = useState(filters?.zone_uuid ?? '');
     const [jumuiyaUuid, setJumuiyaUuid] = useState(filters?.jumuiya_uuid ?? '');
 
     const applySearch = (e) => {
@@ -34,6 +35,7 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
             route('families.index'),
             {
                 q: q || undefined,
+                zone_uuid: zoneUuid || undefined,
                 jumuiya_uuid: jumuiyaUuid || undefined,
             },
             { preserveState: true, replace: true },
@@ -42,6 +44,7 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
 
     const clearSearch = () => {
         setQ('');
+        setZoneUuid('');
         setJumuiyaUuid('');
         router.get(route('families.index'), {}, { preserveState: true, replace: true });
     };
@@ -156,7 +159,7 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
 
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
                     <form onSubmit={applySearch} className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="grid w-full gap-3 sm:grid-cols-2 lg:max-w-2xl">
+                        <div className="grid w-full gap-3 sm:grid-cols-3 lg:max-w-3xl">
                             <FloatingInput
                                 id="families_q"
                                 label="Search (name or code)"
@@ -165,17 +168,24 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
                                 hint=""
                             />
 
-                            <FloatingSelect
+                            <SearchableZoneSelect
+                                id="families_zone_filter"
+                                label="Zone"
+                                value={zoneUuid}
+                                onChange={(uuid) => {
+                                    setZoneUuid(uuid);
+                                    setJumuiyaUuid('');
+                                }}
+                            />
+
+                            <SearchableJumuiyaSelect
                                 id="families_jumuiya_filter"
                                 label="Christian Community"
                                 value={jumuiyaUuid}
-                                onChange={(e) => setJumuiyaUuid(e.target.value)}
-                            >
-                                <option value="">All Christian Communities</option>
-                                {(jumuiyas ?? []).map((j) => (
-                                    <option key={j.uuid} value={j.uuid}>{j.name}</option>
-                                ))}
-                            </FloatingSelect>
+                                onChange={(uuid) => setJumuiyaUuid(uuid)}
+                                zoneUuid={zoneUuid}
+                                disabled={!zoneUuid}
+                            />
                         </div>
 
                         <div className="flex items-center gap-2">

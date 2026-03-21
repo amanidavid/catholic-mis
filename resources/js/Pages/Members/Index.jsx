@@ -24,6 +24,7 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
 
     const [q, setQ] = useState(filters?.q ?? '');
     const [searchBy, setSearchBy] = useState(filters?.search_by ?? 'name');
+    const [zoneUuid, setZoneUuid] = useState(filters?.zone_uuid ?? '');
     const [jumuiyaUuid, setJumuiyaUuid] = useState(filters?.jumuiya_uuid ?? '');
     const [familyUuid, setFamilyUuid] = useState(filters?.family_uuid ?? '');
 
@@ -37,6 +38,7 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
             {
                 q: q || undefined,
                 search_by: searchBy || undefined,
+                zone_uuid: zoneUuid || undefined,
                 jumuiya_uuid: jumuiyaUuid || undefined,
                 family_uuid: familyUuid || undefined,
             },
@@ -47,6 +49,7 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
     const clearSearch = () => {
         setQ('');
         setSearchBy('name');
+        setZoneUuid('');
         setJumuiyaUuid('');
         setFamilyUuid('');
         router.get(route('members.index'), {}, { preserveState: true, replace: true });
@@ -103,21 +106,31 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
                                 <option value="national_id">National ID</option>
                             </FloatingSelect>
 
-                            <FloatingSelect
-                                id="members_jumuiya_filter"
-                                label="Christian Community"
-                                value={jumuiyaUuid}
-                                onChange={(e) => {
-                                    setJumuiyaUuid(e.target.value);
-                                    setFamilyUuid('');
-                                }}
-                                className="lg:col-span-3"
-                            >
-                                <option value="">All Christian Communities</option>
-                                {(jumuiyas ?? []).map((j) => (
-                                    <option key={j.uuid} value={j.uuid}>{j.name}</option>
-                                ))}
-                            </FloatingSelect>
+                            <div className="lg:col-span-3">
+                                <SearchableZoneSelect
+                                    id="members_zone_filter"
+                                    label="Zone"
+                                    value={zoneUuid}
+                                    onChange={(uuid) => {
+                                        setZoneUuid(uuid);
+                                        setJumuiyaUuid('');
+                                        setFamilyUuid('');
+                                    }}
+                                />
+                            </div>
+
+                            <div className="lg:col-span-3">
+                                <SearchableJumuiyaSelect
+                                    id="members_jumuiya_filter"
+                                    label="Christian Community"
+                                    value={jumuiyaUuid}
+                                    onChange={(uuid) => {
+                                        setJumuiyaUuid(uuid);
+                                        setFamilyUuid('');
+                                    }}
+                                    zoneUuid={zoneUuid}
+                                />
+                            </div>
 
                             <div className="lg:col-span-4">
                                 <SearchableFamilySelect
@@ -228,6 +241,7 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
                     <div className="flex-1 overflow-auto px-6 py-5">
                         {viewing && (
                             <div className="grid gap-4 md:grid-cols-2">
+                                <DetailItem label="Zone" value={viewing.zone_name ?? '-'} />
                                 <DetailItem label="Christian Community" value={viewing.jumuiya_name ?? '-'} />
                                 <DetailItem label="Family" value={viewing.family_name ?? '-'} />
                                 <DetailItem label="Family relationship" value={viewing.family_relationship_name ?? '-'} />

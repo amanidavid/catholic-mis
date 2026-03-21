@@ -6,6 +6,7 @@ import Modal from '@/Components/Modal';
 import ModalHeader from '@/Components/ModalHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
+import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import Spinner from '@/Components/Spinner';
 import { toTitleCase } from '@/lib/formatters';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
@@ -90,17 +91,12 @@ export default function JumuiyasIndex({ jumuiyas, zones, filters }) {
                                 hint=""
                             />
 
-                            <FloatingSelect
+                            <SearchableZoneSelect
                                 id="jumuiyas_zone_filter"
                                 label="Zone"
                                 value={zoneUuid}
-                                onChange={(e) => setZoneUuid(e.target.value)}
-                            >
-                                <option value="">All zones</option>
-                                {(zones ?? []).map((z) => (
-                                    <option key={z.uuid} value={z.uuid}>{z.name}</option>
-                                ))}
-                            </FloatingSelect>
+                                onChange={(uuid) => setZoneUuid(uuid)}
+                            />
                         </div>
 
                         <div className="flex items-center gap-2">
