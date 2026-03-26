@@ -87,6 +87,33 @@ class RolePermissionSeeder extends Seeder
             'workflows.manage',
             'settings.manage',
 
+            'chart-of-accounts.groups.view',
+            'chart-of-accounts.groups.create',
+            'chart-of-accounts.groups.update',
+            'chart-of-accounts.groups.delete',
+            'chart-of-accounts.types.view',
+            'chart-of-accounts.types.create',
+            'chart-of-accounts.types.update',
+            'chart-of-accounts.types.delete',
+            'chart-of-accounts.subtypes.view',
+            'chart-of-accounts.subtypes.create',
+            'chart-of-accounts.subtypes.update',
+            'chart-of-accounts.subtypes.delete',
+            'chart-of-accounts.ledgers.view',
+            'chart-of-accounts.ledgers.create',
+            'chart-of-accounts.ledgers.update',
+            'chart-of-accounts.ledgers.delete',
+
+            'finance.journals.view',
+            'finance.journals.create',
+            'finance.journals.post',
+            'finance.general-ledger.view',
+
+            'finance.double-entries.view',
+            'finance.double-entries.create',
+            'finance.double-entries.update',
+            'finance.double-entries.delete',
+
             'baptisms.view',
             'baptisms.parish.view',
             'baptisms.request.create',
@@ -139,6 +166,8 @@ class RolePermissionSeeder extends Seeder
             Permission::findOrCreate($permissionName, $guard);
         }
 
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         $roles = [
             'system-admin',
             'parish-priest',
@@ -151,6 +180,11 @@ class RolePermissionSeeder extends Seeder
             Role::findOrCreate($roleName, $guard);
         }
 
-        Role::findByName('system-admin', $guard)->syncPermissions($permissions);
+        $permissionModels = Permission::query()
+            ->where('guard_name', $guard)
+            ->whereIn('name', $permissions)
+            ->get();
+
+        Role::findByName('system-admin', $guard)->syncPermissions($permissionModels);
     }
 }

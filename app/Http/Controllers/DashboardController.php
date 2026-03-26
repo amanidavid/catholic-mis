@@ -101,73 +101,112 @@ class DashboardController extends Controller
                 ? route('reports.community.members-by-jumuiya')
                 : route('dashboard');
 
-            $cacheKey = "dashboard:parish:{$parishId}:structure:totals";
-            $structure = Cache::remember($cacheKey, 300, function () use ($parishId) {
-                $zones = DB::table('zones')
-                    ->where('parish_id', $parishId)
-                    ->where('is_active', true)
-                    ->count();
+            $zonesActive = DB::table('zones')
+                ->where('parish_id', $parishId)
+                ->where('is_active', true)
+                ->count();
 
-                $jumuiyas = DB::table('jumuiyas')
-                    ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
-                    ->where('zones.parish_id', $parishId)
-                    ->where('zones.is_active', true)
-                    ->where('jumuiyas.is_active', true)
-                    ->count();
+            $zonesInactive = DB::table('zones')
+                ->where('parish_id', $parishId)
+                ->where('is_active', false)
+                ->count();
 
-                $families = DB::table('families')
-                    ->join('jumuiyas', 'jumuiyas.id', '=', 'families.jumuiya_id')
-                    ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
-                    ->where('zones.parish_id', $parishId)
-                    ->where('zones.is_active', true)
-                    ->where('jumuiyas.is_active', true)
-                    ->where('families.is_active', true)
-                    ->count();
+            $jumuiyasActive = DB::table('jumuiyas')
+                ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                ->where('zones.parish_id', $parishId)
+                ->where('zones.is_active', true)
+                ->where('jumuiyas.is_active', true)
+                ->count();
 
-                $members = DB::table('members')
-                    ->join('families', 'families.id', '=', 'members.family_id')
-                    ->join('jumuiyas', 'jumuiyas.id', '=', 'families.jumuiya_id')
-                    ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
-                    ->where('zones.parish_id', $parishId)
-                    ->where('zones.is_active', true)
-                    ->where('jumuiyas.is_active', true)
-                    ->where('families.is_active', true)
-                    ->where('members.is_active', true)
-                    ->count();
+            $jumuiyasInactive = DB::table('jumuiyas')
+                ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                ->where('zones.parish_id', $parishId)
+                ->where(function ($q) {
+                    $q->where('zones.is_active', false)
+                        ->orWhere('jumuiyas.is_active', false);
+                })
+                ->count();
 
-                return [
-                    'zones' => $zones,
-                    'jumuiyas' => $jumuiyas,
-                    'families' => $families,
-                    'members' => $members,
-                ];
-            });
+            $familiesActive = DB::table('families')
+                ->join('jumuiyas', 'jumuiyas.id', '=', 'families.jumuiya_id')
+                ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                ->where('zones.parish_id', $parishId)
+                ->where('zones.is_active', true)
+                ->where('jumuiyas.is_active', true)
+                ->where('families.is_active', true)
+                ->count();
+
+            $familiesInactive = DB::table('families')
+                ->join('jumuiyas', 'jumuiyas.id', '=', 'families.jumuiya_id')
+                ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                ->where('zones.parish_id', $parishId)
+                ->where(function ($q) {
+                    $q->where('zones.is_active', false)
+                        ->orWhere('jumuiyas.is_active', false)
+                        ->orWhere('families.is_active', false);
+                })
+                ->count();
+
+            $membersActive = DB::table('members')
+                ->join('families', 'families.id', '=', 'members.family_id')
+                ->join('jumuiyas', 'jumuiyas.id', '=', 'families.jumuiya_id')
+                ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                ->where('zones.parish_id', $parishId)
+                ->where('zones.is_active', true)
+                ->where('jumuiyas.is_active', true)
+                ->where('families.is_active', true)
+                ->where('members.is_active', true)
+                ->count();
+
+            $membersInactive = DB::table('members')
+                ->join('families', 'families.id', '=', 'members.family_id')
+                ->join('jumuiyas', 'jumuiyas.id', '=', 'families.jumuiya_id')
+                ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                ->where('zones.parish_id', $parishId)
+                ->where(function ($q) {
+                    $q->where('zones.is_active', false)
+                        ->orWhere('jumuiyas.is_active', false)
+                        ->orWhere('families.is_active', false)
+                        ->orWhere('members.is_active', false);
+                })
+                ->count();
+
+            $structure = [
+                'zones' => ['active' => $zonesActive, 'inactive' => $zonesInactive],
+                'jumuiyas' => ['active' => $jumuiyasActive, 'inactive' => $jumuiyasInactive],
+                'families' => ['active' => $familiesActive, 'inactive' => $familiesInactive],
+                'members' => ['active' => $membersActive, 'inactive' => $membersInactive],
+            ];
 
             $cards[] = [
                 'key' => 'zones',
                 'label' => 'Zones',
-                'value' => $structure['zones'] ?? 0,
+                'value' => $structure['zones']['active'] ?? 0,
+                'breakdown' => $structure['zones'] ?? null,
                 'href' => $user->can('zones.view') ? route('zones.index') : $fallbackCommunityHref,
                 'can' => true,
             ];
             $cards[] = [
                 'key' => 'jumuiyas',
                 'label' => 'Jumuiyas',
-                'value' => $structure['jumuiyas'] ?? 0,
+                'value' => $structure['jumuiyas']['active'] ?? 0,
+                'breakdown' => $structure['jumuiyas'] ?? null,
                 'href' => $user->can('jumuiyas.view') ? route('jumuiyas.index') : $fallbackCommunityHref,
                 'can' => true,
             ];
             $cards[] = [
                 'key' => 'families',
                 'label' => 'Families',
-                'value' => $structure['families'] ?? 0,
+                'value' => $structure['families']['active'] ?? 0,
+                'breakdown' => $structure['families'] ?? null,
                 'href' => $user->can('families.view') ? route('families.index') : $fallbackCommunityHref,
                 'can' => true,
             ];
             $cards[] = [
                 'key' => 'members',
                 'label' => 'Members',
-                'value' => $structure['members'] ?? 0,
+                'value' => $structure['members']['active'] ?? 0,
+                'breakdown' => $structure['members'] ?? null,
                 'href' => $user->can('members.view') ? route('members.index') : $fallbackCommunityHref,
                 'can' => true,
             ];

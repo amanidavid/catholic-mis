@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -467,6 +468,11 @@ class MemberController extends Controller
                 }
             });
 
+            $parishId = (int) ($request->user()?->parish_id ?? 0);
+            if ($parishId > 0) {
+                Cache::forget("dashboard:parish:{$parishId}:structure:totals");
+            }
+
             return redirect()->route('members.index')->with('success', 'Member saved.');
         } catch (\Throwable $e) {
             Log::error('Member store failed', ['exception' => $e]);
@@ -564,6 +570,11 @@ class MemberController extends Controller
                     ]);
                 }
             });
+
+            $parishId = (int) ($request->user()?->parish_id ?? 0);
+            if ($parishId > 0) {
+                Cache::forget("dashboard:parish:{$parishId}:structure:totals");
+            }
 
             return redirect()->route('members.index')->with('success', 'Member updated.');
         } catch (\Throwable $e) {

@@ -12,6 +12,8 @@ use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Inertia\Inertia;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -42,7 +44,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 return back()->with('error', $message);
             }
 
-            return response($message, 404);
+            return Inertia::render('Error', [
+                'status' => 404,
+                'title' => 'Page not found',
+                'message' => $message,
+            ])->toResponse($request)->setStatusCode(404);
         });
 
         $exceptions->renderable(function (MethodNotAllowedHttpException $e, Request $request) {
@@ -52,7 +58,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 return back()->with('error', $message);
             }
 
-            return response($message, 405);
+            return Inertia::render('Error', [
+                'status' => 405,
+                'title' => 'Method not allowed',
+                'message' => $message,
+            ])->toResponse($request)->setStatusCode(405);
         });
 
         $exceptions->renderable(function (AuthenticationException $e, Request $request) {
@@ -76,7 +86,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 return back()->with('error', $message);
             }
 
-            return response($message, 403);
+            return Inertia::render('Error', [
+                'status' => 403,
+                'title' => 'Forbidden',
+                'message' => $message,
+            ])->toResponse($request)->setStatusCode(403);
         });
 
         $exceptions->renderable(function (TokenMismatchException $e, Request $request) {
@@ -106,10 +120,66 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($request->header('X-Inertia')) {
+                return redirect()
+                    ->route('error.show')
+                    ->with('error_page', [
+                        'status' => 500,
+                        'title' => 'Server error',
+                        'message' => $message,
+                        'reference' => $id,
+                    ]);
+            }
+
+            return Inertia::render('Error', [
+                'status' => 500,
+                'title' => 'Server error',
+                'message' => $message,
+                'reference' => $id,
+            ])->toResponse($request)->setStatusCode(500);
+        });
+
+        $exceptions->renderable(function (HttpExceptionInterface $e, Request $request) {
+            $status = (int) ($e->getStatusCode() ?: 500);
+
+            $title = match ($status) {
+                400 => 'Bad request',
+                401 => 'Unauthorized',
+                403 => 'Forbidden',
+                404 => 'Page not found',
+                405 => 'Method not allowed',
+                419 => 'Session expired',
+                422 => 'Unprocessable request',
+                429 => 'Too many requests',
+                503 => 'Service unavailable',
+                default => 'Error',
+            };
+
+            $message = match ($status) {
+                400 => 'The request could not be processed.',
+                401 => 'Please login to continue.',
+                403 => 'You are not allowed to do this.',
+                404 => 'Page not found.',
+                405 => 'Action not allowed.',
+                419 => 'Session expired. Please login again.',
+                422 => 'The request could not be processed.',
+                429 => 'Too many requests. Please try again later.',
+                503 => 'Service is temporarily unavailable. Please try again later.',
+                default => 'An error occurred. Please try again.',
+            };
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], $status);
+            }
+
+            if ($request->header('X-Inertia')) {
                 return back()->with('error', $message);
             }
 
-            return response($message, 500);
+            return Inertia::render('Error', [
+                'status' => $status,
+                'title' => $title,
+                'message' => $message,
+            ])->toResponse($request)->setStatusCode($status);
         });
 
         $exceptions->renderable(function (\Throwable $e, Request $request) {
@@ -144,9 +214,21 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($request->header('X-Inertia')) {
-                return back()->with('error', $message);
+                return redirect()
+                    ->route('error.show')
+                    ->with('error_page', [
+                        'status' => 500,
+                        'title' => 'Server error',
+                        'message' => 'An unexpected error occurred.',
+                        'reference' => $id,
+                    ]);
             }
 
-            return response($message, 500);
+            return Inertia::render('Error', [
+                'status' => 500,
+                'title' => 'Server error',
+                'message' => 'An unexpected error occurred.',
+                'reference' => $id,
+            ])->toResponse($request)->setStatusCode(500);
         });
     })->create();

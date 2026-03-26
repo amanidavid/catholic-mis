@@ -165,6 +165,67 @@ const icons = {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a5 5 0 100-10 5 5 0 000 10zm-7 9a7 7 0 0114 0" />
         </svg>
     ),
+    finance: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v20" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 6.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3.5 5 3.5 5 1.6 5 3.5-2.2 3.5-5 3.5-5-1.6-5-3.5" />
+        </svg>
+    ),
+    coaGroups: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 6v12" />
+        </svg>
+    ),
+    coaTypes: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 4h12v6H6V4z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 14h12v6H6v-6z" />
+        </svg>
+    ),
+    coaSubtypes: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 6h10" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 12h10" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 18h10" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 6h.01M5 12h.01M5 18h.01" />
+        </svg>
+    ),
+    coaLedgers: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 17h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7v10" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v10" />
+        </svg>
+    ),
+    journals: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h8" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 11h8" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 15h5" />
+        </svg>
+    ),
+    generalLedger: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 10h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 14h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 18h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 6v12" />
+        </svg>
+    ),
+    doubleEntries: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h10" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 12h10" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 17h10" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 7l2 2 2-2" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 17l-2-2-2 2" />
+        </svg>
+    ),
 };
 
 export default function AuthenticatedLayout({ header, children }) {
@@ -242,6 +303,18 @@ export default function AuthenticatedLayout({ header, children }) {
                     { label: 'Parish Staff', routeName: 'parish-staff.*', href: () => route('parish-staff.index'), icon: icons.briefcase, show: can('parish-staff.view') },
                     { label: 'Staff Positions', routeName: 'parish-staff-positions.*', href: () => route('parish-staff-positions.index'), icon: icons.badge, show: can('parish-staff-positions.view') },
                     { label: 'Institutions', routeName: 'institutions.*', href: () => route('institutions.index'), icon: icons.church, show: can('institutions.view') },
+                ],
+            },
+            {
+                group: 'Finance',
+                items: [
+                    { label: 'Account Groups', routeName: 'chart-of-accounts.groups.*', href: () => route('chart-of-accounts.groups.index'), icon: icons.coaGroups, show: can('chart-of-accounts.groups.view') },
+                    { label: 'Account Types', routeName: 'chart-of-accounts.types.*', href: () => route('chart-of-accounts.types.index'), icon: icons.coaTypes, show: can('chart-of-accounts.types.view') },
+                    { label: 'Account Subtypes', routeName: 'chart-of-accounts.subtypes.*', href: () => route('chart-of-accounts.subtypes.index'), icon: icons.coaSubtypes, show: can('chart-of-accounts.subtypes.view') },
+                    { label: 'Ledgers', routeName: 'chart-of-accounts.ledgers.*', href: () => route('chart-of-accounts.ledgers.index'), icon: icons.coaLedgers, show: can('chart-of-accounts.ledgers.view') },
+                    { label: 'Double Entries', routeName: 'finance.double-entries.*', href: () => route('finance.double-entries.index'), icon: icons.doubleEntries, show: can('finance.double-entries.view') },
+                    { label: 'Journals', routeName: 'finance.journals.*', href: () => route('finance.journals.index'), icon: icons.journals, show: can('finance.journals.view') },
+                    { label: 'General Ledger', routeName: 'finance.general-ledger.*', href: () => route('finance.general-ledger.index'), icon: icons.generalLedger, show: can('finance.general-ledger.view') },
                 ],
             },
             {

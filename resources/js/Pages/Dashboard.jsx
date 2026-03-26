@@ -74,6 +74,7 @@ export default function Dashboard({ cards = [], filters = {} }) {
                     {cards.map((card) => (
                         <MetricCard
                             key={card.key}
+                            cardKey={card.key}
                             label={card.label}
                             value={card.value}
                             href={card.href}
@@ -115,18 +116,19 @@ export default function Dashboard({ cards = [], filters = {} }) {
     );
 }
 
-function MetricCard({ label, value, href, breakdown }) {
+function MetricCard({ cardKey, label, value, href, breakdown }) {
     const items = normalizeBreakdown(breakdown);
+    const theme = metricCardTheme(cardKey);
 
     return (
         <Link
             href={href}
-            className="group relative overflow-hidden rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200/70 transition hover:-translate-y-0.5 hover:shadow-md"
+            className={`group relative overflow-hidden rounded-xl p-4 shadow-sm ring-1 transition hover:-translate-y-0.5 hover:shadow-md ${theme.card}`}
         >
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <p className="text-sm font-medium text-slate-500">{label}</p>
-                    <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{formatNumber(value)}</p>
+                    <p className={`text-sm font-semibold ${theme.label}`}>{label}</p>
+                    <p className={`mt-2 text-3xl font-extrabold tracking-tight ${theme.value}`}>{formatNumber(value)}</p>
                     {items.length > 0 ? (
                         <div className="mt-2 flex flex-wrap gap-1.5">
                             {items.slice(0, 4).map((it) => (
@@ -134,19 +136,20 @@ function MetricCard({ label, value, href, breakdown }) {
                                     key={it.key}
                                     className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${statusChipClass(it.key)}`}
                                 >
-                                    <span className="text-slate-500">{it.label}:</span>
-                                    <span className="text-slate-900">{formatNumber(it.value)}</span>
+                                    <span className={theme.chipLabel}>{it.label}:</span>
+                                    <span className={theme.chipValue}>{formatNumber(it.value)}</span>
                                 </span>
                             ))}
                         </div>
                     ) : (
-                        <p className="mt-1 text-xs font-semibold text-indigo-600 opacity-0 transition group-hover:opacity-100">
+                        <p className={`mt-1 text-xs font-semibold opacity-0 transition group-hover:opacity-100 ${theme.viewDetails}`}
+                        >
                             View details
                         </p>
                     )}
                 </div>
 
-                <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+                <div className={`mt-1 flex h-10 w-10 items-center justify-center rounded-xl ring-1 ${theme.iconWrap}`}>
                     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
                         <path
                             d="M7 17L17 7"
@@ -166,9 +169,107 @@ function MetricCard({ label, value, href, breakdown }) {
                 </div>
             </div>
 
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-indigo-50/70 to-transparent opacity-0 transition group-hover:opacity-100" />
+            <div className={`pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t opacity-0 transition group-hover:opacity-100 ${theme.glow}`} />
         </Link>
     );
+}
+
+function metricCardTheme(cardKey) {
+    const base = {
+        card: 'bg-white ring-slate-200/70',
+        label: 'text-slate-600',
+        value: 'text-slate-900',
+        viewDetails: 'text-indigo-600',
+        chipLabel: 'text-slate-600',
+        chipValue: 'text-slate-900',
+        iconWrap: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
+        glow: 'from-indigo-50/70 to-transparent',
+    };
+
+    switch (cardKey) {
+        case 'zones':
+            return {
+                ...base,
+                card: 'bg-gradient-to-br from-emerald-50 via-white to-white ring-emerald-100',
+                label: 'text-emerald-800/80',
+                value: 'text-emerald-950',
+                viewDetails: 'text-emerald-700',
+                iconWrap: 'bg-emerald-100/60 text-emerald-700 ring-emerald-200',
+                glow: 'from-emerald-100/70 to-transparent',
+            };
+        case 'jumuiyas':
+            return {
+                ...base,
+                card: 'bg-gradient-to-br from-sky-50 via-white to-white ring-sky-100',
+                label: 'text-sky-800/80',
+                value: 'text-sky-950',
+                viewDetails: 'text-sky-700',
+                iconWrap: 'bg-sky-100/70 text-sky-700 ring-sky-200',
+                glow: 'from-sky-100/70 to-transparent',
+            };
+        case 'families':
+            return {
+                ...base,
+                card: 'bg-gradient-to-br from-violet-50 via-white to-white ring-violet-100',
+                label: 'text-violet-800/80',
+                value: 'text-violet-950',
+                viewDetails: 'text-violet-700',
+                iconWrap: 'bg-violet-100/70 text-violet-700 ring-violet-200',
+                glow: 'from-violet-100/70 to-transparent',
+            };
+        case 'members':
+            return {
+                ...base,
+                card: 'bg-gradient-to-br from-amber-50 via-white to-white ring-amber-100',
+                label: 'text-amber-900/70',
+                value: 'text-amber-950',
+                viewDetails: 'text-amber-800',
+                iconWrap: 'bg-amber-100/70 text-amber-800 ring-amber-200',
+                glow: 'from-amber-100/70 to-transparent',
+            };
+        case 'baptisms':
+            return {
+                ...base,
+                card: 'bg-gradient-to-br from-indigo-50 via-white to-white ring-indigo-100',
+                label: 'text-indigo-800/80',
+                value: 'text-indigo-950',
+                viewDetails: 'text-indigo-700',
+                iconWrap: 'bg-indigo-100/70 text-indigo-700 ring-indigo-200',
+                glow: 'from-indigo-100/70 to-transparent',
+            };
+        case 'marriages':
+            return {
+                ...base,
+                card: 'bg-gradient-to-br from-rose-50 via-white to-white ring-rose-100',
+                label: 'text-rose-800/80',
+                value: 'text-rose-950',
+                viewDetails: 'text-rose-700',
+                iconWrap: 'bg-rose-100/70 text-rose-700 ring-rose-200',
+                glow: 'from-rose-100/70 to-transparent',
+            };
+        case 'communions':
+            return {
+                ...base,
+                card: 'bg-gradient-to-br from-teal-50 via-white to-white ring-teal-100',
+                label: 'text-teal-800/80',
+                value: 'text-teal-950',
+                viewDetails: 'text-teal-700',
+                iconWrap: 'bg-teal-100/70 text-teal-700 ring-teal-200',
+                glow: 'from-teal-100/70 to-transparent',
+            };
+        case 'confirmations':
+            return {
+                ...base,
+                card: 'bg-gradient-to-br from-fuchsia-50 via-white to-white ring-fuchsia-100',
+                label: 'text-fuchsia-800/80',
+                value: 'text-fuchsia-950',
+                viewDetails: 'text-fuchsia-700',
+                iconWrap: 'bg-fuchsia-100/70 text-fuchsia-700 ring-fuchsia-200',
+                glow: 'from-fuchsia-100/70 to-transparent',
+            };
+        default:
+            return base;
+    }
 }
 
 function formatNumber(value) {
@@ -180,8 +281,10 @@ function formatNumber(value) {
 function normalizeBreakdown(breakdown) {
     if (!breakdown || typeof breakdown !== 'object') return [];
 
-    const order = ['draft', 'submitted', 'approved', 'rejected', 'completed', 'issued'];
+    const order = ['active', 'inactive', 'draft', 'submitted', 'approved', 'rejected', 'completed', 'issued'];
     const labels = {
+        active: 'Active',
+        inactive: 'Inactive',
         draft: 'Draft',
         submitted: 'Submitted',
         approved: 'Approved',
@@ -210,6 +313,10 @@ function normalizeBreakdown(breakdown) {
 
 function statusChipClass(status) {
     switch (status) {
+        case 'active':
+            return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+        case 'inactive':
+            return 'bg-rose-50 text-rose-800 ring-rose-200';
         case 'draft':
             return 'bg-slate-50 text-slate-700 ring-slate-200';
         case 'submitted':

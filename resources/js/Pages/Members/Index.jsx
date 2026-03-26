@@ -106,7 +106,7 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
                                 <option value="national_id">National ID</option>
                             </FloatingSelect>
 
-                            <div className="lg:col-span-3">
+                            <div className="lg:col-span-4">
                                 <SearchableZoneSelect
                                     id="members_zone_filter"
                                     label="Zone"
@@ -119,7 +119,7 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
                                 />
                             </div>
 
-                            <div className="lg:col-span-3">
+                            <div className="lg:col-span-4">
                                 <SearchableJumuiyaSelect
                                     id="members_jumuiya_filter"
                                     label="Christian Community"

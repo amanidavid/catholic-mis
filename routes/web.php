@@ -16,6 +16,13 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Jumuiyas\JumuiyaController;
 use App\Http\Controllers\ParishStaff\ParishStaffController;
 use App\Http\Controllers\ParishStaff\ParishStaffPositionController;
+use App\Http\Controllers\Finance\ChartOfAccounts\AccountGroupController as CoaAccountGroupController;
+use App\Http\Controllers\Finance\ChartOfAccounts\AccountSubtypeController as CoaAccountSubtypeController;
+use App\Http\Controllers\Finance\ChartOfAccounts\AccountTypeController as CoaAccountTypeController;
+use App\Http\Controllers\Finance\ChartOfAccounts\LedgerController as CoaLedgerController;
+use App\Http\Controllers\Finance\Accounting\JournalController as FinanceJournalController;
+use App\Http\Controllers\Finance\Accounting\GeneralLedgerController as FinanceGeneralLedgerController;
+use App\Http\Controllers\Finance\Accounting\DoubleEntryController as FinanceDoubleEntryController;
 use App\Http\Controllers\Setup\SetupController;
 use App\Http\Controllers\Zones\ZoneController;
 use App\Http\Controllers\Clergy\InstitutionController;
@@ -31,8 +38,10 @@ use App\Http\Controllers\Sacraments\MarriageController;
 use App\Http\Controllers\Sacraments\ProgramRegistrationAttachmentController;
 use App\Http\Controllers\Reports\CommunityReportController;
 use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -46,6 +55,27 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+Route::get('/error', function (Request $request) {
+    $payload = $request->session()->get('error_page');
+    $payload = is_array($payload) ? $payload : [];
+
+    $status = (int) ($payload['status'] ?? 500);
+    if ($status < 400 || $status > 599) {
+        $status = 500;
+    }
+
+    $title = is_string($payload['title'] ?? null) ? (string) $payload['title'] : 'Server error';
+    $message = is_string($payload['message'] ?? null) ? (string) $payload['message'] : 'An unexpected error occurred.';
+    $reference = is_string($payload['reference'] ?? null) ? (string) $payload['reference'] : null;
+
+    return Inertia::render('Error', [
+        'status' => $status,
+        'title' => $title,
+        'message' => $message,
+        'reference' => $reference,
+    ])->toResponse($request)->setStatusCode($status);
+})->name('error.show');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
 
@@ -56,6 +86,25 @@ Route::middleware('auth')->group(function () {
         Route::get('/community/members-by-jumuiya', [CommunityReportController::class, 'membersByJumuiya'])
             ->middleware('can:reports.community.view')
             ->name('reports.community.members-by-jumuiya');
+    });
+
+    Route::prefix('finance')->group(function () {
+        Route::prefix('double-entries')->group(function () {
+            Route::get('/', [FinanceDoubleEntryController::class, 'index'])->name('finance.double-entries.index');
+            Route::post('/', [FinanceDoubleEntryController::class, 'store'])->name('finance.double-entries.store');
+            Route::delete('/{uuid}', [FinanceDoubleEntryController::class, 'destroy'])->name('finance.double-entries.destroy');
+        });
+
+        Route::prefix('journals')->group(function () {
+            Route::get('/', [FinanceJournalController::class, 'index'])->name('finance.journals.index');
+            Route::post('/', [FinanceJournalController::class, 'store'])->name('finance.journals.store');
+            Route::get('/{uuid}', [FinanceJournalController::class, 'show'])->name('finance.journals.show');
+            Route::post('/{uuid}/post', [FinanceJournalController::class, 'post'])->name('finance.journals.post');
+        });
+
+        Route::prefix('general-ledger')->group(function () {
+            Route::get('/', [FinanceGeneralLedgerController::class, 'index'])->name('finance.general-ledger.index');
+        });
     });
 
     Route::middleware('can:permissions.manage')->prefix('access-control')->group(function () {
@@ -183,6 +232,36 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{staff}/login', [ParishStaffController::class, 'disableLogin'])->name('parish-staff.login.disable');
     });
 
+    Route::prefix('chart-of-accounts')->group(function () {
+        Route::prefix('groups')->group(function () {
+            Route::get('/', [CoaAccountGroupController::class, 'index'])->name('chart-of-accounts.groups.index');
+            Route::post('/bulk', [CoaAccountGroupController::class, 'bulkUpsert'])->name('chart-of-accounts.groups.bulk');
+            Route::patch('/{uuid}/deactivate', [CoaAccountGroupController::class, 'deactivate'])->name('chart-of-accounts.groups.deactivate');
+            Route::delete('/{uuid}', [CoaAccountGroupController::class, 'destroy'])->name('chart-of-accounts.groups.destroy');
+        });
+
+        Route::prefix('types')->group(function () {
+            Route::get('/', [CoaAccountTypeController::class, 'index'])->name('chart-of-accounts.types.index');
+            Route::post('/bulk', [CoaAccountTypeController::class, 'bulkUpsert'])->name('chart-of-accounts.types.bulk');
+            Route::patch('/{uuid}/deactivate', [CoaAccountTypeController::class, 'deactivate'])->name('chart-of-accounts.types.deactivate');
+            Route::delete('/{uuid}', [CoaAccountTypeController::class, 'destroy'])->name('chart-of-accounts.types.destroy');
+        });
+
+        Route::prefix('subtypes')->group(function () {
+            Route::get('/', [CoaAccountSubtypeController::class, 'index'])->name('chart-of-accounts.subtypes.index');
+            Route::post('/bulk', [CoaAccountSubtypeController::class, 'bulkUpsert'])->name('chart-of-accounts.subtypes.bulk');
+            Route::patch('/{uuid}/deactivate', [CoaAccountSubtypeController::class, 'deactivate'])->name('chart-of-accounts.subtypes.deactivate');
+            Route::delete('/{uuid}', [CoaAccountSubtypeController::class, 'destroy'])->name('chart-of-accounts.subtypes.destroy');
+        });
+
+        Route::prefix('ledgers')->group(function () {
+            Route::get('/', [CoaLedgerController::class, 'index'])->name('chart-of-accounts.ledgers.index');
+            Route::post('/bulk', [CoaLedgerController::class, 'bulkUpsert'])->name('chart-of-accounts.ledgers.bulk');
+            Route::patch('/{uuid}/deactivate', [CoaLedgerController::class, 'deactivate'])->name('chart-of-accounts.ledgers.deactivate');
+            Route::delete('/{uuid}', [CoaLedgerController::class, 'destroy'])->name('chart-of-accounts.ledgers.destroy');
+        });
+    });
+
     Route::prefix('baptisms')->group(function () {
         Route::get('/', [BaptismController::class, 'index'])->middleware('can:baptisms.view')->name('baptisms.index');
         Route::get('/create', [BaptismController::class, 'create'])->middleware('can:baptisms.request.create')->name('baptisms.create');
@@ -196,6 +275,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{baptism}/attachments/{attachment}', [BaptismAttachmentController::class, 'download'])->middleware('can:baptisms.view')->name('baptisms.attachments.download');
         Route::delete('/{baptism}/attachments/{attachment}', [BaptismAttachmentController::class, 'destroy'])->middleware('can:baptisms.request.edit')->name('baptisms.attachments.destroy');
         Route::post('/{baptism}/change-subject', [BaptismController::class, 'changeSubject'])->middleware('can:baptisms.request.edit')->name('baptisms.change-subject');
+
         Route::post('/{baptism}/submit', [BaptismController::class, 'submit'])->middleware('can:baptisms.request.submit')->name('baptisms.submit');
         Route::post('/{baptism}/approve', [BaptismController::class, 'approve'])->middleware('can:baptisms.approve')->name('baptisms.approve');
         Route::post('/{baptism}/reject', [BaptismController::class, 'reject'])->middleware('can:baptisms.reject')->name('baptisms.reject');
