@@ -26,20 +26,33 @@ class JournalPostingService
                 throw new \RuntimeException('Journal is already posted.');
             }
 
-            $lines = JournalLine::query()
+            $totals = JournalLine::query()
                 ->where('journal_id', $journal->id)
-                ->select(['id', 'ledger_id', 'description', 'debit_amount', 'credit_amount'])
-                ->orderBy('id')
-                ->get();
+                ->selectRaw('COUNT(*) as total_lines, COALESCE(SUM(debit_amount), 0) as total_debit, COALESCE(SUM(credit_amount), 0) as total_credit')
+                ->first();
 
-            if ($lines->count() === 0) {
+            if ((int) ($totals?->total_lines ?? 0) === 0) {
                 throw new \RuntimeException('Journal has no lines.');
             }
 
-            $totalDebit = 0.0;
-            $totalCredit = 0.0;
+            $totalDebit = (float) self::normalizeAmount($totals?->total_debit ?? 0, 4);
+            $totalCredit = (float) self::normalizeAmount($totals?->total_credit ?? 0, 4);
 
-            foreach ($lines as $line) {
+            if (round($totalDebit - $totalCredit, 4) !== 0.0) {
+                throw new \RuntimeException('Journal is not balanced. Total debit must equal total credit.');
+            }
+
+            $journalLines = JournalLine::query()
+                ->where('journal_id', $journal->id)
+                ->select(['id', 'ledger_id', 'description', 'debit_amount', 'credit_amount'])
+                ->orderBy('id')
+                ->cursor();
+
+            $now = now();
+            $uuidMethod = method_exists(Str::class, 'uuid7') ? 'uuid7' : 'uuid';
+            $rows = [];
+
+            foreach ($journalLines as $line) {
                 $debit = (float) self::normalizeAmount($line->debit_amount, 4);
                 $credit = (float) self::normalizeAmount($line->credit_amount, 4);
 
@@ -51,12 +64,18 @@ class JournalPostingService
                     throw new \RuntimeException('A journal line cannot have both debit and credit.');
                 }
 
-                $totalDebit += $debit;
-                $totalCredit += $credit;
-            }
-
-            if (round($totalDebit - $totalCredit, 4) !== 0.0) {
-                throw new \RuntimeException('Journal is not balanced. Total debit must equal total credit.');
+                $rows[] = [
+                    'uuid' => (string) Str::{$uuidMethod}(),
+                    'journal_id' => (int) $journal->id,
+                    'ledger_id' => (int) $line->ledger_id,
+                    'description' => $line->description,
+                    'debit_amount' => number_format($debit, 4, '.', ''),
+                    'credit_amount' => number_format($credit, 4, '.', ''),
+                    'transaction_date' => $journal->transaction_date,
+                    'created_by' => (int) $journal->created_by,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
             }
 
             $journal->amount = number_format($totalDebit, 4, '.', '');
@@ -64,22 +83,6 @@ class JournalPostingService
             $journal->posted_at = now();
             $journal->posted_by = $postedByUserId;
             $journal->save();
-
-            $rows = [];
-            foreach ($lines as $line) {
-                $rows[] = [
-                    'uuid' => (string) (method_exists(Str::class, 'uuid7') ? Str::uuid7() : Str::uuid()),
-                    'journal_id' => (int) $journal->id,
-                    'ledger_id' => (int) $line->ledger_id,
-                    'description' => $line->description,
-                    'debit_amount' => number_format((float) self::normalizeAmount($line->debit_amount, 4), 4, '.', ''),
-                    'credit_amount' => number_format((float) self::normalizeAmount($line->credit_amount, 4), 4, '.', ''),
-                    'transaction_date' => $journal->transaction_date,
-                    'created_by' => (int) $journal->created_by,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
 
             if (count($rows) > 0) {
                 GeneralLedger::query()->insert($rows);

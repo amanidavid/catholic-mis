@@ -16,6 +16,7 @@ class GeneralLedgerEntryResource extends JsonResource
     public function toArray(Request $request): array
     {
         $journal = $this->journal;
+        $ledger = $this->ledger;
 
         return [
             'uuid' => $this->uuid,
@@ -25,6 +26,9 @@ class GeneralLedgerEntryResource extends JsonResource
             'debit_amount_formatted' => self::formatAmount($this->debit_amount, 2),
             'credit_amount' => self::normalizeAmount($this->credit_amount, 4),
             'credit_amount_formatted' => self::formatAmount($this->credit_amount, 2),
+            'ledger_uuid' => $ledger?->uuid,
+            'ledger_name' => $ledger?->name,
+            'ledger_account_code' => $ledger?->account_code,
             'journal_uuid' => $journal?->uuid,
             'journal_no' => $journal?->journal_no,
         ];

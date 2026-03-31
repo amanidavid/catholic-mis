@@ -35,6 +35,8 @@ class PettyCashReplenishmentController extends Controller
 
         $q = is_string($request->query('q')) ? trim((string) $request->query('q')) : '';
         $status = is_string($request->query('status')) ? trim((string) $request->query('status')) : '';
+        $dateFrom = is_string($request->query('date_from')) ? trim((string) $request->query('date_from')) : '';
+        $dateTo = is_string($request->query('date_to')) ? trim((string) $request->query('date_to')) : '';
         $prefillFundUuid = is_string($request->query('fund_uuid')) ? trim((string) $request->query('fund_uuid')) : '';
         $openCreate = in_array(strtolower((string) $request->query('open_create')), ['1', 'true', 'yes'], true);
 
@@ -48,14 +50,16 @@ class PettyCashReplenishmentController extends Controller
                 $safe = addcslashes($q, '%_\\');
                 $qb->where(function ($w) use ($safe) {
                     $w->where('replenishment_no', 'like', $safe . '%')
-                        ->orWhere('reference_no', 'like', $safe . '%')
-                        ->orWhere('description', 'like', $safe . '%');
+                        ->orWhere('reference_no', 'like', $safe . '%');
                 });
             })
             ->when($status !== '', fn ($qb) => $qb->where('status', $status))
+            ->when($dateFrom !== '' && $dateTo !== '', fn ($qb) => $qb->whereBetween('transaction_date', [$dateFrom, $dateTo]))
+            ->when($dateFrom !== '' && $dateTo === '', fn ($qb) => $qb->where('transaction_date', '>=', $dateFrom))
+            ->when($dateFrom === '' && $dateTo !== '', fn ($qb) => $qb->where('transaction_date', '<=', $dateTo))
             ->orderByDesc('transaction_date')
             ->orderByDesc('id')
-            ->paginate(20)
+            ->simplePaginate(20)
             ->withQueryString();
 
         $funds = PettyCashFund::query()->select(['id', 'uuid', 'name', 'code', 'ledger_id', 'currency_id', 'imprest_amount', 'is_active'])->where('is_active', true)->orderBy('name')->get();
@@ -70,6 +74,8 @@ class PettyCashReplenishmentController extends Controller
             'filters' => [
                 'q' => $q,
                 'status' => $status,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
             ],
             'statuses' => ['draft', 'submitted', 'approved', 'posted', 'cancelled'],
         ]);
@@ -102,7 +108,7 @@ class PettyCashReplenishmentController extends Controller
 
     public function submit(Request $request, string $uuid): RedirectResponse
     {
-        $item = PettyCashReplenishment::query()->where('uuid', $uuid)->firstOrFail();
+        $item = $this->findByUuid($uuid);
         $this->authorize('submit', $item);
         $user = $request->user();
         if (! $user) {
@@ -120,7 +126,7 @@ class PettyCashReplenishmentController extends Controller
 
     public function approve(Request $request, string $uuid): RedirectResponse
     {
-        $item = PettyCashReplenishment::query()->where('uuid', $uuid)->firstOrFail();
+        $item = $this->findByUuid($uuid);
         $this->authorize('approve', $item);
         $user = $request->user();
         if (! $user) {
@@ -138,7 +144,7 @@ class PettyCashReplenishmentController extends Controller
 
     public function reject(PettyCashActionRequest $request, string $uuid): RedirectResponse
     {
-        $item = PettyCashReplenishment::query()->where('uuid', $uuid)->firstOrFail();
+        $item = $this->findByUuid($uuid);
         $this->authorize('reject', $item);
         $user = $request->user();
         if (! $user) {
@@ -156,7 +162,7 @@ class PettyCashReplenishmentController extends Controller
 
     public function post(Request $request, string $uuid): RedirectResponse
     {
-        $item = PettyCashReplenishment::query()->where('uuid', $uuid)->firstOrFail();
+        $item = $this->findByUuid($uuid);
         $this->authorize('post', $item);
         $user = $request->user();
         if (! $user) {
@@ -174,7 +180,7 @@ class PettyCashReplenishmentController extends Controller
 
     public function cancel(PettyCashActionRequest $request, string $uuid): RedirectResponse
     {
-        $item = PettyCashReplenishment::query()->where('uuid', $uuid)->firstOrFail();
+        $item = $this->findByUuid($uuid);
         $this->authorize('cancel', $item);
         $user = $request->user();
         if (! $user) {
@@ -188,5 +194,12 @@ class PettyCashReplenishmentController extends Controller
             Log::error('Petty cash replenishment cancel failed', ['exception' => $e]);
             return back()->with('error', $e->getMessage() ?: 'Unable to cancel petty cash replenishment.');
         }
+    }
+
+    private function findByUuid(string $uuid): PettyCashReplenishment
+    {
+        return PettyCashReplenishment::query()
+            ->where('uuid', $uuid)
+            ->firstOrFail();
     }
 }

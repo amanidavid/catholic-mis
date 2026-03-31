@@ -39,16 +39,13 @@ class PettyCashVoucherController extends Controller
 
         $q = is_string($request->query('q')) ? trim((string) $request->query('q')) : '';
         $status = is_string($request->query('status')) ? trim((string) $request->query('status')) : '';
+        $dateFrom = is_string($request->query('date_from')) ? trim((string) $request->query('date_from')) : '';
+        $dateTo = is_string($request->query('date_to')) ? trim((string) $request->query('date_to')) : '';
 
         $items = PettyCashVoucher::query()
             ->with([
                 'fund:id,uuid,name',
                 'journal:id,uuid,journal_no',
-                'creator:id,name',
-                'approver:id,name',
-                'rejector:id,name',
-                'poster:id,name',
-                'canceller:id,name',
                 'attachments:id,uuid,petty_cash_voucher_id,original_name,mime_type,size_bytes,created_at',
                 'lines:id,uuid,petty_cash_voucher_id,expense_ledger_id,description,amount',
                 'lines.expenseLedger:id,uuid,name,account_code',
@@ -63,9 +60,12 @@ class PettyCashVoucherController extends Controller
                 });
             })
             ->when($status !== '', fn ($qb) => $qb->where('status', $status))
+            ->when($dateFrom !== '' && $dateTo !== '', fn ($qb) => $qb->whereBetween('transaction_date', [$dateFrom, $dateTo]))
+            ->when($dateFrom !== '' && $dateTo === '', fn ($qb) => $qb->where('transaction_date', '>=', $dateFrom))
+            ->when($dateFrom === '' && $dateTo !== '', fn ($qb) => $qb->where('transaction_date', '<=', $dateTo))
             ->orderByDesc('transaction_date')
             ->orderByDesc('id')
-            ->paginate(20)
+            ->simplePaginate(20)
             ->withQueryString();
 
         $funds = PettyCashFund::query()
@@ -120,6 +120,8 @@ class PettyCashVoucherController extends Controller
             'filters' => [
                 'q' => $q,
                 'status' => $status,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
             ],
             'statuses' => ['draft', 'submitted', 'approved', 'posted', 'cancelled'],
         ]);
@@ -155,7 +157,7 @@ class PettyCashVoucherController extends Controller
 
     public function update(StorePettyCashVoucherRequest $request, string $uuid): RedirectResponse
     {
-        $voucher = PettyCashVoucher::query()->where('uuid', $uuid)->firstOrFail();
+        $voucher = $this->findVoucher($uuid);
         $this->authorize('update', $voucher);
 
         $storedAttachments = [];
@@ -173,7 +175,7 @@ class PettyCashVoucherController extends Controller
 
     public function submit(Request $request, string $uuid): RedirectResponse
     {
-        $voucher = PettyCashVoucher::query()->where('uuid', $uuid)->firstOrFail();
+        $voucher = $this->findVoucher($uuid);
         $this->authorize('submit', $voucher);
         $user = $request->user();
 
@@ -192,7 +194,7 @@ class PettyCashVoucherController extends Controller
 
     public function approve(Request $request, string $uuid): RedirectResponse
     {
-        $voucher = PettyCashVoucher::query()->where('uuid', $uuid)->firstOrFail();
+        $voucher = $this->findVoucher($uuid);
         $this->authorize('approve', $voucher);
         $user = $request->user();
 
@@ -211,7 +213,7 @@ class PettyCashVoucherController extends Controller
 
     public function reject(PettyCashActionRequest $request, string $uuid): RedirectResponse
     {
-        $voucher = PettyCashVoucher::query()->where('uuid', $uuid)->firstOrFail();
+        $voucher = $this->findVoucher($uuid);
         $this->authorize('reject', $voucher);
         $user = $request->user();
 
@@ -230,7 +232,7 @@ class PettyCashVoucherController extends Controller
 
     public function post(Request $request, string $uuid): RedirectResponse
     {
-        $voucher = PettyCashVoucher::query()->where('uuid', $uuid)->firstOrFail();
+        $voucher = $this->findVoucher($uuid);
         $this->authorize('post', $voucher);
         $user = $request->user();
 
@@ -249,7 +251,7 @@ class PettyCashVoucherController extends Controller
 
     public function cancel(PettyCashActionRequest $request, string $uuid): RedirectResponse
     {
-        $voucher = PettyCashVoucher::query()->where('uuid', $uuid)->firstOrFail();
+        $voucher = $this->findVoucher($uuid);
         $this->authorize('cancel', $voucher);
         $user = $request->user();
 
@@ -268,7 +270,7 @@ class PettyCashVoucherController extends Controller
 
     public function downloadAttachment(Request $request, string $uuid, string $attachmentUuid)
     {
-        $voucher = PettyCashVoucher::query()->where('uuid', $uuid)->firstOrFail();
+        $voucher = $this->findVoucher($uuid);
         $this->authorize('view', $voucher);
 
         $attachment = PettyCashVoucherAttachment::query()
@@ -334,5 +336,12 @@ class PettyCashVoucherController extends Controller
                 Storage::disk('local')->delete($path);
             }
         }
+    }
+
+    private function findVoucher(string $uuid): PettyCashVoucher
+    {
+        return PettyCashVoucher::query()
+            ->where('uuid', $uuid)
+            ->firstOrFail();
     }
 }

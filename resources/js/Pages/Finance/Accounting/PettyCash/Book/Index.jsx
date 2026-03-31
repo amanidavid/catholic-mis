@@ -10,6 +10,7 @@ export default function PettyCashBookIndex({ funds, selected_fund, opening_balan
     const [dateFrom, setDateFrom] = useState(filters?.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters?.date_to ?? '');
     const perPage = filters?.per_page ?? 20;
+    const showingAllFunds = !selected_fund;
 
     const search = (e) => {
         e.preventDefault();
@@ -50,7 +51,7 @@ export default function PettyCashBookIndex({ funds, selected_fund, opening_balan
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
                     <form onSubmit={search} className="grid gap-3 lg:grid-cols-12 lg:items-end">
                         <FloatingSelect id="pcb_fund" label="Petty cash fund" value={fundUuid} onChange={(e) => setFundUuid(e.target.value)} className="lg:col-span-5">
-                            <option value="">Select fund</option>
+                            <option value="">All funds</option>
                             {(funds ?? []).map((f) => <option key={f.uuid} value={f.uuid}>{toTitleCase(f.name ?? '')}</option>)}
                         </FloatingSelect>
                         <FloatingInput id="pcb_from" label="Date from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="lg:col-span-2" />
@@ -82,33 +83,39 @@ export default function PettyCashBookIndex({ funds, selected_fund, opening_balan
                                         <thead>
                                             <tr>
                                                 <th>Date</th>
+                                                {showingAllFunds && <th>Fund</th>}
                                                 <th>Description</th>
                                                 <th>Journal</th>
                                                 <th>Voucher</th>
                                                 <th>Replenishment</th>
-                                                <th>Created</th>
-                                                <th>Updated</th>
+                                                {/* <th>Created</th>
+                                                <th>Updated</th> */}
                                                 <th className="w-36">Debit</th>
                                                 <th className="w-36">Credit</th>
-                                                <th className="w-40">Running Balance</th>
+                                                {!showingAllFunds && <th className="w-40">Running Balance</th>}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                             {running.map((r) => (
                                                 <tr key={r.uuid} className="hover:bg-slate-50">
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.transaction_date}</td>
+                                                    {showingAllFunds && (
+                                                        <td className="px-4 py-3 text-sm text-slate-700">
+                                                            {r.fund_code ? `${r.fund_code} - ${toTitleCase(r.fund_name ?? '')}` : toTitleCase(r.fund_name ?? '') || '-'}
+                                                        </td>
+                                                    )}
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.description}</td>
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.journal_no ?? '-'}</td>
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.voucher_no ?? '-'}</td>
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.replenishment_no ?? '-'}</td>
-                                                    <td className="px-4 py-3 text-sm text-slate-700">{r.created_at ?? '-'}</td>
-                                                    <td className="px-4 py-3 text-sm text-slate-700">{r.updated_at ?? '-'}</td>
+                                                    {/* <td className="px-4 py-3 text-sm text-slate-700">{r.created_at ?? '-'}</td>
+                                                    <td className="px-4 py-3 text-sm text-slate-700">{r.updated_at ?? '-'}</td> */}
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.debit_amount_formatted}</td>
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.credit_amount_formatted}</td>
-                                                    <td className="px-4 py-3 text-sm font-semibold text-slate-900">{r.running_balance.toFixed(4)}</td>
+                                                    {!showingAllFunds && <td className="px-4 py-3 text-sm font-semibold text-slate-900">{r.running_balance.toFixed(4)}</td>}
                                                 </tr>
                                             ))}
-                                            {running.length === 0 && <tr><td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">No entries found.</td></tr>}
+                                            {running.length === 0 && <tr><td colSpan={showingAllFunds ? 9 : 9} className="px-4 py-10 text-center text-sm text-slate-500">No entries found.</td></tr>}
                                         </tbody>
                                     </table>
                                 </div>

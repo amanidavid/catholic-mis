@@ -10,12 +10,14 @@ import { toTitleCase } from '@/lib/formatters';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
-export default function PettyCashFundsIndex({ funds, ledgers, currencies, users }) {
+export default function PettyCashFundsIndex({ funds, ledgers, currencies, users, filters }) {
     const permissions = usePage().props?.auth?.user?.permissions ?? [];
     const canCreate = Array.isArray(permissions) && permissions.includes('finance.petty-cash-funds.create');
     const canCreateReplenishment = Array.isArray(permissions) && permissions.includes('finance.petty-cash-replenishments.create');
     const [open, setOpen] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
+    const [dateFrom, setDateFrom] = useState(filters?.date_from ?? '');
+    const [dateTo, setDateTo] = useState(filters?.date_to ?? '');
 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         name: '',
@@ -39,6 +41,18 @@ export default function PettyCashFundsIndex({ funds, ledgers, currencies, users 
         e.preventDefault();
         post(route('finance.petty-cash-funds.store'), { preserveScroll: true, onSuccess: close });
     };
+    const applyFilters = (e) => {
+        e.preventDefault();
+        router.get(route('finance.petty-cash-funds.index'), {
+            date_from: dateFrom || undefined,
+            date_to: dateTo || undefined,
+        }, { preserveState: true, replace: true });
+    };
+    const clearFilters = () => {
+        setDateFrom('');
+        setDateTo('');
+        router.get(route('finance.petty-cash-funds.index'), {}, { preserveState: true, replace: true });
+    };
 
     return (
         <AuthenticatedLayout>
@@ -58,6 +72,17 @@ export default function PettyCashFundsIndex({ funds, ledgers, currencies, users 
                 </div>
 
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
+                    <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <form onSubmit={applyFilters} className="grid gap-3 md:grid-cols-4 md:items-end">
+                            <FloatingInput id="pcf_date_from" label="Created from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                            <FloatingInput id="pcf_date_to" label="Created to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                            <div className="flex items-center gap-2 md:col-span-2 md:justify-end">
+                                <button type="submit" className="h-11 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">Search</button>
+                                <button type="button" onClick={clearFilters} className="h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+
                     <div className="overflow-x-auto">
                         <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
                             <table className="mis-table divide-y divide-slate-200">

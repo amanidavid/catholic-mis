@@ -10,6 +10,7 @@ export default function GeneralLedgerIndex({ ledgers, selected_ledger, opening_b
     const [dateFrom, setDateFrom] = useState(filters?.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters?.date_to ?? '');
     const perPage = filters?.per_page ?? 15;
+    const showingAllLedgers = !selected_ledger;
 
     const apply = (e) => {
         e.preventDefault();
@@ -76,7 +77,7 @@ export default function GeneralLedgerIndex({ ledgers, selected_ledger, opening_b
                             onChange={(e) => setLedgerUuid(e.target.value)}
                             className="lg:col-span-5"
                         >
-                            <option value="">Select ledger</option>
+                            <option value="">All ledgers</option>
                             {(ledgers ?? []).map((l) => (
                                 <option key={l.uuid} value={l.uuid}>
                                     {l.account_code ? `${l.account_code} - ${toTitleCase(l.name)}` : toTitleCase(l.name)}
@@ -126,27 +127,33 @@ export default function GeneralLedgerIndex({ ledgers, selected_ledger, opening_b
                                         <thead>
                                             <tr>
                                                 <th>Date</th>
+                                                {showingAllLedgers && <th>Ledger</th>}
                                                 <th>Description</th>
                                                 <th>Journal</th>
                                                 <th className="w-40">Debit</th>
                                                 <th className="w-40">Credit</th>
-                                                <th className="w-48">Running balance</th>
+                                                {!showingAllLedgers && <th className="w-48">Running balance</th>}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                             {running.map((r) => (
                                                 <tr key={r.uuid} className="hover:bg-slate-50">
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.transaction_date}</td>
+                                                    {showingAllLedgers && (
+                                                        <td className="px-4 py-3 text-sm text-slate-700">
+                                                            {r.ledger_account_code ? `${r.ledger_account_code} - ${toTitleCase(r.ledger_name ?? '')}` : toTitleCase(r.ledger_name ?? '') || '-'}
+                                                        </td>
+                                                    )}
                                                     <td className="px-4 py-3 text-sm text-slate-700">{toTitleCase(r.description ?? '')}</td>
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.journal_no ?? '-'}</td>
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.debit_amount_formatted ?? r.debit_amount}</td>
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.credit_amount_formatted ?? r.credit_amount}</td>
-                                                    <td className="px-4 py-3 text-sm font-semibold text-slate-900">{r.running_balance_display}</td>
+                                                    {!showingAllLedgers && <td className="px-4 py-3 text-sm font-semibold text-slate-900">{r.running_balance_display}</td>}
                                                 </tr>
                                             ))}
                                             {running.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">No entries found.</td>
+                                                    <td colSpan={showingAllLedgers ? 6 : 6} className="px-4 py-10 text-center text-sm text-slate-500">No entries found.</td>
                                                 </tr>
                                             )}
                                         </tbody>
@@ -155,11 +162,11 @@ export default function GeneralLedgerIndex({ ledgers, selected_ledger, opening_b
                             </div>
 
                             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <PaginationSummary meta={entryCollection?.meta ?? entries?.meta} />
-                        <Pagination links={entryCollection?.meta?.links ?? entryCollection?.links ?? entries?.meta?.links ?? entries?.links ?? []} />
-                    </div>
-                </>
-            )}
+                                <PaginationSummary meta={entryCollection?.meta ?? entries?.meta} />
+                                <Pagination links={entryCollection?.meta?.links ?? entryCollection?.links ?? entries?.meta?.links ?? entries?.links ?? []} />
+                            </div>
+                        </>
+                    )}
                 </section>
             </div>
         </AuthenticatedLayout>

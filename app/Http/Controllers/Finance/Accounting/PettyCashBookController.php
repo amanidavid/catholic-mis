@@ -36,38 +36,51 @@ class PettyCashBookController extends Controller
         $selectedFund = null;
         $entries = null;
         $openingBalanceSigned = null;
+        $effectiveDateFrom = $dateFrom !== '' ? $dateFrom : '1900-01-01';
+        $effectiveDateTo = $dateTo !== '' ? $dateTo : Carbon::today()->toDateString();
+
+        $baseEntriesQuery = GeneralLedger::query()
+            ->join('petty_cash_funds', 'petty_cash_funds.ledger_id', '=', 'general_ledgers.ledger_id')
+            ->leftJoin('journals', 'journals.id', '=', 'general_ledgers.journal_id')
+            ->leftJoin('petty_cash_vouchers', 'petty_cash_vouchers.journal_id', '=', 'general_ledgers.journal_id')
+            ->leftJoin('petty_cash_replenishments', 'petty_cash_replenishments.journal_id', '=', 'general_ledgers.journal_id')
+            ->whereBetween('general_ledgers.transaction_date', [$effectiveDateFrom, $effectiveDateTo])
+            ->select([
+                'general_ledgers.id',
+                'general_ledgers.uuid',
+                'general_ledgers.transaction_date',
+                'general_ledgers.description',
+                'general_ledgers.created_at',
+                'general_ledgers.updated_at',
+                'general_ledgers.debit_amount',
+                'general_ledgers.credit_amount',
+                DB::raw('journals.journal_no as journal_no'),
+                DB::raw('petty_cash_funds.uuid as fund_uuid'),
+                DB::raw('petty_cash_funds.name as fund_name'),
+                DB::raw('petty_cash_funds.code as fund_code'),
+                DB::raw('petty_cash_vouchers.voucher_no as voucher_no'),
+                DB::raw('petty_cash_replenishments.replenishment_no as replenishment_no'),
+            ]);
 
         if ($fundUuid !== '') {
             $selectedFund = PettyCashFund::query()->with('ledger:id,uuid,name,account_code,opening_balance,opening_balance_type')->where('uuid', $fundUuid)->first();
             if ($selectedFund) {
-                $effectiveDateFrom = $dateFrom !== '' ? $dateFrom : '1900-01-01';
-                $effectiveDateTo = $dateTo !== '' ? $dateTo : Carbon::today()->toDateString();
                 $openingBalanceSigned = $this->generalLedgerService->computeOpeningCarryForward($selectedFund->ledger, $effectiveDateFrom);
 
-                $entries = GeneralLedger::query()
-                    ->leftJoin('journals', 'journals.id', '=', 'general_ledgers.journal_id')
-                    ->leftJoin('petty_cash_vouchers', 'petty_cash_vouchers.journal_id', '=', 'general_ledgers.journal_id')
-                    ->leftJoin('petty_cash_replenishments', 'petty_cash_replenishments.journal_id', '=', 'general_ledgers.journal_id')
+                $entries = (clone $baseEntriesQuery)
                     ->where('general_ledgers.ledger_id', $selectedFund->ledger_id)
-                    ->whereBetween('general_ledgers.transaction_date', [$effectiveDateFrom, $effectiveDateTo])
-                    ->select([
-                        'general_ledgers.id',
-                        'general_ledgers.uuid',
-                        'general_ledgers.transaction_date',
-                        'general_ledgers.description',
-                        'general_ledgers.created_at',
-                        'general_ledgers.updated_at',
-                        'general_ledgers.debit_amount',
-                        'general_ledgers.credit_amount',
-                        DB::raw('journals.journal_no as journal_no'),
-                        DB::raw('petty_cash_vouchers.voucher_no as voucher_no'),
-                        DB::raw('petty_cash_replenishments.replenishment_no as replenishment_no'),
-                    ])
                     ->orderBy('general_ledgers.transaction_date')
                     ->orderBy('general_ledgers.id')
-                    ->paginate($perPage)
+                    ->simplePaginate($perPage)
                     ->withQueryString();
             }
+        } else {
+            $entries = (clone $baseEntriesQuery)
+                ->where('petty_cash_funds.is_active', true)
+                ->orderBy('general_ledgers.transaction_date')
+                ->orderBy('general_ledgers.id')
+                ->simplePaginate($perPage)
+                ->withQueryString();
         }
 
         return Inertia::render('Finance/Accounting/PettyCash/Book/Index', [

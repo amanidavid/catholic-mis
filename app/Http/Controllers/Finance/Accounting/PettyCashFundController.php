@@ -32,6 +32,9 @@ class PettyCashFundController extends Controller
     {
         $this->authorize('viewAny', PettyCashFund::class);
 
+        $dateFrom = is_string($request->query('date_from')) ? trim((string) $request->query('date_from')) : '';
+        $dateTo = is_string($request->query('date_to')) ? trim((string) $request->query('date_to')) : '';
+
         $items = PettyCashFund::query()
             ->join('ledgers', 'ledgers.id', '=', 'petty_cash_funds.ledger_id')
             ->join('currencies', 'currencies.id', '=', 'petty_cash_funds.currency_id')
@@ -57,6 +60,9 @@ class PettyCashFundController extends Controller
                 'currencies.code as currency_code',
                 'custodians.name as custodian_name',
             ])
+            ->when($dateFrom !== '' && $dateTo !== '', fn ($qb) => $qb->whereBetween('petty_cash_funds.created_at', [$dateFrom.' 00:00:00', $dateTo.' 23:59:59']))
+            ->when($dateFrom !== '' && $dateTo === '', fn ($qb) => $qb->where('petty_cash_funds.created_at', '>=', $dateFrom.' 00:00:00'))
+            ->when($dateFrom === '' && $dateTo !== '', fn ($qb) => $qb->where('petty_cash_funds.created_at', '<=', $dateTo.' 23:59:59'))
             ->orderBy('petty_cash_funds.name')
             ->paginate(20)
             ->withQueryString();
@@ -115,6 +121,10 @@ class PettyCashFundController extends Controller
             'ledgers' => LedgerOptionResource::collection($ledgers)->resolve(),
             'currencies' => CurrencyOptionResource::collection($currencies)->resolve(),
             'users' => $users->map(fn (User $user) => ['uuid' => $user->uuid, 'name' => $user->name])->values(),
+            'filters' => [
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
         ]);
     }
 

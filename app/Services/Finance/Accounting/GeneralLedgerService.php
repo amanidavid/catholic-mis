@@ -5,14 +5,14 @@ namespace App\Services\Finance\Accounting;
 use App\Models\Finance\GeneralLedger;
 use App\Models\Finance\Ledger;
 use App\Traits\FormatsAmounts;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 
 class GeneralLedgerService
 {
     use FormatsAmounts;
 
     /**
-     * @return array{opening_balance:string, opening_balance_signed:string, entries:LengthAwarePaginator}
+     * @return array{opening_balance:string, opening_balance_signed:string, entries:Paginator}
      */
     public function getLedgerReport(Ledger $ledger, string $dateFrom, string $dateTo, int $perPage = 15): array
     {
@@ -24,7 +24,7 @@ class GeneralLedgerService
             ->whereBetween('transaction_date', [$dateFrom, $dateTo])
             ->orderBy('transaction_date')
             ->orderBy('id')
-            ->paginate($perPage)
+            ->simplePaginate($perPage)
             ->withQueryString();
 
         return [

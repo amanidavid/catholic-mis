@@ -42,6 +42,8 @@ export default function PettyCashVouchersIndex({ items, funds, filters, statuses
 
     const [q, setQ] = useState(filters?.q ?? '');
     const [status, setStatus] = useState(filters?.status ?? '');
+    const [dateFrom, setDateFrom] = useState(filters?.date_from ?? '');
+    const [dateTo, setDateTo] = useState(filters?.date_to ?? '');
     const [open, setOpen] = useState(false);
     const [editingVoucherUuid, setEditingVoucherUuid] = useState(null);
     const [actionModal, setActionModal] = useState({ open: false, routeName: '', uuid: '', title: '', subtitle: '', actionLabel: '' });
@@ -67,12 +69,14 @@ export default function PettyCashVouchersIndex({ items, funds, filters, statuses
 
     const apply = (e) => {
         e.preventDefault();
-        router.get(route('finance.petty-cash-vouchers.index'), { q: q || undefined, status: status || undefined }, { preserveState: true, replace: true });
+        router.get(route('finance.petty-cash-vouchers.index'), { q: q || undefined, status: status || undefined, date_from: dateFrom || undefined, date_to: dateTo || undefined }, { preserveState: true, replace: true });
     };
 
     const clear = () => {
         setQ('');
         setStatus('');
+        setDateFrom('');
+        setDateTo('');
         router.get(route('finance.petty-cash-vouchers.index'), {}, { preserveState: true, replace: true });
     };
 
@@ -205,15 +209,17 @@ export default function PettyCashVouchersIndex({ items, funds, filters, statuses
 
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
                     <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                        <form onSubmit={apply} className="grid gap-3 md:grid-cols-6 md:items-end">
-                            <FloatingInput id="pcv_q" label="Search voucher / payee / description" value={q} onChange={(e) => setQ(e.target.value)} className="md:col-span-3" />
-                            <FloatingSelect id="pcv_status" label="Status" value={status} onChange={(e) => setStatus(e.target.value)} className="md:col-span-1">
+                        <form onSubmit={apply} className="grid gap-3 lg:grid-cols-12 lg:items-end">
+                            <FloatingInput id="pcv_q" label="Search voucher / payee / description" value={q} onChange={(e) => setQ(e.target.value)} className="lg:col-span-4" />
+                            <FloatingSelect id="pcv_status" label="Status" value={status} onChange={(e) => setStatus(e.target.value)} className="lg:col-span-2">
                                 <option value="">All statuses</option>
                                 {(statuses ?? []).map((item) => <option key={item} value={item}>{toTitleCase(item)}</option>)}
                             </FloatingSelect>
-                            <div className="flex items-center gap-2 md:col-span-2 md:justify-end">
-                                <button type="submit" className="h-11 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">Search</button>
-                                <button type="button" onClick={clear} className="h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Clear</button>
+                            <FloatingInput id="pcv_date_from" label="Date from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="lg:col-span-2" />
+                            <FloatingInput id="pcv_date_to" label="Date to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="lg:col-span-2" />
+                            <div className="flex flex-wrap items-center gap-2 lg:col-span-2 lg:justify-end">
+                                <button type="submit" className="h-11 flex-1 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 lg:flex-none">Search</button>
+                                <button type="button" onClick={clear} className="h-11 flex-1 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 lg:flex-none">Clear</button>
                             </div>
                         </form>
                     </div>

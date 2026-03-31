@@ -45,6 +45,7 @@ class GeneralLedgerController extends Controller
 
         $report = null;
         $selectedLedger = null;
+        $entries = null;
 
         if ($ledgerUuid !== '') {
             $selectedLedger = Ledger::query()->where('uuid', $ledgerUuid)->first();
@@ -52,14 +53,31 @@ class GeneralLedgerController extends Controller
                 $effectiveDateFrom = $dateFrom !== '' ? $dateFrom : '1900-01-01';
                 $effectiveDateTo = $dateTo !== '' ? $dateTo : Carbon::today()->toDateString();
                 $report = $this->generalLedgerService->getLedgerReport($selectedLedger, $effectiveDateFrom, $effectiveDateTo, $perPage);
+                $entries = GeneralLedgerEntryResource::collection($report['entries']);
             }
+        } else {
+            $effectiveDateFrom = $dateFrom !== '' ? $dateFrom : '1900-01-01';
+            $effectiveDateTo = $dateTo !== '' ? $dateTo : Carbon::today()->toDateString();
+
+            $allEntries = GeneralLedger::query()
+                ->with([
+                    'journal:id,uuid,journal_no',
+                    'ledger:id,uuid,name,account_code',
+                ])
+                ->whereBetween('transaction_date', [$effectiveDateFrom, $effectiveDateTo])
+                ->orderBy('transaction_date')
+                ->orderBy('id')
+                ->paginate($perPage)
+                ->withQueryString();
+
+            $entries = GeneralLedgerEntryResource::collection($allEntries);
         }
 
         return Inertia::render('Finance/Accounting/GeneralLedger/Index', [
             'ledgers' => LedgerOptionResource::collection($ledgers)->resolve(),
             'selected_ledger' => $selectedLedger?->only(['uuid', 'name', 'account_code']),
             'opening_balance_signed' => $report['opening_balance_signed'] ?? null,
-            'entries' => $report ? GeneralLedgerEntryResource::collection($report['entries']) : null,
+            'entries' => $entries,
             'filters' => [
                 'ledger_uuid' => $ledgerUuid,
                 'date_from' => $dateFrom,
