@@ -217,6 +217,15 @@ const icons = {
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 6v12" />
         </svg>
     ),
+    trialBalance: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 6h14" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 18h14" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 6v12" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 6v12" />
+        </svg>
+    ),
     doubleEntries: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h10" />
@@ -224,6 +233,40 @@ const icons = {
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 17h10" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 7l2 2 2-2" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 17l-2-2-2 2" />
+        </svg>
+    ),
+    banks: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l9-5 9 5" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 10v8" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 10v8" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14 10v8" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v8" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 20h18" />
+        </svg>
+    ),
+    bankAccounts: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <rect x="3" y="6" width="18" height="12" rx="2" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 14h4" />
+        </svg>
+    ),
+    bankTransactions: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h10" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 7l-2-2" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 7l-2 2" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 17H7" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 17l2-2" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 17l2 2" />
+        </svg>
+    ),
+    pettyCash: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <rect x="4" y="6" width="16" height="12" rx="2" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 14h5" />
         </svg>
     ),
 };
@@ -308,13 +351,52 @@ export default function AuthenticatedLayout({ header, children }) {
             {
                 group: 'Finance',
                 items: [
-                    { label: 'Account Groups', routeName: 'chart-of-accounts.groups.*', href: () => route('chart-of-accounts.groups.index'), icon: icons.coaGroups, show: can('chart-of-accounts.groups.view') },
-                    { label: 'Account Types', routeName: 'chart-of-accounts.types.*', href: () => route('chart-of-accounts.types.index'), icon: icons.coaTypes, show: can('chart-of-accounts.types.view') },
-                    { label: 'Account Subtypes', routeName: 'chart-of-accounts.subtypes.*', href: () => route('chart-of-accounts.subtypes.index'), icon: icons.coaSubtypes, show: can('chart-of-accounts.subtypes.view') },
-                    { label: 'Ledgers', routeName: 'chart-of-accounts.ledgers.*', href: () => route('chart-of-accounts.ledgers.index'), icon: icons.coaLedgers, show: can('chart-of-accounts.ledgers.view') },
-                    { label: 'Double Entries', routeName: 'finance.double-entries.*', href: () => route('finance.double-entries.index'), icon: icons.doubleEntries, show: can('finance.double-entries.view') },
-                    { label: 'Journals', routeName: 'finance.journals.*', href: () => route('finance.journals.index'), icon: icons.journals, show: can('finance.journals.view') },
-                    { label: 'General Ledger', routeName: 'finance.general-ledger.*', href: () => route('finance.general-ledger.index'), icon: icons.generalLedger, show: can('finance.general-ledger.view') },
+                    {
+                        label: 'Chart of Accounts',
+                        isSection: true,
+                        show: true,
+                        children: [
+                            { label: 'Account Groups', routeName: 'chart-of-accounts.groups.*', href: () => route('chart-of-accounts.groups.index'), icon: icons.coaGroups, show: can('chart-of-accounts.groups.view') },
+                            { label: 'Account Types', routeName: 'chart-of-accounts.types.*', href: () => route('chart-of-accounts.types.index'), icon: icons.coaTypes, show: can('chart-of-accounts.types.view') },
+                            { label: 'Account Subtypes', routeName: 'chart-of-accounts.subtypes.*', href: () => route('chart-of-accounts.subtypes.index'), icon: icons.coaSubtypes, show: can('chart-of-accounts.subtypes.view') },
+                            { label: 'Ledgers', routeName: 'chart-of-accounts.ledgers.*', href: () => route('chart-of-accounts.ledgers.index'), icon: icons.coaLedgers, show: can('chart-of-accounts.ledgers.view') },
+                        ],
+                    },
+
+                    {
+                        label: 'Banking',
+                        isSection: true,
+                        show: true,
+                        children: [
+                            { label: 'Banks', routeName: 'finance.banks.*', href: () => route('finance.banks.index'), icon: icons.banks, show: can('finance.banks.view') },
+                            { label: 'Bank Accounts', routeName: 'finance.bank-accounts.*', href: () => route('finance.bank-accounts.index'), icon: icons.bankAccounts, show: can('finance.bank-accounts.view') },
+                            { label: 'Bank Transactions', routeName: 'finance.bank-account-transactions.*', href: () => route('finance.bank-account-transactions.index'), icon: icons.bankTransactions, show: can('finance.bank-account-transactions.view') },
+                        ],
+                    },
+
+                    {
+                        label: 'Accounting',
+                        isSection: true,
+                        show: true,
+                        children: [
+                            { label: 'Double Entries', routeName: 'finance.double-entries.*', href: () => route('finance.double-entries.index'), icon: icons.doubleEntries, show: can('finance.double-entries.view') },
+                            { label: 'Journals', routeName: 'finance.journals.*', href: () => route('finance.journals.index'), icon: icons.journals, show: can('finance.journals.view') },
+                            { label: 'General Ledger', routeName: 'finance.general-ledger.*', href: () => route('finance.general-ledger.index'), icon: icons.generalLedger, show: can('finance.general-ledger.view') },
+                            { label: 'Trial Balance', routeName: 'finance.trial-balance.*', href: () => route('finance.trial-balance.index'), icon: icons.trialBalance, show: can('finance.trial-balance.view') },
+                        ],
+                    },
+
+                    {
+                        label: 'Petty Cash',
+                        isSection: true,
+                        show: true,
+                        children: [
+                            { label: 'Petty Cash Funds', routeName: 'finance.petty-cash-funds.*', href: () => route('finance.petty-cash-funds.index'), icon: icons.pettyCash, show: can('finance.petty-cash-funds.view') },
+                            { label: 'Petty Cash Vouchers', routeName: 'finance.petty-cash-vouchers.*', href: () => route('finance.petty-cash-vouchers.index'), icon: icons.pettyCash, show: can('finance.petty-cash-vouchers.view') },
+                            { label: 'Petty Cash Replenishments', routeName: 'finance.petty-cash-replenishments.*', href: () => route('finance.petty-cash-replenishments.index'), icon: icons.pettyCash, show: can('finance.petty-cash-replenishments.view') },
+                            { label: 'Petty Cash Book', routeName: 'finance.petty-cash-book.*', href: () => route('finance.petty-cash-book.index'), icon: icons.pettyCash, show: can('finance.petty-cash-book.view') },
+                        ],
+                    },
                 ],
             },
             {
@@ -335,15 +417,35 @@ export default function AuthenticatedLayout({ header, children }) {
         ];
 
         return items
-            .map((g) => ({ ...g, items: g.items.filter((i) => i.show) }))
+            .map((g) => {
+                const nextItems = (g.items ?? [])
+                    .map((i) => (
+                        i.children
+                            ? { ...i, children: (i.children ?? []).filter((child) => child.show) }
+                            : i
+                    ))
+                    .filter((i) => i.show && (!i.children || i.children.length > 0));
+
+                return { ...g, items: nextItems };
+            })
             .filter((g) => g.items.length > 0);
     }, [permissions]);
 
     useEffect(() => {
         const next = {};
         (navGroups ?? []).forEach((g) => {
-            const isActive = (g.items ?? []).some((i) => route().current(i.routeName));
+            const isActive = (g.items ?? []).some((i) =>
+                (i.routeName && route().current(i.routeName))
+                || (i.children ?? []).some((child) => child.routeName && route().current(child.routeName))
+            );
             next[g.group] = isActive;
+
+            (g.items ?? []).forEach((i) => {
+                if (!i.isSection) return;
+                const sectionKey = `${g.group}:${i.label}`;
+                const sectionActive = (i.children ?? []).some((child) => child.routeName && route().current(child.routeName));
+                next[sectionKey] = sectionActive;
+            });
         });
         setOpenGroups(next);
     }, [navGroups]);
@@ -353,6 +455,30 @@ export default function AuthenticatedLayout({ header, children }) {
             ...(prev ?? {}),
             [groupName]: !prev?.[groupName],
         }));
+    };
+
+    const renderNavLink = (item, keyPrefix = '') => {
+        const active = route().current(item.routeName);
+        return (
+            <Link
+                key={`${keyPrefix}${item.label}`}
+                href={item.href()}
+                className={`flex items-center gap-3 rounded-lg py-2 text-sm font-medium transition ${active
+                    ? 'border-l-4 border-white/90 bg-indigo-600/25 pl-2 pr-3 text-white ring-1 ring-indigo-300/10'
+                    : 'border-l-4 border-transparent px-3 text-slate-200/90 hover:bg-white/10 hover:text-white'
+                    }`}
+            >
+                <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-md ${active
+                        ? 'bg-indigo-500/25 text-indigo-100 ring-1 ring-indigo-200/20'
+                        : 'bg-white/10 text-slate-100/90'
+                        }`}
+                >
+                    {item.icon}
+                </span>
+                <span>{item.label}</span>
+            </Link>
+        );
     };
 
     useEffect(() => {
@@ -407,7 +533,10 @@ export default function AuthenticatedLayout({ header, children }) {
                     {navGroups.map((group) => (
                         <div key={group.group} className="mb-6">
                             {(() => {
-                                const groupActive = (group.items ?? []).some((i) => route().current(i.routeName));
+                                const groupActive = (group.items ?? []).some((i) =>
+                                    (i.routeName && route().current(i.routeName))
+                                    || (i.children ?? []).some((child) => child.routeName && route().current(child.routeName))
+                                );
                                 return (
                                     <button
                                         type="button"
@@ -434,27 +563,41 @@ export default function AuthenticatedLayout({ header, children }) {
                             {openGroups?.[group.group] && (
                                 <nav className="mt-2 space-y-1">
                                     {group.items.map((item) => {
-                                        const active = route().current(item.routeName);
-                                        return (
-                                            <Link
-                                                key={item.label}
-                                                href={item.href()}
-                                                className={`flex items-center gap-3 rounded-lg py-2 text-sm font-medium transition ${active
-                                                    ? 'border-l-4 border-white/90 bg-indigo-600/25 pl-2 pr-3 text-white ring-1 ring-indigo-300/10'
-                                                    : 'border-l-4 border-transparent px-3 text-slate-200/90 hover:bg-white/10 hover:text-white'
-                                                    }`}
-                                            >
-                                                <span
-                                                    className={`flex h-8 w-8 items-center justify-center rounded-md ${active
-                                                        ? 'bg-indigo-500/25 text-indigo-100 ring-1 ring-indigo-200/20'
-                                                        : 'bg-white/10 text-slate-100/90'
-                                                        }`}
-                                                >
-                                                    {item.icon}
-                                                </span>
-                                                <span>{item.label}</span>
-                                            </Link>
-                                        );
+                                        if (item.isSection) {
+                                            const sectionKey = `${group.group}:${item.label}`;
+                                            const sectionActive = (item.children ?? []).some((child) => child.routeName && route().current(child.routeName));
+                                            return (
+                                                <div key={`section-${group.group}-${item.label}`} className="pt-2 first:pt-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleGroup(sectionKey)}
+                                                        className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider transition ${sectionActive
+                                                            ? 'text-slate-100'
+                                                            : 'text-slate-300/70 hover:bg-white/5 hover:text-slate-200'
+                                                            }`}
+                                                    >
+                                                        <span>{item.label}</span>
+                                                        <svg
+                                                            className={`h-3.5 w-3.5 transition ${openGroups?.[sectionKey] ? 'rotate-180' : ''}`}
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </button>
+
+                                                    {openGroups?.[sectionKey] && (
+                                                        <div className="mt-1 space-y-1">
+                                                            {(item.children ?? []).map((child) => renderNavLink(child, `${sectionKey}:`))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        }
+
+                                        return renderNavLink(item);
                                     })}
                                 </nav>
                             )}

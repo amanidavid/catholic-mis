@@ -32,13 +32,18 @@ export default function GeneralLedgerIndex({ ledgers, selected_ledger, opening_b
         router.get(route('finance.general-ledger.index'), { per_page: perPage }, { preserveState: true, replace: true });
     };
 
-    const tableRows = useMemo(() => entries?.data ?? [], [entries?.data]);
+    const entryCollection = entries?.data ?? entries ?? null;
+    const tableRows = useMemo(() => entryCollection?.data ?? entryCollection ?? [], [entryCollection]);
 
     const running = useMemo(() => {
         let bal = parseFloat(opening_balance_signed ?? 0);
         return tableRows.map((r) => {
             bal += parseFloat(r.debit_amount ?? 0) - parseFloat(r.credit_amount ?? 0);
-            return { ...r, running_balance: bal };
+            return {
+                ...r,
+                running_balance: bal,
+                running_balance_display: formatFinanceBalance(bal),
+            };
         });
     }, [tableRows, opening_balance_signed]);
 
@@ -94,7 +99,7 @@ export default function GeneralLedgerIndex({ ledgers, selected_ledger, opening_b
                             onChange={(e) => setDateTo(e.target.value)}
                             className="lg:col-span-3"
                         />
-                        <div className="flex items-center gap-2 lg:col-span-1 lg:justify-end">
+                        <div className="flex flex-wrap items-center gap-2 lg:col-span-12 lg:justify-end">
                             <button type="submit" className="h-11 rounded-lg px-4 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700">Search</button>
                             <button type="button" onClick={clear} className="h-11 rounded-lg px-4 text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Clear</button>
                         </div>
@@ -108,7 +113,7 @@ export default function GeneralLedgerIndex({ ledgers, selected_ledger, opening_b
                             </div>
                             <div className="rounded-xl border border-slate-200 p-4">
                                 <div className="text-xs font-semibold text-slate-500">Opening balance (carry forward)</div>
-                                <div className="mt-1 text-sm font-semibold text-slate-900">{opening_balance_signed ?? '0.0000'}</div>
+                                <div className="mt-1 text-sm font-semibold text-slate-900">{formatFinanceBalance(opening_balance_signed ?? 0)}</div>
                             </div>
                         </div>
                     )}
@@ -134,9 +139,9 @@ export default function GeneralLedgerIndex({ ledgers, selected_ledger, opening_b
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.transaction_date}</td>
                                                     <td className="px-4 py-3 text-sm text-slate-700">{toTitleCase(r.description ?? '')}</td>
                                                     <td className="px-4 py-3 text-sm text-slate-700">{r.journal_no ?? '-'}</td>
-                                                    <td className="px-4 py-3 text-sm text-slate-700">{r.debit_amount}</td>
-                                                    <td className="px-4 py-3 text-sm text-slate-700">{r.credit_amount}</td>
-                                                    <td className="px-4 py-3 text-sm font-semibold text-slate-900">{r.running_balance.toFixed(4)}</td>
+                                                    <td className="px-4 py-3 text-sm text-slate-700">{r.debit_amount_formatted ?? r.debit_amount}</td>
+                                                    <td className="px-4 py-3 text-sm text-slate-700">{r.credit_amount_formatted ?? r.credit_amount}</td>
+                                                    <td className="px-4 py-3 text-sm font-semibold text-slate-900">{r.running_balance_display}</td>
                                                 </tr>
                                             ))}
                                             {running.length === 0 && (
@@ -150,11 +155,11 @@ export default function GeneralLedgerIndex({ ledgers, selected_ledger, opening_b
                             </div>
 
                             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <PaginationSummary meta={entries?.meta} />
-                                <Pagination links={entries?.meta?.links ?? entries?.links ?? []} />
-                            </div>
-                        </>
-                    )}
+                        <PaginationSummary meta={entryCollection?.meta ?? entries?.meta} />
+                        <Pagination links={entryCollection?.meta?.links ?? entryCollection?.links ?? entries?.meta?.links ?? entries?.links ?? []} />
+                    </div>
+                </>
+            )}
                 </section>
             </div>
         </AuthenticatedLayout>
@@ -195,4 +200,19 @@ function PaginationSummary({ meta }) {
             <span className="font-semibold text-slate-900">{meta.total ?? 0}</span>
         </div>
     );
+}
+
+function formatFinanceBalance(value) {
+    const numeric = parseFloat(value ?? 0);
+
+    if (!Number.isFinite(numeric) || numeric === 0) {
+        return '0.00';
+    }
+
+    const side = numeric >= 0 ? 'Dr' : 'Cr';
+
+    return `${Math.abs(numeric).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })} ${side}`;
 }

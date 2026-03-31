@@ -9,6 +9,7 @@ use App\Models\Finance\GeneralLedger;
 use App\Models\Finance\Ledger;
 use App\Services\Finance\Accounting\GeneralLedgerService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,10 +46,12 @@ class GeneralLedgerController extends Controller
         $report = null;
         $selectedLedger = null;
 
-        if ($ledgerUuid !== '' && $dateFrom !== '' && $dateTo !== '') {
+        if ($ledgerUuid !== '') {
             $selectedLedger = Ledger::query()->where('uuid', $ledgerUuid)->first();
             if ($selectedLedger) {
-                $report = $this->generalLedgerService->getLedgerReport($selectedLedger, $dateFrom, $dateTo, $perPage);
+                $effectiveDateFrom = $dateFrom !== '' ? $dateFrom : '1900-01-01';
+                $effectiveDateTo = $dateTo !== '' ? $dateTo : Carbon::today()->toDateString();
+                $report = $this->generalLedgerService->getLedgerReport($selectedLedger, $effectiveDateFrom, $effectiveDateTo, $perPage);
             }
         }
 

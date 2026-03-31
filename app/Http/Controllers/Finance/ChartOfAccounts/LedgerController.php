@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Finance\ChartOfAccounts;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Finance\Banking\CurrencyOptionResource;
 use App\Http\Resources\Finance\ChartOfAccounts\AccountGroupOptionResource;
 use App\Http\Resources\Finance\ChartOfAccounts\AccountSubtypeOptionResource;
 use App\Http\Resources\Finance\ChartOfAccounts\AccountTypeOptionResource;
@@ -11,6 +12,7 @@ use App\Http\Requests\Finance\ChartOfAccounts\BulkUpsertLedgersRequest;
 use App\Models\Finance\AccountGroup;
 use App\Models\Finance\AccountSubtype;
 use App\Models\Finance\AccountType;
+use App\Models\Finance\Currency;
 use App\Models\Finance\Ledger;
 use App\Traits\FormatsAmounts;
 use App\Traits\NormalizesNames;
@@ -61,17 +63,25 @@ class LedgerController extends Controller
             ->orderBy('name')
             ->get();
 
+        $currencies = Currency::query()
+            ->select(['id', 'uuid', 'code', 'name'])
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
         $ledgers = Ledger::query()
             ->with([
                 'subtype:id,uuid,name,account_type_id',
                 'subtype.type:id,uuid,name,account_group_id',
                 'subtype.type.group:id,uuid,name,code',
+                'currency:id,uuid,code,name',
             ])
             ->select([
                 'id',
                 'uuid',
                 'name',
                 'account_code',
+                'currency_id',
                 'opening_balance',
                 'opening_balance_type',
                 'is_active',
@@ -91,6 +101,7 @@ class LedgerController extends Controller
             'groups' => AccountGroupOptionResource::collection($groups)->resolve(),
             'types' => AccountTypeOptionResource::collection($types)->resolve(),
             'subtypes' => AccountSubtypeOptionResource::collection($subtypes)->resolve(),
+            'currencies' => CurrencyOptionResource::collection($currencies)->resolve(),
             'filters' => [
                 'q' => $q,
                 'per_page' => $perPage,
@@ -114,8 +125,13 @@ class LedgerController extends Controller
             return back()->with('error', 'Invalid account subtype.');
         }
 
+        $currency = Currency::query()->where('uuid', $validated['currency_uuid'])->first();
+        if (! $currency) {
+            return back()->with('error', 'Invalid currency.');
+        }
+
         try {
-            DB::transaction(function () use ($validated, $subtype, $user): void {
+            DB::transaction(function () use ($validated, $subtype, $currency, $user): void {
                 $rows = [];
 
                 foreach (($validated['items'] ?? []) as $item) {
@@ -138,6 +154,7 @@ class LedgerController extends Controller
                         'account_subtype_id' => (int) $subtype->id,
                         'name' => $name,
                         'account_code' => $accountCode,
+                        'currency_id' => (int) $currency->id,
                         'opening_balance' => $openingBalance,
                         'opening_balance_type' => $openingBalanceType,
                         'is_active' => array_key_exists('is_active', $item) ? (bool) $item['is_active'] : true,
@@ -151,7 +168,7 @@ class LedgerController extends Controller
                     Ledger::query()->upsert(
                         $rows,
                         ['uuid'],
-                        ['account_subtype_id', 'name', 'account_code', 'opening_balance', 'opening_balance_type', 'is_active', 'updated_at']
+                        ['account_subtype_id', 'name', 'account_code', 'currency_id', 'opening_balance', 'opening_balance_type', 'is_active', 'updated_at']
                     );
                 }
             });

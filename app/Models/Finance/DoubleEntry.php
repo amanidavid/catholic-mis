@@ -13,6 +13,7 @@ class DoubleEntry extends BaseModel
     protected $fillable = [
         'uuid',
         'description',
+        'transaction_type',
         'ledger_id',
         'debit_ledger_id',
         'credit_ledger_id',
@@ -33,6 +34,11 @@ class DoubleEntry extends BaseModel
     public function creditLedger(): BelongsTo
     {
         return $this->belongsTo(Ledger::class, 'credit_ledger_id');
+    }
+
+    public function journal(): BelongsTo
+    {
+        return $this->belongsTo(Journal::class, 'journal_id');
     }
 
     public function creator(): BelongsTo

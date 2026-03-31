@@ -19,6 +19,7 @@ class DoubleEntryIndexResource extends JsonResource
         return [
             'uuid' => $this->uuid,
             'description' => $this->description,
+            'transaction_type' => $this->transaction_type,
 
             'ledger_uuid' => $ledger?->uuid,
             'ledger_name' => $ledger?->name,

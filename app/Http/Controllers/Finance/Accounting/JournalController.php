@@ -39,6 +39,7 @@ class JournalController extends Controller
         $this->authorize('viewAny', Journal::class);
 
         $q = is_string($request->query('q')) ? trim((string) $request->query('q')) : '';
+        $qUpper = strtoupper($q);
         $dateFrom = is_string($request->query('date_from')) ? trim((string) $request->query('date_from')) : '';
         $dateTo = is_string($request->query('date_to')) ? trim((string) $request->query('date_to')) : '';
 
@@ -50,15 +51,42 @@ class JournalController extends Controller
             $perPage = 100;
         }
 
+        $lineCounts = JournalLine::query()
+            ->selectRaw('journal_id, COUNT(*) as lines_count')
+            ->groupBy('journal_id');
+
         $journals = Journal::query()
-            ->withCount('lines')
-            ->select(['id', 'uuid', 'journal_no', 'sequence', 'journal_year', 'transaction_date', 'description', 'amount', 'is_posted', 'posted_at', 'created_at'])
-            ->when($q !== '', function ($qb) use ($q) {
+            ->leftJoinSub($lineCounts, 'journal_line_counts', function ($join) {
+                $join->on('journal_line_counts.journal_id', '=', 'journals.id');
+            })
+            ->select([
+                'journals.id',
+                'journals.uuid',
+                'journals.journal_no',
+                'journals.sequence',
+                'journals.journal_year',
+                'journals.transaction_date',
+                'journals.description',
+                'journals.amount',
+                'journals.is_posted',
+                'journals.posted_at',
+                'journals.created_at',
+                DB::raw('COALESCE(journal_line_counts.lines_count, 0) as lines_count'),
+            ])
+            ->when($q !== '', function ($qb) use ($q, $qUpper) {
                 $safe = addcslashes($q, '%_\\');
-                $qb->where(function ($w) use ($safe) {
-                    $w->where('journal_no', 'like', $safe . '%')
-                        ->orWhere('description', 'like', $safe . '%');
-                });
+                $safeUpper = addcslashes($qUpper, '%_\\');
+                $looksLikeJournalNo = str_starts_with($qUpper, 'JV')
+                    || preg_match('/^\d{4}$/', $q) === 1
+                    || preg_match('/^\d{4}-\d+$/', $q) === 1
+                    || preg_match('/^JV-\d{4}/i', $q) === 1;
+
+                if ($looksLikeJournalNo) {
+                    $qb->where('journal_no', 'like', $safeUpper . '%');
+                    return;
+                }
+
+                $qb->where('description', 'like', $safe . '%');
             })
             ->when($dateFrom !== '' && $dateTo !== '', fn ($qb) => $qb->whereBetween('transaction_date', [$dateFrom, $dateTo]))
             ->orderByDesc('transaction_date')
@@ -140,6 +168,7 @@ class JournalController extends Controller
 
                     $mapping = DoubleEntry::query()
                         ->where('ledger_id', (int) $lookupLedger->id)
+                        ->whereNull('transaction_type')
                         ->select(['id', 'debit_ledger_id', 'credit_ledger_id'])
                         ->first();
 
@@ -160,6 +189,7 @@ class JournalController extends Controller
                             'journal_id' => (int) $journal->id,
                             'ledger_id' => (int) $mapping->debit_ledger_id,
                             'description' => $validated['description'] ?? null,
+                            'comment' => $validated['description'] ?? null,
                             'debit_amount' => $amountNorm,
                             'credit_amount' => self::normalizeAmount(0, 4),
                             'created_at' => now(),
@@ -170,6 +200,7 @@ class JournalController extends Controller
                             'journal_id' => (int) $journal->id,
                             'ledger_id' => (int) $mapping->credit_ledger_id,
                             'description' => $validated['description'] ?? null,
+                            'comment' => $validated['description'] ?? null,
                             'debit_amount' => self::normalizeAmount(0, 4),
                             'credit_amount' => $amountNorm,
                             'created_at' => now(),
@@ -210,6 +241,7 @@ class JournalController extends Controller
                         'journal_id' => (int) $journal->id,
                         'ledger_id' => (int) $ledger->id,
                         'description' => $line['description'] ?? null,
+                        'comment' => $line['description'] ?? null,
                         'debit_amount' => self::normalizeAmount($debit, 4),
                         'credit_amount' => self::normalizeAmount($credit, 4),
                         'created_at' => now(),

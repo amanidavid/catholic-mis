@@ -10,7 +10,7 @@ import { toTitleCase } from '@/lib/formatters';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
-export default function DoubleEntriesIndex({ items, ledgers, filters }) {
+export default function DoubleEntriesIndex({ items, ledgers, transaction_types, filters }) {
     const permissions = usePage().props?.auth?.user?.permissions ?? [];
     const can = (perm) => Array.isArray(permissions) && permissions.includes(perm);
     const canCreate = can('finance.double-entries.create');
@@ -35,6 +35,7 @@ export default function DoubleEntriesIndex({ items, ledgers, filters }) {
 
     const { data, setData, post, processing, errors, reset, clearErrors, delete: destroy } = useForm({
         description: '',
+        transaction_type: '',
         ledger_uuid: '',
         debit_ledger_uuid: '',
         credit_ledger_uuid: '',
@@ -82,7 +83,7 @@ export default function DoubleEntriesIndex({ items, ledgers, filters }) {
 
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
                     <form onSubmit={apply} className="grid gap-3 lg:grid-cols-12 lg:items-end">
-                        <FloatingInput id="de_q" label="Search (description)" value={q} onChange={(e) => setQ(e.target.value)} className="lg:col-span-9" />
+                        <FloatingInput id="de_q" label="Search (description / type)" value={q} onChange={(e) => setQ(e.target.value)} className="lg:col-span-9" />
                         <div className="flex items-center gap-2 lg:col-span-3 lg:justify-end">
                             <button type="submit" className="h-11 rounded-lg px-4 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700">Search</button>
                             <button type="button" onClick={clear} className="h-11 rounded-lg px-4 text-sm font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Clear</button>
@@ -96,6 +97,7 @@ export default function DoubleEntriesIndex({ items, ledgers, filters }) {
                                     <tr>
                                         <th className="w-16">#</th>
                                         <th>Description</th>
+                                        <th>Transaction Type</th>
                                         <th>Lookup ledger</th>
                                         <th>Debit ledger</th>
                                         <th>Credit ledger</th>
@@ -107,6 +109,7 @@ export default function DoubleEntriesIndex({ items, ledgers, filters }) {
                                         <tr key={r.uuid} className="hover:bg-indigo-50/40 transition">
                                             <td className="px-4 py-3 text-sm text-slate-600">{(items?.meta?.from ?? 1) + idx}</td>
                                             <td className="px-4 py-3 text-sm font-semibold text-slate-900">{toTitleCase(r.description ?? '')}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{toTitleCase(String(r.transaction_type ?? '').replace(/-/g, ' ')) || '-'}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">
                                                 {r.ledger_account_code ? `${r.ledger_account_code} - ${toTitleCase(r.ledger_name ?? '')}` : toTitleCase(r.ledger_name ?? '')}
                                             </td>
@@ -138,7 +141,7 @@ export default function DoubleEntriesIndex({ items, ledgers, filters }) {
                                     ))}
                                     {tableRows.length === 0 && (
                                         <tr>
-                                            <td colSpan={canDelete ? 6 : 5} className="px-4 py-10 text-center text-sm text-slate-500">No mappings found.</td>
+                                            <td colSpan={canDelete ? 7 : 6} className="px-4 py-10 text-center text-sm text-slate-500">No mappings found.</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -153,67 +156,94 @@ export default function DoubleEntriesIndex({ items, ledgers, filters }) {
                 </section>
             </div>
 
-            <Modal show={open} onClose={close} maxWidth="md">
+            <Modal show={open} onClose={close} maxWidth="2xl">
                 <div className="p-6">
-                    <ModalHeader title="New double entry mapping" subtitle="Pick lookup ledger (optional), and set debit & credit ledgers." onClose={close} showRequiredNote />
+                    <ModalHeader
+                        title="New double entry mapping"
+                        subtitle="Arrange the transaction rule by type, lookup ledger, and debit or credit ledgers before saving."
+                        onClose={close}
+                        showRequiredNote
+                    />
 
                     <form onSubmit={submit} className="mt-4 space-y-4">
                         {Object.keys(errors ?? {}).length > 0 && (
                             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Fix the highlighted errors below.</div>
                         )}
 
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <FloatingInput
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                            <div className="mb-3">
+                                <h3 className="text-sm font-semibold text-slate-900">Posting Rule</h3>
+                                <p className="mt-1 text-xs text-slate-500">Choose the event type first, then define which ledger is being used as the lookup and which ledgers receive the debit and credit entry.</p>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <FloatingSelect
+                                    id="de_transaction_type"
+                                    label="Transaction type (optional)"
+                                    value={data.transaction_type}
+                                    onChange={(e) => setData('transaction_type', e.target.value)}
+                                    error={errors.transaction_type}
+                                >
+                                    <option value="">None</option>
+                                    {Object.entries(transaction_types ?? {}).map(([value, label]) => (
+                                        <option key={value} value={value}>{label}</option>
+                                    ))}
+                                </FloatingSelect>
+                                <FloatingSelect
+                                    id="de_lookup_ledger"
+                                    label="Lookup ledger (optional)"
+                                    value={data.ledger_uuid}
+                                    onChange={(e) => setData('ledger_uuid', e.target.value)}
+                                    error={errors.ledger_uuid}
+                                >
+                                    <option value="">None</option>
+                                    {(ledgers ?? []).map((l) => (
+                                        <option key={l.uuid} value={l.uuid}>
+                                            {l.account_code ? `${l.account_code} - ${toTitleCase(l.name)}` : toTitleCase(l.name)}
+                                        </option>
+                                    ))}
+                                </FloatingSelect>
+                                <FloatingSelect
+                                    id="de_debit"
+                                    label="Debit ledger"
+                                    value={data.debit_ledger_uuid}
+                                    onChange={(e) => setData('debit_ledger_uuid', e.target.value)}
+                                    error={errors.debit_ledger_uuid}
+                                    required
+                                >
+                                    <option value="">Select debit ledger</option>
+                                    {(ledgers ?? []).map((l) => (
+                                        <option key={l.uuid} value={l.uuid}>
+                                            {l.account_code ? `${l.account_code} - ${toTitleCase(l.name)}` : toTitleCase(l.name)}
+                                        </option>
+                                    ))}
+                                </FloatingSelect>
+                                <FloatingSelect
+                                    id="de_credit"
+                                    label="Credit ledger"
+                                    value={data.credit_ledger_uuid}
+                                    onChange={(e) => setData('credit_ledger_uuid', e.target.value)}
+                                    error={errors.credit_ledger_uuid}
+                                    required
+                                >
+                                    <option value="">Select credit ledger</option>
+                                    {(ledgers ?? []).map((l) => (
+                                        <option key={l.uuid} value={l.uuid}>
+                                            {l.account_code ? `${l.account_code} - ${toTitleCase(l.name)}` : toTitleCase(l.name)}
+                                        </option>
+                                    ))}
+                                </FloatingSelect>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4">
+                            <FloatingSelect
                                 id="de_desc"
                                 label="Description (optional)"
                                 value={data.description}
                                 onChange={(e) => setData('description', e.target.value)}
                                 error={errors.description}
                             />
-                            <FloatingSelect
-                                id="de_lookup_ledger"
-                                label="Lookup ledger (optional)"
-                                value={data.ledger_uuid}
-                                onChange={(e) => setData('ledger_uuid', e.target.value)}
-                                error={errors.ledger_uuid}
-                            >
-                                <option value="">None</option>
-                                {(ledgers ?? []).map((l) => (
-                                    <option key={l.uuid} value={l.uuid}>
-                                        {l.account_code ? `${l.account_code} - ${toTitleCase(l.name)}` : toTitleCase(l.name)}
-                                    </option>
-                                ))}
-                            </FloatingSelect>
-                            <FloatingSelect
-                                id="de_debit"
-                                label="Debit ledger"
-                                value={data.debit_ledger_uuid}
-                                onChange={(e) => setData('debit_ledger_uuid', e.target.value)}
-                                error={errors.debit_ledger_uuid}
-                                required
-                            >
-                                <option value="">Select debit ledger</option>
-                                {(ledgers ?? []).map((l) => (
-                                    <option key={l.uuid} value={l.uuid}>
-                                        {l.account_code ? `${l.account_code} - ${toTitleCase(l.name)}` : toTitleCase(l.name)}
-                                    </option>
-                                ))}
-                            </FloatingSelect>
-                            <FloatingSelect
-                                id="de_credit"
-                                label="Credit ledger"
-                                value={data.credit_ledger_uuid}
-                                onChange={(e) => setData('credit_ledger_uuid', e.target.value)}
-                                error={errors.credit_ledger_uuid}
-                                required
-                            >
-                                <option value="">Select credit ledger</option>
-                                {(ledgers ?? []).map((l) => (
-                                    <option key={l.uuid} value={l.uuid}>
-                                        {l.account_code ? `${l.account_code} - ${toTitleCase(l.name)}` : toTitleCase(l.name)}
-                                    </option>
-                                ))}
-                            </FloatingSelect>
                         </div>
 
                         <div className="flex flex-wrap items-center justify-end gap-2">

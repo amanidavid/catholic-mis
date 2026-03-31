@@ -43,6 +43,7 @@ class AccountSubtypeController extends Controller
 
         $groups = AccountGroup::query()
             ->select(['id', 'uuid', 'name', 'code'])
+            ->where('is_active', true)
             ->orderBy('code')
             ->orderBy('name')
             ->get();

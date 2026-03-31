@@ -15,6 +15,7 @@ class BulkUpsertLedgersRequest extends FormRequest
     {
         return [
             'account_subtype_uuid' => ['required', 'string', 'size:36'],
+            'currency_uuid' => ['required', 'string', 'size:36'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.uuid' => ['nullable', 'string', 'size:36'],
             'items.*.name' => ['required', 'string', 'min:2', 'max:80', 'not_regex:/<[^>]*>/', 'regex:/^[A-Za-z ]+$/u'],
@@ -29,6 +30,7 @@ class BulkUpsertLedgersRequest extends FormRequest
     {
         return [
             'account_subtype_uuid.required' => 'Account subtype is required.',
+            'currency_uuid.required' => 'Currency is required.',
             'items.required' => 'Please provide at least one ledger.',
             'items.*.name.required' => 'Ledger name is required.',
             'items.*.name.regex' => 'Ledger name must contain letters and spaces only.',

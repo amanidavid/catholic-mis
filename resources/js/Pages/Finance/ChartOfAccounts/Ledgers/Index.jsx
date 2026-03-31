@@ -11,7 +11,7 @@ import { toTitleCase } from '@/lib/formatters';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
-export default function LedgersIndex({ ledgers, groups, types, subtypes, filters }) {
+export default function LedgersIndex({ ledgers, groups, types, subtypes, currencies, filters }) {
     const permissions = usePage().props?.auth?.user?.permissions ?? [];
     const can = (perm) => Array.isArray(permissions) && permissions.includes(perm);
     const canCreate = can('chart-of-accounts.ledgers.create');
@@ -21,6 +21,7 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
     const [modalGroup, setModalGroup] = useState('');
     const [modalType, setModalType] = useState('');
     const [modalSubtype, setModalSubtype] = useState('');
+    const [modalCurrency, setModalCurrency] = useState('');
     const [q, setQ] = useState(filters?.q ?? '');
     const perPage = filters?.per_page ?? 15;
 
@@ -54,12 +55,13 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         account_subtype_uuid: modalSubtype,
+        currency_uuid: modalCurrency,
         items: rows,
     });
 
     useEffect(() => {
-        setData({ account_subtype_uuid: modalSubtype, items: rows });
-    }, [modalSubtype, rows]);
+        setData({ account_subtype_uuid: modalSubtype, currency_uuid: modalCurrency, items: rows });
+    }, [modalSubtype, modalCurrency, rows]);
 
     const modalTypeOptions = useMemo(() => {
         const all = Array.isArray(types) ? types : [];
@@ -96,6 +98,7 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
         setModalGroup('');
         setModalType('');
         setModalSubtype('');
+        setModalCurrency('');
         setRows([{ name: '', account_code: '', opening_balance: '', opening_balance_type: 'debit', is_active: true }]);
     };
 
@@ -104,6 +107,7 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
         setModalGroup(l.group_uuid ?? '');
         setModalType(l.type_uuid ?? '');
         setModalSubtype(l.subtype_uuid ?? '');
+        setModalCurrency(l.currency_uuid ?? '');
         setRows([
             {
                 uuid: l.uuid,
@@ -125,6 +129,7 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
         setModalGroup('');
         setModalType('');
         setModalSubtype('');
+        setModalCurrency('');
         setRows([{ name: '', account_code: '', opening_balance: '', opening_balance_type: 'debit', is_active: true }]);
     };
 
@@ -247,7 +252,17 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
                                             <td className="px-4 py-3 text-sm text-slate-600">{(ledgers?.meta?.from ?? 1) + idx}</td>
                                             <td className="px-4 py-3 text-sm font-semibold text-slate-900">{l.account_code ?? '-'}</td>
                                             <td className="px-4 py-3 text-sm font-semibold text-slate-900">{toTitleCase(l.name)}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{`${l.opening_balance ?? '0.0000'} ${String(l.opening_balance_type ?? 'debit').toUpperCase()}`}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-slate-900">
+                                                        {l.currency_code ? `${l.currency_code} ` : ''}
+                                                        {l.opening_balance_formatted ?? '0.00'}
+                                                    </span>
+                                                    <span className="text-xs uppercase tracking-wide text-slate-500">
+                                                        {String(l.opening_balance_type ?? 'debit')}
+                                                    </span>
+                                                </div>
+                                            </td>
                                             <td className="px-4 py-3 text-sm">
                                                 <span
                                                     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${l.is_active
@@ -334,7 +349,7 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
                         showRequiredNote
                     />
 
-                    <div className="mt-4 grid gap-4 md:grid-cols-3">
+                    <div className="mt-4 grid gap-4 md:grid-cols-4">
                         <FloatingSelect
                             id="coa_ledgers_modal_group"
                             label="Account group"
@@ -379,11 +394,24 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
                                 <option key={s.uuid} value={s.uuid}>{toTitleCase(s.name)}</option>
                             ))}
                         </FloatingSelect>
+
+                        <FloatingSelect
+                            id="coa_ledgers_modal_currency"
+                            label="Currency"
+                            value={modalCurrency}
+                            onChange={(e) => setModalCurrency(e.target.value)}
+                            required
+                        >
+                            <option value="">Select currency</option>
+                            {(currencies ?? []).map((c) => (
+                                <option key={c.uuid} value={c.uuid}>{`${c.code} - ${toTitleCase(c.name)}`}</option>
+                            ))}
+                        </FloatingSelect>
                     </div>
 
-                    {!modalSubtype && (
+                    {(!modalSubtype || !modalCurrency) && (
                         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                            Select an account subtype first.
+                            Select an account subtype and currency first.
                         </div>
                     )}
 
@@ -456,12 +484,12 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
                                 type="button"
                                 onClick={addRow}
                                 className="h-11 rounded-lg text-sm font-semibold normal-case tracking-normal"
-                                disabled={!modalSubtype}
+                                disabled={!modalSubtype || !modalCurrency}
                             >
                                 Add another
                             </SecondaryButton>
                             <PrimaryButton
-                                disabled={processing || !modalSubtype}
+                                disabled={processing || !modalSubtype || !modalCurrency}
                                 className="h-11 gap-2 rounded-lg text-sm font-semibold normal-case tracking-normal bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-800"
                             >
                                 {processing && <Spinner size="sm" className="text-white" />}
@@ -481,7 +509,7 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
                         showRequiredNote
                     />
 
-                    <div className="mt-4 grid gap-4 md:grid-cols-3">
+                    <div className="mt-4 grid gap-4 md:grid-cols-4">
                         <FloatingSelect
                             id="coa_ledgers_modal_group_edit"
                             label="Account group"
@@ -526,11 +554,24 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
                                 <option key={s.uuid} value={s.uuid}>{toTitleCase(s.name)}</option>
                             ))}
                         </FloatingSelect>
+
+                        <FloatingSelect
+                            id="coa_ledgers_modal_currency_edit"
+                            label="Currency"
+                            value={modalCurrency}
+                            onChange={(e) => setModalCurrency(e.target.value)}
+                            required
+                        >
+                            <option value="">Select currency</option>
+                            {(currencies ?? []).map((c) => (
+                                <option key={c.uuid} value={c.uuid}>{`${c.code} - ${toTitleCase(c.name)}`}</option>
+                            ))}
+                        </FloatingSelect>
                     </div>
 
-                    {!modalSubtype && (
+                    {(!modalSubtype || !modalCurrency) && (
                         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                            Select an account subtype first.
+                            Select an account subtype and currency first.
                         </div>
                     )}
 
@@ -597,7 +638,7 @@ export default function LedgersIndex({ ledgers, groups, types, subtypes, filters
                                 Cancel
                             </SecondaryButton>
                             <PrimaryButton
-                                disabled={processing || !modalSubtype}
+                                disabled={processing || !modalSubtype || !modalCurrency}
                                 className="h-11 gap-2 rounded-lg text-sm font-semibold normal-case tracking-normal bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-800"
                             >
                                 {processing && <Spinner size="sm" className="text-white" />}

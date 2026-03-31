@@ -12,9 +12,12 @@ export default function JournalShow({ journal }) {
     const canPost = can('finance.journals.post');
 
     const [posting, setPosting] = useState(false);
+    const journalRecord = journal?.data ?? journal ?? {};
+
+    const journalLines = useMemo(() => journalRecord?.lines?.data ?? journalRecord?.lines ?? [], [journalRecord]);
 
     const totals = useMemo(() => {
-        const lines = journal?.lines ?? [];
+        const lines = journalLines;
         let d = 0;
         let c = 0;
         lines.forEach((l) => {
@@ -22,23 +25,23 @@ export default function JournalShow({ journal }) {
             c += parseFloat(l.credit_amount ?? 0);
         });
         return { debit: d, credit: c };
-    }, [journal?.lines]);
+    }, [journalLines]);
 
     const postJournal = () => {
-        if (!journal?.uuid) return;
+        if (!journalRecord?.uuid) return;
         setPosting(true);
-        router.post(route('finance.journals.post', journal.uuid), {}, { preserveScroll: true, onFinish: () => setPosting(false) });
+        router.post(route('finance.journals.post', journalRecord.uuid), {}, { preserveScroll: true, onFinish: () => setPosting(false) });
     };
 
     return (
         <AuthenticatedLayout>
-            <Head title={`Journal ${journal?.journal_no ?? ''}`} />
+            <Head title={`Journal ${journalRecord?.journal_no ?? ''}`} />
 
             <div className="mx-auto max-w-5xl space-y-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <h1 className="text-xl font-semibold text-slate-900">Journal {journal?.journal_no}</h1>
-                        <p className="mt-1 text-sm text-slate-500">Transaction date: {journal?.transaction_date}</p>
+                        <h1 className="text-xl font-semibold text-slate-900">Journal {journalRecord?.journal_no}</h1>
+                        <p className="mt-1 text-sm text-slate-500">Transaction date: {journalRecord?.transaction_date}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Link
@@ -47,7 +50,7 @@ export default function JournalShow({ journal }) {
                         >
                             Back
                         </Link>
-                        {canPost && !journal?.is_posted && (
+                        {canPost && !journalRecord?.is_posted && (
                             <PrimaryButton
                                 type="button"
                                 onClick={postJournal}
@@ -58,7 +61,7 @@ export default function JournalShow({ journal }) {
                                 <span>Post</span>
                             </PrimaryButton>
                         )}
-                        {journal?.is_posted && (
+                        {journalRecord?.is_posted && (
                             <span className="inline-flex h-11 items-center rounded-lg bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-200">
                                 Posted
                             </span>
@@ -70,7 +73,7 @@ export default function JournalShow({ journal }) {
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="rounded-xl border border-slate-200 p-4">
                             <div className="text-xs font-semibold text-slate-500">Description</div>
-                            <div className="mt-1 text-sm font-semibold text-slate-900">{toTitleCase(journal?.description ?? '') || '-'}</div>
+                            <div className="mt-1 text-sm font-semibold text-slate-900">{toTitleCase(journalRecord?.description ?? '') || '-'}</div>
                         </div>
                         <div className="rounded-xl border border-slate-200 p-4">
                             <div className="text-xs font-semibold text-slate-500">Totals</div>
@@ -86,23 +89,23 @@ export default function JournalShow({ journal }) {
                                 <thead>
                                     <tr>
                                         <th>Ledger</th>
-                                        <th>Description</th>
+                                        <th>Comment</th>
                                         <th className="w-40">Debit</th>
                                         <th className="w-40">Credit</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {(journal?.lines ?? []).map((l) => (
+                                    {journalLines.map((l) => (
                                         <tr key={l.uuid} className="hover:bg-slate-50">
                                             <td className="px-4 py-3 text-sm font-semibold text-slate-900">
                                                 {l.ledger_account_code ? `${l.ledger_account_code} - ${toTitleCase(l.ledger_name ?? '')}` : toTitleCase(l.ledger_name ?? '')}
                                             </td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{toTitleCase(l.description ?? '')}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{l.debit_amount}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{l.credit_amount}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{toTitleCase(l.comment ?? '') || '-'}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{l.debit_amount_formatted ?? l.debit_amount}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{l.credit_amount_formatted ?? l.credit_amount}</td>
                                         </tr>
                                     ))}
-                                    {(journal?.lines ?? []).length === 0 && (
+                                    {journalLines.length === 0 && (
                                         <tr>
                                             <td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-500">No lines.</td>
                                         </tr>
@@ -112,7 +115,7 @@ export default function JournalShow({ journal }) {
                         </div>
                     </div>
 
-                    {!journal?.is_posted && (
+                    {!journalRecord?.is_posted && (
                         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                             Posting will validate that total debit equals total credit and then write entries to the General Ledger.
                         </div>

@@ -14,6 +14,7 @@ class JournalLine extends BaseModel
         'journal_id',
         'ledger_id',
         'description',
+        'comment',
         'debit_amount',
         'credit_amount',
     ];

@@ -94,7 +94,7 @@ export default function JournalsIndex({ journals, ledgers, filters }) {
                                         <th>Journal No</th>
                                         <th>Date</th>
                                         <th>Description</th>
-                                        <th>Lines</th>
+                                        {/* <th>Lines</th> */}
                                         <th>Amount</th>
                                         <th>Status</th>
                                         <th className="w-24">View</th>
@@ -107,7 +107,7 @@ export default function JournalsIndex({ journals, ledgers, filters }) {
                                             <td className="px-4 py-3 text-sm font-semibold text-slate-900">{j.journal_no}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{j.transaction_date}</td>
                                             <td className="px-4 py-3 text-sm text-slate-700">{toTitleCase(j.description ?? '')}</td>
-                                            <td className="px-4 py-3 text-sm text-slate-700">{j.lines_count ?? '-'}</td>
+                                            {/* <td className="px-4 py-3 text-sm text-slate-700">{j.lines_count ?? '-'}</td> */}
                                             <td className="px-4 py-3 text-sm text-slate-700">{j.amount}</td>
                                             <td className="px-4 py-3 text-sm">
                                                 <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${j.is_posted ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'}`}>

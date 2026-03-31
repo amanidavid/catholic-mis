@@ -8,6 +8,7 @@ use App\Http\Resources\Finance\Accounting\DoubleEntryIndexResource;
 use App\Http\Resources\Finance\Accounting\LedgerOptionResource;
 use App\Models\Finance\DoubleEntry;
 use App\Models\Finance\Ledger;
+use App\Support\Finance\BankTransactionTypes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,10 @@ class DoubleEntryController extends Controller
             ])
             ->when($q !== '', function ($qb) use ($q) {
                 $safe = addcslashes($q, '%_\\');
-                $qb->where('description', 'like', $safe . '%');
+                $qb->where(function ($w) use ($safe) {
+                    $w->where('description', 'like', $safe . '%')
+                        ->orWhere('transaction_type', 'like', $safe . '%');
+                });
             })
             ->orderByDesc('id')
             ->paginate($perPage)
@@ -59,6 +63,7 @@ class DoubleEntryController extends Controller
         return Inertia::render('Finance/Accounting/DoubleEntries/Index', [
             'items' => DoubleEntryIndexResource::collection($items),
             'ledgers' => LedgerOptionResource::collection($ledgers)->resolve(),
+            'transaction_types' => BankTransactionTypes::labels(),
             'filters' => [
                 'q' => $q,
                 'per_page' => $perPage,
@@ -97,9 +102,21 @@ class DoubleEntryController extends Controller
                     throw new \RuntimeException('Debit ledger and credit ledger must be different.');
                 }
 
+                if ($ledgerId) {
+                    $duplicateExists = DoubleEntry::query()
+                        ->where('ledger_id', (int) $ledgerId)
+                        ->where('transaction_type', $validated['transaction_type'] ?? null)
+                        ->exists();
+
+                    if ($duplicateExists) {
+                        throw new \RuntimeException('A mapping for this lookup ledger and transaction type already exists.');
+                    }
+                }
+
                 $mapping = new DoubleEntry();
                 $mapping->uuid = method_exists(Str::class, 'uuid7') ? (string) Str::uuid7() : (string) Str::uuid();
                 $mapping->description = $validated['description'] ?? null;
+                $mapping->transaction_type = $validated['transaction_type'] ?? null;
                 $mapping->ledger_id = $ledgerId;
                 $mapping->debit_ledger_id = (int) $debitId;
                 $mapping->credit_ledger_id = (int) $creditId;

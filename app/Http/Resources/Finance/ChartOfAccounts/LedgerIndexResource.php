@@ -18,6 +18,7 @@ class LedgerIndexResource extends JsonResource
         $subtype = $this->subtype;
         $type = $subtype?->type;
         $group = $type?->group;
+        $currency = $this->currency;
 
         return [
             'uuid' => $this->uuid,
@@ -37,6 +38,9 @@ class LedgerIndexResource extends JsonResource
             'group_uuid' => $group?->uuid,
             'group_name' => $group?->name,
             'group_code' => $group?->code,
+            'currency_uuid' => $currency?->uuid,
+            'currency_code' => $currency?->code,
+            'currency_name' => $currency?->name,
         ];
     }
 }

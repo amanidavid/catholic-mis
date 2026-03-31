@@ -20,8 +20,17 @@ use App\Http\Controllers\Finance\ChartOfAccounts\AccountGroupController as CoaAc
 use App\Http\Controllers\Finance\ChartOfAccounts\AccountSubtypeController as CoaAccountSubtypeController;
 use App\Http\Controllers\Finance\ChartOfAccounts\AccountTypeController as CoaAccountTypeController;
 use App\Http\Controllers\Finance\ChartOfAccounts\LedgerController as CoaLedgerController;
+use App\Http\Controllers\Finance\Banking\BankAccountController as FinanceBankAccountController;
+use App\Http\Controllers\Finance\Banking\BankAccountTransactionController as FinanceBankAccountTransactionController;
+use App\Http\Controllers\Finance\Banking\BankController as FinanceBankController;
 use App\Http\Controllers\Finance\Accounting\JournalController as FinanceJournalController;
 use App\Http\Controllers\Finance\Accounting\GeneralLedgerController as FinanceGeneralLedgerController;
+use App\Http\Controllers\Finance\Accounting\PettyCashFundController as FinancePettyCashFundController;
+use App\Http\Controllers\Finance\Accounting\PettyCashLedgerLookupController as FinancePettyCashLedgerLookupController;
+use App\Http\Controllers\Finance\Accounting\PettyCashVoucherController as FinancePettyCashVoucherController;
+use App\Http\Controllers\Finance\Accounting\PettyCashReplenishmentController as FinancePettyCashReplenishmentController;
+use App\Http\Controllers\Finance\Accounting\PettyCashBookController as FinancePettyCashBookController;
+use App\Http\Controllers\Finance\Accounting\TrialBalanceController as FinanceTrialBalanceController;
 use App\Http\Controllers\Finance\Accounting\DoubleEntryController as FinanceDoubleEntryController;
 use App\Http\Controllers\Setup\SetupController;
 use App\Http\Controllers\Zones\ZoneController;
@@ -89,6 +98,26 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('finance')->group(function () {
+        Route::prefix('banks')->group(function () {
+            Route::get('/', [FinanceBankController::class, 'index'])->name('finance.banks.index');
+            Route::post('/bulk', [FinanceBankController::class, 'bulkUpsert'])->name('finance.banks.bulk');
+            Route::patch('/{uuid}/deactivate', [FinanceBankController::class, 'deactivate'])->name('finance.banks.deactivate');
+            Route::delete('/{uuid}', [FinanceBankController::class, 'destroy'])->name('finance.banks.destroy');
+        });
+
+        Route::prefix('bank-accounts')->group(function () {
+            Route::get('/', [FinanceBankAccountController::class, 'index'])->name('finance.bank-accounts.index');
+            Route::post('/bulk', [FinanceBankAccountController::class, 'bulkUpsert'])->name('finance.bank-accounts.bulk');
+            Route::patch('/{uuid}/deactivate', [FinanceBankAccountController::class, 'deactivate'])->name('finance.bank-accounts.deactivate');
+            Route::delete('/{uuid}', [FinanceBankAccountController::class, 'destroy'])->name('finance.bank-accounts.destroy');
+        });
+
+        Route::prefix('bank-account-transactions')->group(function () {
+            Route::get('/', [FinanceBankAccountTransactionController::class, 'index'])->name('finance.bank-account-transactions.index');
+            Route::post('/', [FinanceBankAccountTransactionController::class, 'store'])->name('finance.bank-account-transactions.store');
+            Route::delete('/{uuid}', [FinanceBankAccountTransactionController::class, 'destroy'])->name('finance.bank-account-transactions.destroy');
+        });
+
         Route::prefix('double-entries')->group(function () {
             Route::get('/', [FinanceDoubleEntryController::class, 'index'])->name('finance.double-entries.index');
             Route::post('/', [FinanceDoubleEntryController::class, 'store'])->name('finance.double-entries.store');
@@ -104,6 +133,44 @@ Route::middleware('auth')->group(function () {
 
         Route::prefix('general-ledger')->group(function () {
             Route::get('/', [FinanceGeneralLedgerController::class, 'index'])->name('finance.general-ledger.index');
+        });
+
+        Route::prefix('trial-balance')->group(function () {
+            Route::get('/', [FinanceTrialBalanceController::class, 'index'])->name('finance.trial-balance.index');
+        });
+
+        Route::prefix('petty-cash-funds')->group(function () {
+            Route::get('/', [FinancePettyCashFundController::class, 'index'])->name('finance.petty-cash-funds.index');
+            Route::post('/', [FinancePettyCashFundController::class, 'store'])->name('finance.petty-cash-funds.store');
+        });
+
+        Route::get('petty-cash-ledgers/lookup', [FinancePettyCashLedgerLookupController::class, 'index'])
+            ->name('finance.petty-cash-ledgers.lookup');
+
+        Route::prefix('petty-cash-vouchers')->group(function () {
+            Route::get('/', [FinancePettyCashVoucherController::class, 'index'])->name('finance.petty-cash-vouchers.index');
+            Route::post('/', [FinancePettyCashVoucherController::class, 'store'])->name('finance.petty-cash-vouchers.store');
+            Route::patch('/{uuid}', [FinancePettyCashVoucherController::class, 'update'])->name('finance.petty-cash-vouchers.update');
+            Route::get('/{uuid}/attachments/{attachmentUuid}', [FinancePettyCashVoucherController::class, 'downloadAttachment'])->name('finance.petty-cash-vouchers.attachments.download');
+            Route::post('/{uuid}/submit', [FinancePettyCashVoucherController::class, 'submit'])->name('finance.petty-cash-vouchers.submit');
+            Route::post('/{uuid}/approve', [FinancePettyCashVoucherController::class, 'approve'])->name('finance.petty-cash-vouchers.approve');
+            Route::post('/{uuid}/reject', [FinancePettyCashVoucherController::class, 'reject'])->name('finance.petty-cash-vouchers.reject');
+            Route::post('/{uuid}/post', [FinancePettyCashVoucherController::class, 'post'])->name('finance.petty-cash-vouchers.post');
+            Route::post('/{uuid}/cancel', [FinancePettyCashVoucherController::class, 'cancel'])->name('finance.petty-cash-vouchers.cancel');
+        });
+
+        Route::prefix('petty-cash-replenishments')->group(function () {
+            Route::get('/', [FinancePettyCashReplenishmentController::class, 'index'])->name('finance.petty-cash-replenishments.index');
+            Route::post('/', [FinancePettyCashReplenishmentController::class, 'store'])->name('finance.petty-cash-replenishments.store');
+            Route::post('/{uuid}/submit', [FinancePettyCashReplenishmentController::class, 'submit'])->name('finance.petty-cash-replenishments.submit');
+            Route::post('/{uuid}/approve', [FinancePettyCashReplenishmentController::class, 'approve'])->name('finance.petty-cash-replenishments.approve');
+            Route::post('/{uuid}/reject', [FinancePettyCashReplenishmentController::class, 'reject'])->name('finance.petty-cash-replenishments.reject');
+            Route::post('/{uuid}/post', [FinancePettyCashReplenishmentController::class, 'post'])->name('finance.petty-cash-replenishments.post');
+            Route::post('/{uuid}/cancel', [FinancePettyCashReplenishmentController::class, 'cancel'])->name('finance.petty-cash-replenishments.cancel');
+        });
+
+        Route::prefix('petty-cash-book')->middleware('can:finance.petty-cash-book.view')->group(function () {
+            Route::get('/', [FinancePettyCashBookController::class, 'index'])->name('finance.petty-cash-book.index');
         });
     });
 

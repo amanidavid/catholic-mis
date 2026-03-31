@@ -2,11 +2,14 @@
 
 namespace App\Http\Resources\Finance\Accounting;
 
+use App\Traits\FormatsAmounts;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class JournalIndexResource extends JsonResource
 {
+    use FormatsAmounts;
+
     /**
      * @return array<string, mixed>
      */
@@ -15,12 +18,13 @@ class JournalIndexResource extends JsonResource
         return [
             'uuid' => $this->uuid,
             'journal_no' => $this->journal_no,
-            'transaction_date' => $this->transaction_date,
+            'transaction_date' => $this->transaction_date?->format('Y-m-d'),
             'description' => $this->description,
-            'amount' => $this->amount,
+            'amount' => self::normalizeAmount($this->amount, 4),
+            'amount_formatted' => self::formatAmount($this->amount, 2),
             'is_posted' => (bool) ($this->is_posted ?? false),
-            'posted_at' => $this->posted_at,
-            'created_at' => $this->created_at,
+            'posted_at' => $this->posted_at?->format('Y-m-d H:i:s'),
+            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'lines_count' => $this->lines_count ?? null,
         ];
     }

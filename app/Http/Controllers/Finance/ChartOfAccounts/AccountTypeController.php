@@ -41,29 +41,36 @@ class AccountTypeController extends Controller
 
         $groups = AccountGroup::query()
             ->select(['id', 'uuid', 'name', 'code'])
+            ->where('is_active', true)
             ->orderBy('code')
             ->orderBy('name')
             ->get();
 
         $types = AccountType::query()
-            ->with([
-                'group:id,uuid,name,code',
+            ->join('account_groups', 'account_groups.id', '=', 'account_types.account_group_id')
+            ->select([
+                'account_types.id',
+                'account_types.uuid',
+                'account_types.name',
+                'account_types.account_group_id',
+                'account_types.is_active',
+                'account_types.created_at',
+                'account_groups.uuid as group_uuid',
+                'account_groups.name as group_name',
+                'account_groups.code as group_code',
             ])
-            ->select(['id', 'uuid', 'name', 'account_group_id', 'is_active', 'created_at'])
             ->when($q !== '', function ($qb) use ($q) {
                 $safe = addcslashes($q, '%_\\');
                 $code = ctype_digit($q) ? (int) $q : null;
 
                 $qb->where(function ($w) use ($safe, $code) {
                     $w->where('account_types.name', 'like', $safe . '%')
-                        ->orWhereHas('group', function ($g) use ($safe, $code) {
-                            $g->where('name', 'like', $safe . '%')
-                                ->when($code !== null, fn ($gg) => $gg->orWhere('code', '=', $code));
-                        });
+                        ->orWhere('account_groups.name', 'like', $safe . '%')
+                        ->when($code !== null, fn ($ww) => $ww->orWhere('account_groups.code', '=', $code));
                 });
             })
-            ->orderBy(AccountGroup::query()->select('code')->whereColumn('account_groups.id', 'account_types.account_group_id'))
-            ->orderBy(AccountGroup::query()->select('name')->whereColumn('account_groups.id', 'account_types.account_group_id'))
+            ->orderBy('account_groups.code')
+            ->orderBy('account_groups.name')
             ->orderBy('account_types.name')
             ->paginate($perPage)
             ->withQueryString();
