@@ -3,9 +3,12 @@
 namespace App\Models\Finance;
 
 use App\Models\BaseModel;
+use App\Traits\Auditable;
 
 class Currency extends BaseModel
 {
+    use Auditable;
+
     protected $table = 'currencies';
 
     protected $fillable = [

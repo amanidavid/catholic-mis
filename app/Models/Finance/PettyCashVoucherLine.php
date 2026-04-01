@@ -3,10 +3,13 @@
 namespace App\Models\Finance;
 
 use App\Models\BaseModel;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PettyCashVoucherLine extends BaseModel
 {
+    use Auditable;
+
     protected $table = 'petty_cash_voucher_lines';
 
     protected $fillable = [

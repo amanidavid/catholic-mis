@@ -86,7 +86,34 @@ class JournalPostingService
 
             if (count($rows) > 0) {
                 GeneralLedger::query()->insert($rows);
+                $journal->logCustomAudit('general_ledger_entries_created', null, [
+                    'journal_uuid' => $journal->uuid,
+                    'journal_no' => $journal->journal_no,
+                    'entry_count' => count($rows),
+                    'entries' => $this->auditGeneralLedgerRows($rows),
+                ], "Created general ledger entries for {$journal->journal_no}");
             }
+
+            $journal->logCustomAudit('journal_posted', null, [
+                'journal_uuid' => $journal->uuid,
+                'journal_no' => $journal->journal_no,
+                'posted_by' => $postedByUserId,
+                'amount' => number_format($totalDebit, 4, '.', ''),
+                'entry_count' => count($rows),
+            ], "Posted journal {$journal->journal_no}");
         }, 3);
+    }
+
+    private function auditGeneralLedgerRows(array $rows): array
+    {
+        return array_map(fn (array $row) => [
+            'uuid' => $row['uuid'] ?? null,
+            'ledger_id' => $row['ledger_id'] ?? null,
+            'description' => $row['description'] ?? null,
+            'debit_amount' => $row['debit_amount'] ?? null,
+            'credit_amount' => $row['credit_amount'] ?? null,
+            'transaction_date' => $row['transaction_date'] ?? null,
+            'created_by' => $row['created_by'] ?? null,
+        ], $rows);
     }
 }

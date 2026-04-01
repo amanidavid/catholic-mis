@@ -183,7 +183,7 @@ export default function PettyCashVouchersIndex({ items, funds, filters, statuses
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <h1 className="text-xl font-semibold text-slate-900">Petty Cash Vouchers</h1>
-                        <p className="mt-1 text-sm text-slate-500">Requesters create and submit vouchers. Approvers approve. Posting writes the accounting impact to Journal and General Ledger.</p>
+                        {/* <p className="mt-1 text-sm text-slate-500">Requesters create and submit vouchers. Approvers approve. Posting writes the accounting impact to Journal and General Ledger.</p> */}
                     </div>
                     {canCreate && <PrimaryButton type="button" onClick={() => { setEditingVoucherUuid(null); setOpen(true); }} className="h-11 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700">New Voucher</PrimaryButton>}
                 </div>

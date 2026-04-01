@@ -9,6 +9,7 @@ use App\Models\Finance\AccountType;
 use App\Traits\NormalizesNames;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -60,10 +61,16 @@ class AccountGroupController extends Controller
         $this->authorize('create', AccountGroup::class);
 
         $validated = $request->validated();
+        $user = $request->user();
+
+        if (! $user) {
+            return back()->with('error', 'Unauthorized.');
+        }
 
         try {
             DB::transaction(function () use ($validated): void {
                 $rows = [];
+                $uuids = [];
                 foreach (($validated['items'] ?? []) as $item) {
                     $uuid = isset($item['uuid']) ? trim((string) $item['uuid']) : '';
                     $name = NormalizesNames::normalize((string) $item['name']);
@@ -92,14 +99,41 @@ class AccountGroupController extends Controller
                         'updated_at' => now(),
                         'created_at' => now(),
                     ];
+                    $uuids[] = $rows[array_key_last($rows)]['uuid'];
                 }
 
                 if (count($rows) > 0) {
+                    $existing = AccountGroup::query()
+                        ->whereIn('uuid', $uuids)
+                        ->get()
+                        ->keyBy('uuid');
+
                     AccountGroup::query()->upsert(
                         $rows,
                         ['uuid'],
                         ['name', 'name_normalized', 'code', 'is_active', 'updated_at']
                     );
+
+                    $persisted = AccountGroup::query()
+                        ->whereIn('uuid', $uuids)
+                        ->get()
+                        ->keyBy('uuid');
+
+                    foreach ($persisted as $uuid => $group) {
+                        $before = $existing->get($uuid);
+
+                        if (! $before) {
+                            $group->logCustomAudit('created', null, $group->getAttributes(), "Created account group {$group->name}");
+                            continue;
+                        }
+
+                        $oldValues = $this->auditValues($before->getAttributes(), ['name', 'name_normalized', 'code', 'is_active']);
+                        $newValues = $this->auditValues($group->getAttributes(), ['name', 'name_normalized', 'code', 'is_active']);
+
+                        if ($oldValues !== $newValues) {
+                            $group->logCustomAudit('updated', $oldValues, $newValues, "Updated account group {$group->name}");
+                        }
+                    }
                 }
             });
 
@@ -108,6 +142,17 @@ class AccountGroupController extends Controller
             Log::error('Account groups bulk upsert failed', ['exception' => $e]);
             return back()->with('error', 'Unable to save account groups. Please try again.');
         }
+    }
+
+    private function auditValues(array $attributes, array $keys): array
+    {
+        $values = [];
+
+        foreach ($keys as $key) {
+            $values[$key] = $attributes[$key] ?? null;
+        }
+
+        return $values;
     }
 
     public function deactivate(Request $request, string $uuid): RedirectResponse

@@ -21,10 +21,12 @@ trait Auditable
             $oldValues = [];
             $newValues = [];
 
-            foreach ($model->getDirty() as $key => $value) {
+            foreach ($model->getChanges() as $key => $value) {
                 $oldValues[$key] = $model->getOriginal($key);
                 $newValues[$key] = $value;
             }
+
+            unset($oldValues['updated_at'], $newValues['updated_at']);
 
             if (! empty($newValues)) {
                 static::logAudit($model, 'updated', $oldValues, $newValues);

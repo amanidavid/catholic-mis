@@ -3,10 +3,13 @@
 namespace App\Models\Finance;
 
 use App\Models\BaseModel;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GeneralLedger extends BaseModel
 {
+    use Auditable;
+
     protected $table = 'general_ledgers';
 
     protected $fillable = [

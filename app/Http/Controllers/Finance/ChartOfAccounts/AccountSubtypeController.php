@@ -115,6 +115,7 @@ class AccountSubtypeController extends Controller
         try {
             DB::transaction(function () use ($validated, $type, $user): void {
                 $rows = [];
+                $uuids = [];
 
                 foreach (($validated['items'] ?? []) as $item) {
                     $uuid = isset($item['uuid']) ? trim((string) $item['uuid']) : '';
@@ -131,14 +132,41 @@ class AccountSubtypeController extends Controller
                         'updated_at' => now(),
                         'created_at' => now(),
                     ];
+                    $uuids[] = $rows[array_key_last($rows)]['uuid'];
                 }
 
                 if (count($rows) > 0) {
+                    $existing = AccountSubtype::query()
+                        ->whereIn('uuid', $uuids)
+                        ->get()
+                        ->keyBy('uuid');
+
                     AccountSubtype::query()->upsert(
                         $rows,
                         ['uuid'],
                         ['account_type_id', 'name', 'is_active', 'updated_at']
                     );
+
+                    $persisted = AccountSubtype::query()
+                        ->whereIn('uuid', $uuids)
+                        ->get()
+                        ->keyBy('uuid');
+
+                    foreach ($persisted as $uuid => $subtype) {
+                        $before = $existing->get($uuid);
+
+                        if (! $before) {
+                            $subtype->logCustomAudit('created', null, $subtype->getAttributes(), "Created account subtype {$subtype->name}");
+                            continue;
+                        }
+
+                        $oldValues = $this->auditValues($before->getAttributes(), ['account_type_id', 'name', 'is_active']);
+                        $newValues = $this->auditValues($subtype->getAttributes(), ['account_type_id', 'name', 'is_active']);
+
+                        if ($oldValues !== $newValues) {
+                            $subtype->logCustomAudit('updated', $oldValues, $newValues, "Updated account subtype {$subtype->name}");
+                        }
+                    }
                 }
             });
 
@@ -147,6 +175,17 @@ class AccountSubtypeController extends Controller
             Log::error('Account subtypes bulk upsert failed', ['exception' => $e]);
             return back()->with('error', 'Unable to save account subtypes. Please try again.');
         }
+    }
+
+    private function auditValues(array $attributes, array $keys): array
+    {
+        $values = [];
+
+        foreach ($keys as $key) {
+            $values[$key] = $attributes[$key] ?? null;
+        }
+
+        return $values;
     }
 
     public function deactivate(Request $request, string $uuid): RedirectResponse

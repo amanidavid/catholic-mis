@@ -133,6 +133,7 @@ class LedgerController extends Controller
         try {
             DB::transaction(function () use ($validated, $subtype, $currency, $user): void {
                 $rows = [];
+                $uuids = [];
 
                 foreach (($validated['items'] ?? []) as $item) {
                     $uuid = isset($item['uuid']) ? trim((string) $item['uuid']) : '';
@@ -162,14 +163,41 @@ class LedgerController extends Controller
                         'updated_at' => now(),
                         'created_at' => now(),
                     ];
+                    $uuids[] = $rows[array_key_last($rows)]['uuid'];
                 }
 
                 if (count($rows) > 0) {
+                    $existing = Ledger::query()
+                        ->whereIn('uuid', $uuids)
+                        ->get()
+                        ->keyBy('uuid');
+
                     Ledger::query()->upsert(
                         $rows,
                         ['uuid'],
                         ['account_subtype_id', 'name', 'account_code', 'currency_id', 'opening_balance', 'opening_balance_type', 'is_active', 'updated_at']
                     );
+
+                    $persisted = Ledger::query()
+                        ->whereIn('uuid', $uuids)
+                        ->get()
+                        ->keyBy('uuid');
+
+                    foreach ($persisted as $uuid => $ledger) {
+                        $before = $existing->get($uuid);
+
+                        if (! $before) {
+                            $ledger->logCustomAudit('created', null, $ledger->getAttributes(), "Created ledger {$ledger->name}");
+                            continue;
+                        }
+
+                        $oldValues = $this->auditValues($before->getAttributes(), ['account_subtype_id', 'name', 'account_code', 'currency_id', 'opening_balance', 'opening_balance_type', 'is_active']);
+                        $newValues = $this->auditValues($ledger->getAttributes(), ['account_subtype_id', 'name', 'account_code', 'currency_id', 'opening_balance', 'opening_balance_type', 'is_active']);
+
+                        if ($oldValues !== $newValues) {
+                            $ledger->logCustomAudit('updated', $oldValues, $newValues, "Updated ledger {$ledger->name}");
+                        }
+                    }
                 }
             });
 
@@ -178,6 +206,17 @@ class LedgerController extends Controller
             Log::error('Ledgers bulk upsert failed', ['exception' => $e]);
             return back()->with('error', 'Unable to save ledgers. Please try again.');
         }
+    }
+
+    private function auditValues(array $attributes, array $keys): array
+    {
+        $values = [];
+
+        foreach ($keys as $key) {
+            $values[$key] = $attributes[$key] ?? null;
+        }
+
+        return $values;
     }
 
     public function deactivate(Request $request, string $uuid): RedirectResponse

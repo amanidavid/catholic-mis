@@ -36,29 +36,39 @@ class PettyCashService
 
             $lines = $this->buildVoucherLines($voucher, $validated['lines'] ?? []);
             PettyCashVoucherLine::query()->insert($lines['rows']);
+            $voucher->logCustomAudit('voucher_lines_created', null, [
+                'voucher_uuid' => $voucher->uuid,
+                'line_count' => count($lines['rows']),
+                'lines' => $this->auditVoucherLinesPayload($lines['rows']),
+            ], "Created petty cash voucher lines for {$voucher->voucher_no}");
 
             $voucher->amount = $lines['total'];
             $voucher->save();
 
             if (! empty($attachments)) {
-                PettyCashVoucherAttachment::query()->insert(
-                    collect($attachments)
-                        ->map(fn ($attachment) => [
-                            'uuid' => (string) (method_exists(Str::class, 'uuid7') ? Str::uuid7() : Str::uuid()),
-                            'petty_cash_voucher_id' => (int) $voucher->id,
-                            'original_name' => (string) ($attachment['original_name'] ?? ''),
-                            'mime_type' => $attachment['mime_type'] ?? null,
-                            'size_bytes' => (int) ($attachment['size_bytes'] ?? 0),
-                            'storage_disk' => (string) ($attachment['storage_disk'] ?? 'local'),
-                            'storage_path' => (string) ($attachment['storage_path'] ?? ''),
-                            'sha256' => $attachment['sha256'] ?? null,
-                            'uploaded_by_user_id' => $userId,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ])
-                        ->values()
-                        ->all()
-                );
+                $attachmentRows = collect($attachments)
+                    ->map(fn ($attachment) => [
+                        'uuid' => (string) (method_exists(Str::class, 'uuid7') ? Str::uuid7() : Str::uuid()),
+                        'petty_cash_voucher_id' => (int) $voucher->id,
+                        'original_name' => (string) ($attachment['original_name'] ?? ''),
+                        'mime_type' => $attachment['mime_type'] ?? null,
+                        'size_bytes' => (int) ($attachment['size_bytes'] ?? 0),
+                        'storage_disk' => (string) ($attachment['storage_disk'] ?? 'local'),
+                        'storage_path' => (string) ($attachment['storage_path'] ?? ''),
+                        'sha256' => $attachment['sha256'] ?? null,
+                        'uploaded_by_user_id' => $userId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ])
+                    ->values()
+                    ->all();
+
+                PettyCashVoucherAttachment::query()->insert($attachmentRows);
+                $voucher->logCustomAudit('voucher_attachments_created', null, [
+                    'voucher_uuid' => $voucher->uuid,
+                    'attachment_count' => count($attachmentRows),
+                    'attachments' => $this->auditAttachmentPayload($attachmentRows),
+                ], "Uploaded petty cash voucher attachments for {$voucher->voucher_no}");
             }
 
             return $voucher->fresh(['fund', 'lines.expenseLedger', 'attachments']);
@@ -87,32 +97,59 @@ class PettyCashService
             $voucher->amount = self::normalizeAmount(0, 4);
             $voucher->save();
 
+            $existingLines = PettyCashVoucherLine::query()
+                ->where('petty_cash_voucher_id', $voucher->id)
+                ->select(['uuid', 'expense_ledger_id', 'description', 'amount'])
+                ->orderBy('id')
+                ->get()
+                ->map(fn ($line) => [
+                    'uuid' => (string) $line->uuid,
+                    'expense_ledger_id' => (int) $line->expense_ledger_id,
+                    'description' => $line->description,
+                    'amount' => self::normalizeAmount($line->amount, 4),
+                ])
+                ->all();
+
             PettyCashVoucherLine::query()->where('petty_cash_voucher_id', $voucher->id)->delete();
             $lines = $this->buildVoucherLines($voucher, $validated['lines'] ?? []);
             PettyCashVoucherLine::query()->insert($lines['rows']);
+            $voucher->logCustomAudit('voucher_lines_replaced', [
+                'voucher_uuid' => $voucher->uuid,
+                'line_count' => count($existingLines),
+                'lines' => $existingLines,
+            ], [
+                'voucher_uuid' => $voucher->uuid,
+                'line_count' => count($lines['rows']),
+                'lines' => $this->auditVoucherLinesPayload($lines['rows']),
+            ], "Replaced petty cash voucher lines for {$voucher->voucher_no}");
 
             $voucher->amount = $lines['total'];
             $voucher->save();
 
             if (! empty($attachments)) {
-                PettyCashVoucherAttachment::query()->insert(
-                    collect($attachments)
-                        ->map(fn ($attachment) => [
-                            'uuid' => (string) (method_exists(Str::class, 'uuid7') ? Str::uuid7() : Str::uuid()),
-                            'petty_cash_voucher_id' => (int) $voucher->id,
-                            'original_name' => (string) ($attachment['original_name'] ?? ''),
-                            'mime_type' => $attachment['mime_type'] ?? null,
-                            'size_bytes' => (int) ($attachment['size_bytes'] ?? 0),
-                            'storage_disk' => (string) ($attachment['storage_disk'] ?? 'local'),
-                            'storage_path' => (string) ($attachment['storage_path'] ?? ''),
-                            'sha256' => $attachment['sha256'] ?? null,
-                            'uploaded_by_user_id' => (int) ($voucher->created_by ?? 0),
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ])
-                        ->values()
-                        ->all()
-                );
+                $attachmentRows = collect($attachments)
+                    ->map(fn ($attachment) => [
+                        'uuid' => (string) (method_exists(Str::class, 'uuid7') ? Str::uuid7() : Str::uuid()),
+                        'petty_cash_voucher_id' => (int) $voucher->id,
+                        'original_name' => (string) ($attachment['original_name'] ?? ''),
+                        'mime_type' => $attachment['mime_type'] ?? null,
+                        'size_bytes' => (int) ($attachment['size_bytes'] ?? 0),
+                        'storage_disk' => (string) ($attachment['storage_disk'] ?? 'local'),
+                        'storage_path' => (string) ($attachment['storage_path'] ?? ''),
+                        'sha256' => $attachment['sha256'] ?? null,
+                        'uploaded_by_user_id' => (int) ($voucher->created_by ?? 0),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ])
+                    ->values()
+                    ->all();
+
+                PettyCashVoucherAttachment::query()->insert($attachmentRows);
+                $voucher->logCustomAudit('voucher_attachments_created', null, [
+                    'voucher_uuid' => $voucher->uuid,
+                    'attachment_count' => count($attachmentRows),
+                    'attachments' => $this->auditAttachmentPayload($attachmentRows),
+                ], "Uploaded petty cash voucher attachments for {$voucher->voucher_no}");
             }
 
             return $voucher->fresh(['fund', 'lines.expenseLedger', 'attachments']);
@@ -137,6 +174,12 @@ class PettyCashService
             $voucher->submitted_at = now();
             $voucher->submitted_by = $userId;
             $voucher->save();
+            $voucher->logCustomAudit('voucher_submitted', null, [
+                'voucher_uuid' => $voucher->uuid,
+                'status' => $voucher->status,
+                'submitted_by' => $userId,
+                'submitted_at' => optional($voucher->submitted_at)->format('Y-m-d H:i:s'),
+            ], "Submitted petty cash voucher {$voucher->voucher_no}");
         }, 3);
     }
 
@@ -153,6 +196,12 @@ class PettyCashService
             $voucher->approved_at = now();
             $voucher->approved_by = $userId;
             $voucher->save();
+            $voucher->logCustomAudit('voucher_approved', null, [
+                'voucher_uuid' => $voucher->uuid,
+                'status' => $voucher->status,
+                'approved_by' => $userId,
+                'approved_at' => optional($voucher->approved_at)->format('Y-m-d H:i:s'),
+            ], "Approved petty cash voucher {$voucher->voucher_no}");
         }, 3);
     }
 
@@ -172,6 +221,12 @@ class PettyCashService
             $voucher->approved_at = null;
             $voucher->approved_by = null;
             $voucher->save();
+            $voucher->logCustomAudit('voucher_rejected', null, [
+                'voucher_uuid' => $voucher->uuid,
+                'status' => $voucher->status,
+                'rejected_by' => $userId,
+                'reason' => $voucher->rejection_reason,
+            ], "Rejected petty cash voucher {$voucher->voucher_no}");
         }, 3);
     }
 
@@ -234,6 +289,11 @@ class PettyCashService
             ];
 
             JournalLine::query()->insert($rows);
+            $journal->logCustomAudit('journal_lines_created', null, [
+                'journal_uuid' => $journal->uuid,
+                'line_count' => count($rows),
+                'lines' => $this->auditJournalLinesPayload($rows),
+            ], "Created journal lines for {$journal->journal_no}");
             $journalPostingService->post($journal, $userId);
 
             $voucher->journal_id = (int) $journal->id;
@@ -241,6 +301,12 @@ class PettyCashService
             $voucher->posted_at = now();
             $voucher->posted_by = $userId;
             $voucher->save();
+            $voucher->logCustomAudit('voucher_posted', null, [
+                'voucher_uuid' => $voucher->uuid,
+                'journal_uuid' => $journal->uuid,
+                'journal_no' => $journal->journal_no,
+                'posted_by' => $userId,
+            ], "Posted petty cash voucher {$voucher->voucher_no}");
         }, 3);
     }
 
@@ -258,6 +324,12 @@ class PettyCashService
             $voucher->cancelled_by = $userId;
             $voucher->cancellation_reason = $reason ?: 'Cancelled by user.';
             $voucher->save();
+            $voucher->logCustomAudit('voucher_cancelled', null, [
+                'voucher_uuid' => $voucher->uuid,
+                'status' => $voucher->status,
+                'cancelled_by' => $userId,
+                'reason' => $voucher->cancellation_reason,
+            ], "Cancelled petty cash voucher {$voucher->voucher_no}");
         }, 3);
     }
 
@@ -275,6 +347,11 @@ class PettyCashService
             $item->status = 'draft';
             $item->created_by = $userId;
             $item->save();
+            $item->logCustomAudit('replenishment_created', null, [
+                'replenishment_uuid' => $item->uuid,
+                'replenishment_no' => $item->replenishment_no,
+                'amount' => self::normalizeAmount($item->amount, 4),
+            ], "Created petty cash replenishment {$item->replenishment_no}");
 
             return $item->fresh(['fund', 'sourceLedger']);
         }, 3);
@@ -293,6 +370,11 @@ class PettyCashService
             $item->submitted_at = now();
             $item->submitted_by = $userId;
             $item->save();
+            $item->logCustomAudit('replenishment_submitted', null, [
+                'replenishment_uuid' => $item->uuid,
+                'status' => $item->status,
+                'submitted_by' => $userId,
+            ], "Submitted petty cash replenishment {$item->replenishment_no}");
         }, 3);
     }
 
@@ -309,6 +391,11 @@ class PettyCashService
             $item->approved_at = now();
             $item->approved_by = $userId;
             $item->save();
+            $item->logCustomAudit('replenishment_approved', null, [
+                'replenishment_uuid' => $item->uuid,
+                'status' => $item->status,
+                'approved_by' => $userId,
+            ], "Approved petty cash replenishment {$item->replenishment_no}");
         }, 3);
     }
 
@@ -328,6 +415,12 @@ class PettyCashService
             $item->approved_at = null;
             $item->approved_by = null;
             $item->save();
+            $item->logCustomAudit('replenishment_rejected', null, [
+                'replenishment_uuid' => $item->uuid,
+                'status' => $item->status,
+                'rejected_by' => $userId,
+                'reason' => $item->rejection_reason,
+            ], "Rejected petty cash replenishment {$item->replenishment_no}");
         }, 3);
     }
 
@@ -392,6 +485,11 @@ class PettyCashService
                     'updated_at' => now(),
                 ],
             ]);
+            $journal->logCustomAudit('journal_lines_created', null, [
+                'journal_uuid' => $journal->uuid,
+                'line_count' => 2,
+                'description' => $journal->description,
+            ], "Created journal lines for {$journal->journal_no}");
 
             $journalPostingService->post($journal, $userId);
 
@@ -400,6 +498,12 @@ class PettyCashService
             $item->posted_at = now();
             $item->posted_by = $userId;
             $item->save();
+            $item->logCustomAudit('replenishment_posted', null, [
+                'replenishment_uuid' => $item->uuid,
+                'journal_uuid' => $journal->uuid,
+                'journal_no' => $journal->journal_no,
+                'posted_by' => $userId,
+            ], "Posted petty cash replenishment {$item->replenishment_no}");
         }, 3);
     }
 
@@ -417,6 +521,12 @@ class PettyCashService
             $item->cancelled_by = $userId;
             $item->cancellation_reason = $reason ?: 'Cancelled by user.';
             $item->save();
+            $item->logCustomAudit('replenishment_cancelled', null, [
+                'replenishment_uuid' => $item->uuid,
+                'status' => $item->status,
+                'cancelled_by' => $userId,
+                'reason' => $item->cancellation_reason,
+            ], "Cancelled petty cash replenishment {$item->replenishment_no}");
         }, 3);
     }
 
@@ -509,5 +619,37 @@ class PettyCashService
             ->value('balance');
 
         return $openingSigned + $postedDelta;
+    }
+
+    private function auditVoucherLinesPayload(array $rows): array
+    {
+        return array_map(fn (array $row) => [
+            'uuid' => $row['uuid'] ?? null,
+            'expense_ledger_id' => $row['expense_ledger_id'] ?? null,
+            'description' => $row['description'] ?? null,
+            'amount' => isset($row['amount']) ? self::normalizeAmount($row['amount'], 4) : null,
+        ], $rows);
+    }
+
+    private function auditAttachmentPayload(array $rows): array
+    {
+        return array_map(fn (array $row) => [
+            'uuid' => $row['uuid'] ?? null,
+            'original_name' => $row['original_name'] ?? null,
+            'mime_type' => $row['mime_type'] ?? null,
+            'size_bytes' => $row['size_bytes'] ?? null,
+            'storage_path' => $row['storage_path'] ?? null,
+        ], $rows);
+    }
+
+    private function auditJournalLinesPayload(array $rows): array
+    {
+        return array_map(fn (array $row) => [
+            'uuid' => $row['uuid'] ?? null,
+            'ledger_id' => $row['ledger_id'] ?? null,
+            'description' => $row['description'] ?? null,
+            'debit_amount' => isset($row['debit_amount']) ? self::normalizeAmount($row['debit_amount'], 4) : null,
+            'credit_amount' => isset($row['credit_amount']) ? self::normalizeAmount($row['credit_amount'], 4) : null,
+        ], $rows);
     }
 }

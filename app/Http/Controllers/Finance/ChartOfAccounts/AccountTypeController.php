@@ -104,6 +104,7 @@ class AccountTypeController extends Controller
         try {
             DB::transaction(function () use ($validated, $group, $user): void {
                 $rows = [];
+                $uuids = [];
 
                 foreach (($validated['items'] ?? []) as $item) {
                     $uuid = isset($item['uuid']) ? trim((string) $item['uuid']) : '';
@@ -120,14 +121,41 @@ class AccountTypeController extends Controller
                         'updated_at' => now(),
                         'created_at' => now(),
                     ];
+                    $uuids[] = $rows[array_key_last($rows)]['uuid'];
                 }
 
                 if (count($rows) > 0) {
+                    $existing = AccountType::query()
+                        ->whereIn('uuid', $uuids)
+                        ->get()
+                        ->keyBy('uuid');
+
                     AccountType::query()->upsert(
                         $rows,
                         ['uuid'],
                         ['account_group_id', 'name', 'is_active', 'updated_at']
                     );
+
+                    $persisted = AccountType::query()
+                        ->whereIn('uuid', $uuids)
+                        ->get()
+                        ->keyBy('uuid');
+
+                    foreach ($persisted as $uuid => $type) {
+                        $before = $existing->get($uuid);
+
+                        if (! $before) {
+                            $type->logCustomAudit('created', null, $type->getAttributes(), "Created account type {$type->name}");
+                            continue;
+                        }
+
+                        $oldValues = $this->auditValues($before->getAttributes(), ['account_group_id', 'name', 'is_active']);
+                        $newValues = $this->auditValues($type->getAttributes(), ['account_group_id', 'name', 'is_active']);
+
+                        if ($oldValues !== $newValues) {
+                            $type->logCustomAudit('updated', $oldValues, $newValues, "Updated account type {$type->name}");
+                        }
+                    }
                 }
             });
 
@@ -136,6 +164,17 @@ class AccountTypeController extends Controller
             Log::error('Account types bulk upsert failed', ['exception' => $e]);
             return back()->with('error', 'Unable to save account types. Please try again.');
         }
+    }
+
+    private function auditValues(array $attributes, array $keys): array
+    {
+        $values = [];
+
+        foreach ($keys as $key) {
+            $values[$key] = $attributes[$key] ?? null;
+        }
+
+        return $values;
     }
 
     public function deactivate(Request $request, string $uuid): RedirectResponse

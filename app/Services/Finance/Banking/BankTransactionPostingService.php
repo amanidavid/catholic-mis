@@ -85,7 +85,7 @@ class BankTransactionPostingService
             $journal->created_by = $userId;
             $journal->save();
 
-            JournalLine::query()->insert([
+            $journalLineRows = [
                 [
                     'uuid' => method_exists(Str::class, 'uuid7') ? (string) Str::uuid7() : (string) Str::uuid(),
                     'journal_id' => (int) $journal->id,
@@ -106,7 +106,15 @@ class BankTransactionPostingService
                     'created_at' => now(),
                     'updated_at' => now(),
                 ],
-            ]);
+            ];
+
+            JournalLine::query()->insert($journalLineRows);
+            $journal->logCustomAudit('journal_lines_created', null, [
+                'journal_uuid' => $journal->uuid,
+                'journal_no' => $journal->journal_no,
+                'line_count' => count($journalLineRows),
+                'lines' => $this->auditJournalLinesPayload($journalLineRows),
+            ], "Created journal lines for {$journal->journal_no}");
 
             $this->journalPostingService->post($journal, $userId);
 
@@ -125,9 +133,30 @@ class BankTransactionPostingService
             $item->is_manual_override = $isManualOverride;
             $item->created_by = $userId;
             $item->save();
+            $item->logCustomAudit('bank_transaction_posted', null, [
+                'bank_account_id' => (int) $bankAccount->id,
+                'bank_account_transaction_uuid' => $item->uuid,
+                'journal_uuid' => $journal->uuid,
+                'journal_no' => $journal->journal_no,
+                'amount' => $amount,
+                'direction' => $direction,
+                'transaction_type' => (string) $validated['transaction_type'],
+                'is_manual_override' => $isManualOverride,
+            ], 'Created and posted bank account transaction');
 
             return $item;
         }, 3);
+    }
+
+    private function auditJournalLinesPayload(array $rows): array
+    {
+        return array_map(fn (array $row) => [
+            'uuid' => $row['uuid'] ?? null,
+            'ledger_id' => $row['ledger_id'] ?? null,
+            'description' => $row['description'] ?? null,
+            'debit_amount' => $row['debit_amount'] ?? null,
+            'credit_amount' => $row['credit_amount'] ?? null,
+        ], $rows);
     }
 
     private function resolveLedgerId(string $uuid): ?int

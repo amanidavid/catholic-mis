@@ -4,10 +4,13 @@ namespace App\Models\Finance;
 
 use App\Models\BaseModel;
 use App\Models\User;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Ledger extends BaseModel
 {
+    use Auditable;
+
     protected $table = 'ledgers';
 
     protected $fillable = [

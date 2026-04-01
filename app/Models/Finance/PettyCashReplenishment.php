@@ -4,10 +4,13 @@ namespace App\Models\Finance;
 
 use App\Models\BaseModel;
 use App\Models\User;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PettyCashReplenishment extends BaseModel
 {
+    use Auditable;
+
     protected $table = 'petty_cash_replenishments';
 
     protected $fillable = [

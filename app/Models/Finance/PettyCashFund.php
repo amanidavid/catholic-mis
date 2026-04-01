@@ -4,11 +4,14 @@ namespace App\Models\Finance;
 
 use App\Models\BaseModel;
 use App\Models\User;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PettyCashFund extends BaseModel
 {
+    use Auditable;
+
     protected $table = 'petty_cash_funds';
 
     protected $fillable = [

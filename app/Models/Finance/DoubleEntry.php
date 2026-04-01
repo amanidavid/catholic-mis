@@ -4,10 +4,13 @@ namespace App\Models\Finance;
 
 use App\Models\BaseModel;
 use App\Models\User;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DoubleEntry extends BaseModel
 {
+    use Auditable;
+
     protected $table = 'double_entries';
 
     protected $fillable = [
