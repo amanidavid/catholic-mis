@@ -8,6 +8,7 @@ export default function SearchableZoneSelect({
     label,
     value,
     onChange,
+    outstationUuid = '',
     className,
     disabled = false,
     error,
@@ -32,6 +33,7 @@ export default function SearchableZoneSelect({
             const res = await axios.get(route('zones.lookup'), {
                 params: {
                     q: typeof nextQuery === 'string' ? nextQuery.trim() : '',
+                    outstation_uuid: outstationUuid || undefined,
                 },
             });
 
@@ -56,7 +58,7 @@ export default function SearchableZoneSelect({
         }, 250);
 
         return () => clearTimeout(t);
-    }, [query, disabled]);
+    }, [query, disabled, outstationUuid]);
 
     useEffect(() => {
         if (disabled) {
@@ -149,9 +151,12 @@ export default function SearchableZoneSelect({
                                                 `cursor-pointer px-3 py-2 ${active ? 'bg-indigo-50 text-indigo-900' : 'text-slate-700'}`
                                             }
                                         >
-                                            <div className="font-semibold">{opt.name}</div>
-                                        </Combobox.Option>
-                                    ))
+                                        <div className="font-semibold">{opt.name}</div>
+                                        {opt.outstation_name && (
+                                            <div className="text-xs text-slate-500">{opt.outstation_name}</div>
+                                        )}
+                                    </Combobox.Option>
+                                ))
                                 )}
                             </Combobox.Options>
                         )}

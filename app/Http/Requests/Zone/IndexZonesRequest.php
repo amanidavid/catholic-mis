@@ -15,6 +15,7 @@ class IndexZonesRequest extends FormRequest
     {
         return [
             'q' => ['bail', 'nullable', 'string', 'max:100'],
+            'outstation_uuid' => ['bail', 'nullable', 'uuid'],
             'per_page' => ['bail', 'nullable', 'integer', 'min:5', 'max:100'],
         ];
     }
@@ -25,6 +26,7 @@ class IndexZonesRequest extends FormRequest
 
         $this->merge([
             'q' => is_string($q) ? trim(strip_tags($q)) : $q,
+            'outstation_uuid' => is_string($this->outstation_uuid) ? trim(strip_tags($this->outstation_uuid)) : $this->outstation_uuid,
         ]);
     }
 }

@@ -6,11 +6,14 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import SearchableFamilySelect from '@/Components/SearchableFamilySelect';
 import SearchableFamilyRelationshipSelect from '@/Components/SearchableFamilyRelationshipSelect';
 import SearchableJumuiyaSelect from '@/Components/SearchableJumuiyaSelect';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect, useMemo } from 'react';
 
 export default function MembersCreate({ defaults }) {
+    const defaultOutstation = defaults?.outstation_uuid ?? '';
+    const defaultOutstationName = defaults?.outstation_name ?? '';
     const defaultZone = defaults?.zone_uuid ?? '';
     const defaultZoneName = defaults?.zone_name ?? '';
     const defaultJumuiya = defaults?.jumuiya_uuid ?? '';
@@ -27,6 +30,7 @@ export default function MembersCreate({ defaults }) {
         errors,
         reset,
     } = useForm({
+        outstation_uuid: defaultOutstation,
         zone_uuid: defaultZone,
         jumuiya_uuid: defaultJumuiya,
         family_uuid: defaultFamily,
@@ -117,6 +121,22 @@ export default function MembersCreate({ defaults }) {
                         <div className="text-sm font-semibold text-slate-700">Family & placement</div>
                         <div className="mt-3 grid gap-4 md:grid-cols-2">
                             {!isScoped && (
+                                <SearchableOutstationSelect
+                                    id="member_outstation_uuid"
+                                    label="Outstation"
+                                    value={data.outstation_uuid}
+                                    onChange={(uuid) => {
+                                        setData('outstation_uuid', uuid);
+                                        setData('zone_uuid', '');
+                                        setData('jumuiya_uuid', '');
+                                        setData('family_uuid', '');
+                                        setData('is_head_of_family', false);
+                                    }}
+                                    error={friendlyErrors.outstation_uuid}
+                                />
+                            )}
+
+                            {!isScoped && (
                                 <SearchableZoneSelect
                                     id="member_zone_uuid"
                                     label="Zone"
@@ -127,8 +147,17 @@ export default function MembersCreate({ defaults }) {
                                         setData('family_uuid', '');
                                         setData('is_head_of_family', false);
                                     }}
+                                    outstationUuid={data.outstation_uuid}
+                                    disabled={!data.outstation_uuid}
                                     error={friendlyErrors.zone_uuid}
                                 />
+                            )}
+
+                            {isScoped && (
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Outstation</div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-900 break-words">{defaultOutstationName || '-'}</div>
+                                </div>
                             )}
 
                             {isScoped && (
@@ -150,7 +179,7 @@ export default function MembersCreate({ defaults }) {
                                     }}
                                     zoneUuid={data.zone_uuid}
                                     disabled={!data.zone_uuid}
-                                    error={errors.jumuiya_uuid}
+                                    error={friendlyErrors.jumuiya_uuid}
                                 />
                             )}
 

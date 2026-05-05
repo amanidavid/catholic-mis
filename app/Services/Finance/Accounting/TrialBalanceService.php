@@ -13,9 +13,9 @@ class TrialBalanceService
     /**
      * @return array{rows: CursorPaginator, totals: array{debit:string, credit:string}}
      */
-    public function getReport(string $asAt, int $perPage = 50): array
+    public function getReport(string $dateFrom, string $dateTo, int $perPage = 50): array
     {
-        $baseQuery = $this->baseQuery($asAt);
+        $baseQuery = $this->baseQuery($dateFrom, $dateTo);
 
         $rows = (clone $baseQuery)
             ->orderBy('ledger_name')
@@ -40,7 +40,24 @@ class TrialBalanceService
         ];
     }
 
-    private function baseQuery(string $asAt)
+    public function getExportRows(string $dateFrom, string $dateTo): array
+    {
+        return (clone $this->baseQuery($dateFrom, $dateTo))
+            ->orderBy('ledger_name')
+            ->orderBy('ledger_id')
+            ->get()
+            ->map(fn ($row) => [
+                (string) ($row->ledger_name ?? ''),
+                (string) ($row->natural_class ?? ''),
+                (string) ($row->natural_balance_side ?? ''),
+                self::normalizeAmount($row->debit_balance ?? 0, 4),
+                self::normalizeAmount($row->credit_balance ?? 0, 4),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function baseQuery(string $dateFrom, string $dateTo)
     {
         $ledgerSums = DB::table('general_ledgers')
             ->selectRaw('
@@ -48,7 +65,7 @@ class TrialBalanceService
                 COALESCE(SUM(debit_amount), 0) as total_debit_posted,
                 COALESCE(SUM(credit_amount), 0) as total_credit_posted
             ')
-            ->where('transaction_date', '<=', $asAt)
+            ->whereBetween('transaction_date', [$dateFrom, $dateTo])
             ->groupBy('ledger_id');
 
         $trialBalanceBase = DB::table('ledgers')

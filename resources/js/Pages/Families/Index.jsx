@@ -7,6 +7,7 @@ import ModalHeader from '@/Components/ModalHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import SearchableJumuiyaSelect from '@/Components/SearchableJumuiyaSelect';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import Spinner from '@/Components/Spinner';
 import { toTitleCase } from '@/lib/formatters';
@@ -26,6 +27,7 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
     const canDelete = useMemo(() => Array.isArray(permissions) && permissions.includes('families.delete'), [permissions]);
 
     const [q, setQ] = useState(filters?.q ?? '');
+    const [outstationUuid, setOutstationUuid] = useState(filters?.outstation_uuid ?? '');
     const [zoneUuid, setZoneUuid] = useState(filters?.zone_uuid ?? '');
     const [jumuiyaUuid, setJumuiyaUuid] = useState(filters?.jumuiya_uuid ?? '');
 
@@ -35,6 +37,7 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
             route('families.index'),
             {
                 q: q || undefined,
+                outstation_uuid: outstationUuid || undefined,
                 zone_uuid: zoneUuid || undefined,
                 jumuiya_uuid: jumuiyaUuid || undefined,
             },
@@ -44,6 +47,7 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
 
     const clearSearch = () => {
         setQ('');
+        setOutstationUuid('');
         setZoneUuid('');
         setJumuiyaUuid('');
         router.get(route('families.index'), {}, { preserveState: true, replace: true });
@@ -67,6 +71,7 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
         clearErrors,
         reset,
     } = useForm({
+        outstation_uuid: '',
         zone_uuid: '',
         jumuiya_uuid: '',
         family_name: '',
@@ -83,6 +88,7 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
 
         if (editing) {
             setData({
+                outstation_uuid: editing?.outstation_uuid ?? '',
                 zone_uuid: editing?.zone_uuid ?? '',
                 jumuiya_uuid: editing?.jumuiya_uuid ?? '',
                 family_name: editing?.family_name ?? '',
@@ -96,7 +102,8 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
 
         reset();
         setData({
-            zone_uuid: '',
+            outstation_uuid: outstationUuid || '',
+            zone_uuid: zoneUuid || '',
             jumuiya_uuid: isScopedToSingleJumuiya ? (jumuiyas?.[0]?.uuid ?? '') : (jumuiyaUuid || ''),
             family_name: '',
             family_code: '',
@@ -159,13 +166,24 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
 
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
                     <form onSubmit={applySearch} className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="grid w-full gap-3 sm:grid-cols-3 lg:max-w-3xl">
+                        <div className="grid w-full gap-3 sm:grid-cols-4 lg:max-w-4xl">
                             <FloatingInput
                                 id="families_q"
                                 label="Search (name or code)"
                                 value={q}
                                 onChange={(e) => setQ(e.target.value)}
                                 hint=""
+                            />
+
+                            <SearchableOutstationSelect
+                                id="families_outstation_filter"
+                                label="Outstation"
+                                value={outstationUuid}
+                                onChange={(uuid) => {
+                                    setOutstationUuid(uuid);
+                                    setZoneUuid('');
+                                    setJumuiyaUuid('');
+                                }}
                             />
 
                             <SearchableZoneSelect
@@ -176,6 +194,8 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
                                     setZoneUuid(uuid);
                                     setJumuiyaUuid('');
                                 }}
+                                outstationUuid={outstationUuid}
+                                disabled={!outstationUuid}
                             />
 
                             <SearchableJumuiyaSelect
@@ -279,6 +299,19 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
                                 </FloatingSelect>
                             ) : (
                                 <>
+                                    <SearchableOutstationSelect
+                                        id="family_outstation_uuid"
+                                        label="Outstation"
+                                        value={data.outstation_uuid}
+                                        onChange={(uuid) => {
+                                            setData('outstation_uuid', uuid);
+                                            setData('zone_uuid', '');
+                                            setData('jumuiya_uuid', '');
+                                        }}
+                                        error={errors.outstation_uuid}
+                                        className="md:col-span-2"
+                                    />
+
                                     <SearchableZoneSelect
                                         id="family_zone_uuid"
                                         label="Zone"
@@ -287,6 +320,8 @@ export default function FamiliesIndex({ families, filters, jumuiyas }) {
                                             setData('zone_uuid', uuid);
                                             setData('jumuiya_uuid', '');
                                         }}
+                                        outstationUuid={data.outstation_uuid}
+                                        disabled={!data.outstation_uuid}
                                         error={errors.zone_uuid}
                                         className="md:col-span-2"
                                     />

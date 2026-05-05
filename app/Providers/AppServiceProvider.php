@@ -12,6 +12,7 @@ use App\Models\People\Member;
 use App\Models\AuditLog;
 use App\Models\Attendance\JumuiyaWeeklyMeeting;
 use App\Models\Structure\Jumuiya;
+use App\Models\Structure\Outstation;
 use App\Models\Structure\Parish;
 use App\Models\Structure\Zone;
 use App\Models\ParishStaff;
@@ -54,6 +55,7 @@ use App\Policies\AuditLogPolicy;
 use App\Policies\ParishStaffPolicy;
 use App\Policies\ParishStaffAssignmentRolePolicy;
 use App\Policies\JumuiyaWeeklyMeetingPolicy;
+use App\Policies\OutstationPolicy;
 use App\Policies\SetupPolicy;
 use App\Policies\ZonePolicy;
 use Illuminate\Support\Facades\Gate;
@@ -78,6 +80,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Diocese::class, SetupPolicy::class);
         Gate::policy(Parish::class, SetupPolicy::class);
+        Gate::policy(Outstation::class, OutstationPolicy::class);
         Gate::policy(Zone::class, ZonePolicy::class);
         Gate::policy(Jumuiya::class, JumuiyaPolicy::class);
         Gate::policy(JumuiyaLeadership::class, JumuiyaLeadershipPolicy::class);

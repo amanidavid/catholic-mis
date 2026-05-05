@@ -130,6 +130,7 @@ export default function MembersByJumuiya({ rows, filters, pagination }) {
                     <table className="mis-table w-full">
                         <thead>
                             <tr>
+                                <th>Outstation</th>
                                 <th>Zone</th>
                                 <th>Christian Community</th>
                                 <th className="text-right">Families</th>
@@ -139,13 +140,14 @@ export default function MembersByJumuiya({ rows, filters, pagination }) {
                         <tbody>
                             {(rows ?? []).length === 0 ? (
                                 <tr>
-                                    <td className="px-3 py-4 text-sm text-slate-500" colSpan={4}>
+                                    <td className="px-3 py-4 text-sm text-slate-500" colSpan={5}>
                                         No results.
                                     </td>
                                 </tr>
                             ) : (
                                 (rows ?? []).map((r) => (
                                     <tr key={r.jumuiya_uuid}>
+                                        <td>{r.outstation_name}</td>
                                         <td>{r.zone_name}</td>
                                         <td>{r.jumuiya_name}</td>
                                         <td className="text-right">{r.families}</td>

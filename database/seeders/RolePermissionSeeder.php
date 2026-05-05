@@ -19,6 +19,10 @@ class RolePermissionSeeder extends Seeder
         $guard = 'web';
 
         $permissions = [
+            'outstations.view',
+            'outstations.create',
+            'outstations.update',
+            'outstations.delete',
             'zones.view',
             'zones.create',
             'zones.update',

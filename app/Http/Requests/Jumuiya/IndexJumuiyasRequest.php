@@ -15,6 +15,7 @@ class IndexJumuiyasRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:120'],
+            'outstation_uuid' => ['nullable', 'uuid'],
             'zone_uuid' => ['nullable', 'uuid'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
@@ -24,6 +25,7 @@ class IndexJumuiyasRequest extends FormRequest
     {
         $this->merge([
             'q' => is_string($this->q) ? trim($this->q) : $this->q,
+            'outstation_uuid' => is_string($this->outstation_uuid) ? trim($this->outstation_uuid) : $this->outstation_uuid,
         ]);
     }
 }

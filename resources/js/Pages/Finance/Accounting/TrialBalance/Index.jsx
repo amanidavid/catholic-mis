@@ -7,17 +7,21 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 export default function TrialBalanceIndex({ rows, totals, filters }) {
-    const [asAt, setAsAt] = useState(filters?.as_at ?? '');
+    const [dateFrom, setDateFrom] = useState(filters?.date_from ?? '');
+    const [dateTo, setDateTo] = useState(filters?.date_to ?? '');
     const [perPage, setPerPage] = useState(String(filters?.per_page ?? 50));
 
     const tableRows = useMemo(() => rows?.data ?? [], [rows?.data]);
+    const hasInvalidDateRange = Boolean(dateFrom && dateTo && dateFrom > dateTo);
 
     const apply = (e) => {
         e.preventDefault();
+        if (hasInvalidDateRange) return;
         router.get(
             route('finance.trial-balance.index'),
             {
-                as_at: asAt || undefined,
+                date_from: dateFrom || undefined,
+                date_to: dateTo || undefined,
                 per_page: perPage || undefined,
             },
             { preserveState: true, replace: true },
@@ -26,13 +30,23 @@ export default function TrialBalanceIndex({ rows, totals, filters }) {
 
     const clear = () => {
         const today = new Date().toISOString().slice(0, 10);
-        setAsAt(today);
+        const monthStart = `${today.slice(0, 8)}01`;
+        setDateFrom(monthStart);
+        setDateTo(today);
         setPerPage('50');
         router.get(
             route('finance.trial-balance.index'),
-            { as_at: today, per_page: 50 },
+            { date_from: monthStart, date_to: today, per_page: 50 },
             { preserveState: true, replace: true },
         );
+    };
+
+    const exportExcel = () => {
+        if (hasInvalidDateRange) return;
+        window.location.assign(route('finance.trial-balance.export', {
+            date_from: dateFrom || undefined,
+            date_to: dateTo || undefined,
+        }));
     };
 
     const visitPage = (url) => {
@@ -57,44 +71,73 @@ export default function TrialBalanceIndex({ rows, totals, filters }) {
                         >
                             General Ledger
                         </Link>
+                        <button
+                            type="button"
+                            onClick={exportExcel}
+                            className="inline-flex h-11 items-center rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700"
+                        >
+                            Export Excel
+                        </button>
                     </div>
                 </div>
 
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
-                    <form onSubmit={apply} className="grid gap-3 lg:grid-cols-12 lg:items-end">
-                        <FloatingInput
-                            id="trial_balance_as_at"
-                            label="As at date"
-                            type="date"
-                            value={asAt}
-                            onChange={(e) => setAsAt(e.target.value)}
-                            className="lg:col-span-4"
-                        />
-                        <FloatingSelect
-                            id="trial_balance_per_page"
-                            label="Rows"
-                            value={perPage}
-                            onChange={(e) => setPerPage(e.target.value)}
-                            className="lg:col-span-3"
-                        >
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </FloatingSelect>
-                        <div className="flex items-center gap-2 lg:col-span-5 lg:justify-end">
-                            <button type="submit" className="h-11 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">
-                                Load Report
-                            </button>
-                            <SecondaryButton type="button" onClick={clear} className="h-11 rounded-lg text-sm font-semibold normal-case tracking-normal">
-                                Reset
-                            </SecondaryButton>
+                    <form onSubmit={apply} className="space-y-4">
+                        <div className="grid gap-3 xl:grid-cols-12 xl:items-end">
+                            <FloatingInput
+                                id="trial_balance_date_from"
+                                label="Date from"
+                                type="date"
+                                value={dateFrom}
+                                max={dateTo || undefined}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                                className="xl:col-span-4"
+                            />
+                            <FloatingInput
+                                id="trial_balance_date_to"
+                                label="Date to"
+                                type="date"
+                                value={dateTo}
+                                min={dateFrom || undefined}
+                                onChange={(e) => setDateTo(e.target.value)}
+                                className="xl:col-span-4"
+                            />
+                            <FloatingSelect
+                                id="trial_balance_per_page"
+                                label="Rows"
+                                value={perPage}
+                                onChange={(e) => setPerPage(e.target.value)}
+                                className="xl:col-span-4"
+                            >
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </FloatingSelect>
+                        </div>
+
+                        <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-h-[1.25rem] text-sm font-medium text-red-600">
+                                {hasInvalidDateRange ? 'Date from cannot be later than Date to.' : ''}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                                <button
+                                    type="submit"
+                                    disabled={hasInvalidDateRange}
+                                    className={`inline-flex h-11 items-center rounded-lg px-4 text-sm font-semibold text-white ${hasInvalidDateRange ? 'cursor-not-allowed bg-slate-300' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                >
+                                    Load Report
+                                </button>
+                                <SecondaryButton type="button" onClick={clear} className="h-11 rounded-lg text-sm font-semibold normal-case tracking-normal">
+                                    Reset
+                                </SecondaryButton>
+                            </div>
                         </div>
                     </form>
 
                     <div className="mt-6 grid gap-4 md:grid-cols-3">
                         <div className="rounded-xl border border-slate-200 p-4">
-                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">As at</div>
-                            <div className="mt-1 text-sm font-semibold text-slate-900">{filters?.as_at ?? '-'}</div>
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Period</div>
+                            <div className="mt-1 text-sm font-semibold text-slate-900">{filters?.date_from ?? '-'} to {filters?.date_to ?? '-'}</div>
                         </div>
                         <div className="rounded-xl border border-slate-200 p-4">
                             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Debit</div>

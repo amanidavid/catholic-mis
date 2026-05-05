@@ -8,6 +8,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import SearchableJumuiyaSelect from '@/Components/SearchableJumuiyaSelect';
 import SearchableMemberSelect from '@/Components/SearchableMemberSelect';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import Spinner from '@/Components/Spinner';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -66,6 +67,7 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
         clearErrors: clearAssignErrors,
         reset: resetAssign,
     } = useForm({
+        outstation_uuid: '',
         zone_uuid: '',
         jumuiya_uuid: jumuiyaUuid ?? '',
         member_uuid: '',
@@ -96,6 +98,7 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
         clearAssignErrors();
         resetAssign();
         setAssignData({
+            outstation_uuid: '',
             zone_uuid: '',
             jumuiya_uuid: jumuiyaUuid ?? '',
             member_uuid: '',
@@ -302,6 +305,20 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
 
                     <form onSubmit={submitAssign} className="mt-4 space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
+                            <SearchableOutstationSelect
+                                id="assign_outstation_uuid"
+                                label="Outstation"
+                                value={assignData.outstation_uuid}
+                                onChange={(uuid) => {
+                                    setAssignData('outstation_uuid', uuid);
+                                    setAssignData('zone_uuid', '');
+                                    setAssignData('jumuiya_uuid', '');
+                                    setAssignData('member_uuid', '');
+                                }}
+                                error={assignErrors.outstation_uuid}
+                                className="md:col-span-2"
+                            />
+
                             <SearchableZoneSelect
                                 id="assign_zone_uuid"
                                 label="Zone"
@@ -311,6 +328,8 @@ export default function LeadershipAssignmentsIndex({ leaderships, filters, jumui
                                     setAssignData('jumuiya_uuid', '');
                                     setAssignData('member_uuid', '');
                                 }}
+                                outstationUuid={assignData.outstation_uuid}
+                                disabled={!assignData.outstation_uuid}
                                 error={assignErrors.zone_uuid}
                                 className="md:col-span-2"
                             />

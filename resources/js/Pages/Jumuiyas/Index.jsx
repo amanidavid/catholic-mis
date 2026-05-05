@@ -5,6 +5,7 @@ import FloatingSelect from '@/Components/FloatingSelect';
 import Modal from '@/Components/Modal';
 import ModalHeader from '@/Components/ModalHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SecondaryButton from '@/Components/SecondaryButton';
 import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import Spinner from '@/Components/Spinner';
@@ -21,19 +22,21 @@ export default function JumuiyasIndex({ jumuiyas, zones, filters }) {
     }, [auth?.user?.permissions]);
 
     const [q, setQ] = useState(filters?.q ?? '');
+    const [outstationUuid, setOutstationUuid] = useState(filters?.outstation_uuid ?? '');
     const [zoneUuid, setZoneUuid] = useState(filters?.zone_uuid ?? '');
 
     const applySearch = (e) => {
         e.preventDefault();
         router.get(
             route('jumuiyas.index'),
-            { q, zone_uuid: zoneUuid || undefined },
+            { q, outstation_uuid: outstationUuid || undefined, zone_uuid: zoneUuid || undefined },
             { preserveState: true, replace: true },
         );
     };
 
     const clearSearch = () => {
         setQ('');
+        setOutstationUuid('');
         setZoneUuid('');
         router.get(route('jumuiyas.index'), {}, { preserveState: true, replace: true });
     };
@@ -91,11 +94,22 @@ export default function JumuiyasIndex({ jumuiyas, zones, filters }) {
                                 hint=""
                             />
 
+                            <SearchableOutstationSelect
+                                id="jumuiyas_outstation_filter"
+                                label="Outstation"
+                                value={outstationUuid}
+                                onChange={(uuid) => {
+                                    setOutstationUuid(uuid);
+                                    setZoneUuid('');
+                                }}
+                            />
+
                             <SearchableZoneSelect
                                 id="jumuiyas_zone_filter"
                                 label="Zone"
                                 value={zoneUuid}
                                 onChange={(uuid) => setZoneUuid(uuid)}
+                                outstationUuid={outstationUuid}
                             />
                         </div>
 
@@ -123,6 +137,7 @@ export default function JumuiyasIndex({ jumuiyas, zones, filters }) {
                                     <tr>
                                         <th className="w-16">#</th>
                                         <th>Name</th>
+                                        <th>Outstation</th>
                                         <th>Zone</th>
                                         <th>Year</th>
                                         <th>Status</th>
@@ -142,7 +157,7 @@ export default function JumuiyasIndex({ jumuiyas, zones, filters }) {
                                     ))}
                                     {(jumuiyas?.data ?? []).length === 0 && (
                                         <tr>
-                                            <td colSpan={canManage ? 6 : 5} className="px-4 py-10 text-center text-sm text-slate-500">
+                                            <td colSpan={canManage ? 7 : 6} className="px-4 py-10 text-center text-sm text-slate-500">
                                                 No Christian communities found.
                                             </td>
                                         </tr>
@@ -159,7 +174,7 @@ export default function JumuiyasIndex({ jumuiyas, zones, filters }) {
                 </section>
             </div>
 
-            <EditJumuiyaModal
+                <EditJumuiyaModal
                 open={editOpen}
                 onClose={() => {
                     setEditOpen(false);
@@ -184,6 +199,7 @@ function JumuiyaRow({ jumuiya, canManage, striped = false, index, onEdit }) {
             <tr className={`${striped ? 'bg-slate-50/50' : 'bg-white'} hover:bg-indigo-50/40 transition`}>
                 <td className="px-4 py-3 text-sm font-semibold text-slate-700">{index}</td>
                 <td className="px-4 py-3 text-sm font-medium text-slate-900">{toTitleCase(jumuiya.name)}</td>
+                <td className="px-4 py-3 text-sm text-slate-700">{toTitleCase(jumuiya.outstation_name ?? '-')}</td>
                 <td className="px-4 py-3 text-sm text-slate-700">{toTitleCase(jumuiya.zone_name ?? '-')}</td>
                 <td className="px-4 py-3 text-sm text-slate-700">{jumuiya.established_year ?? '-'}</td>
                 <td className="px-4 py-3 text-sm">
@@ -375,7 +391,7 @@ function EditJumuiyaModal({ open, onClose, jumuiya, zones }) {
                         >
                             <option value="">Select zone</option>
                             {(zones ?? []).map((z) => (
-                                <option key={z.uuid} value={z.uuid}>{z.name}</option>
+                                <option key={z.uuid} value={z.uuid}>{z.outstation_name ? `${z.name} (${z.outstation_name})` : z.name}</option>
                             ))}
                         </FloatingSelect>
 

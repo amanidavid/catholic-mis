@@ -1,39 +1,33 @@
 <?php
 
-namespace App\Http\Requests\Zone;
+namespace App\Http\Requests\Outstation;
 
-use App\Models\Structure\Outstation;
 use App\Models\Structure\Parish;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateZoneRequest extends FormRequest
+class UpdateOutstationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('zones.update') ?? false;
+        return $this->user()?->can('outstations.update') ?? false;
     }
 
     public function rules(): array
     {
         $parishId = Parish::query()->orderBy('id')->value('id');
-        $zoneId = $this->route('zone')?->id;
+        $outstationId = $this->route('outstation')?->id;
         $currentYear = (int) now()->year;
-        $outstationUuid = $this->input('outstation_uuid');
-        $targetOutstationId = is_string($outstationUuid) && $outstationUuid !== ''
-            ? Outstation::query()->where('parish_id', $parishId)->where('uuid', $outstationUuid)->value('id')
-            : $this->route('zone')?->outstation_id;
 
         return [
-            'outstation_uuid' => ['bail', 'required', 'uuid', Rule::exists(Outstation::class, 'uuid')],
             'name' => [
                 'bail',
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('zones', 'name')
-                    ->where(fn ($q) => $q->where('outstation_id', $targetOutstationId))
-                    ->ignore($zoneId),
+                Rule::unique('outstations', 'name')
+                    ->where(fn ($q) => $q->where('parish_id', $parishId))
+                    ->ignore($outstationId),
             ],
             'description' => ['bail', 'nullable', 'string', 'max:255'],
             'established_year' => ['bail', 'nullable', 'integer', 'min:1800', 'max:'.$currentYear],
@@ -43,7 +37,7 @@ class UpdateZoneRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        foreach (['name', 'description', 'outstation_uuid'] as $key) {
+        foreach (['name', 'description'] as $key) {
             $value = $this->input($key);
             if (is_string($value)) {
                 $this->merge([$key => trim(strip_tags($value))]);

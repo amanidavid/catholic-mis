@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import FloatingInput from '@/Components/FloatingInput';
-import FloatingSelect from '@/Components/FloatingSelect';
+import SearchableLedgerSelect from '@/Components/SearchableLedgerSelect';
 import { toTitleCase } from '@/lib/formatters';
 import { Head, Link, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
@@ -70,20 +70,15 @@ export default function GeneralLedgerIndex({ ledgers, selected_ledger, opening_b
 
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
                     <form onSubmit={apply} className="grid gap-3 lg:grid-cols-12 lg:items-end">
-                        <FloatingSelect
+                        <SearchableLedgerSelect
                             id="gl_ledger"
                             label="Ledger"
                             value={ledgerUuid}
-                            onChange={(e) => setLedgerUuid(e.target.value)}
+                            onChange={setLedgerUuid}
+                            routeName="finance.general-ledger.lookup"
+                            purpose=""
                             className="lg:col-span-5"
-                        >
-                            <option value="">All ledgers</option>
-                            {(ledgers ?? []).map((l) => (
-                                <option key={l.uuid} value={l.uuid}>
-                                    {l.account_code ? `${l.account_code} - ${toTitleCase(l.name)}` : toTitleCase(l.name)}
-                                </option>
-                            ))}
-                        </FloatingSelect>
+                        />
                         <FloatingInput
                             id="gl_date_from"
                             label="Date from"

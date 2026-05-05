@@ -97,6 +97,17 @@ export default function PettyCashVouchersIndex({ items, funds, filters, statuses
     };
 
     const addLine = () => setData('lines', [...(data.lines ?? []), { expense_ledger_uuid: '', description: '', amount: '' }]);
+    const removeLine = (index) => {
+        const current = [...(data.lines ?? [])];
+        if (current.length <= 1) {
+            setData('lines', [{ expense_ledger_uuid: '', description: '', amount: '' }]);
+            return;
+        }
+
+        current.splice(index, 1);
+        setData('lines', current);
+    };
+
     const updateLine = (index, field, value) => {
         const next = [...(data.lines ?? [])];
         next[index] = { ...next[index], [field]: value };
@@ -224,8 +235,8 @@ export default function PettyCashVouchersIndex({ items, funds, filters, statuses
                         </form>
                     </div>
 
-                    <div className="mt-6 overflow-x-auto">
-                        <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
+                    <div className="mt-6 overflow-x-auto rounded-xl ring-1 ring-slate-200">
+                        <div className="min-w-[860px] overflow-hidden">
                             <table className="mis-table divide-y divide-slate-200">
                                 <thead>
                                     <tr>
@@ -250,13 +261,13 @@ export default function PettyCashVouchersIndex({ items, funds, filters, statuses
                                             <td className="px-4 py-3 text-sm"><span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${statusBadgeClass(row.status)}`}>{toTitleCase(row.status ?? '')}</span></td>
                                             <td className="px-4 py-3 text-sm">
                                                 <div className="flex flex-wrap gap-2">
-                                                    <button type="button" onClick={() => setSelectedRow(row)} className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100">View</button>
-                                                    {row.status === 'draft' && canUpdate && <button type="button" onClick={() => startEdit(row)} className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100">Edit</button>}
-                                                    {row.status === 'draft' && canCreate && <button type="button" onClick={() => act('finance.petty-cash-vouchers.submit', row.uuid)} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 ring-1 ring-blue-200 hover:bg-blue-100">Submit</button>}
-                                                    {row.status === 'submitted' && canApprove && <button type="button" onClick={() => act('finance.petty-cash-vouchers.approve', row.uuid)} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100">Approve</button>}
-                                                    {row.status === 'submitted' && canApprove && <button type="button" onClick={() => openActionModal({ routeName: 'finance.petty-cash-vouchers.reject', uuid: row.uuid, title: 'Reject petty cash voucher', subtitle: 'Provide a reason for returning this voucher to draft.', actionLabel: 'Reject Voucher' })} className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100">Reject</button>}
-                                                    {row.status === 'approved' && canPost && <button type="button" onClick={() => act('finance.petty-cash-vouchers.post', row.uuid)} className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100">Post</button>}
-                                                    {['draft', 'submitted', 'approved'].includes(row.status) && canCancel && <button type="button" onClick={() => openActionModal({ routeName: 'finance.petty-cash-vouchers.cancel', uuid: row.uuid, title: 'Cancel petty cash voucher', subtitle: 'Provide a reason for cancelling this voucher.', actionLabel: 'Cancel Voucher' })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200">Cancel</button>}
+                                                    <button type="button" onClick={() => setSelectedRow(row)} className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100">👁 View</button>
+                                                    {row.status === 'draft' && canUpdate && <button type="button" onClick={() => startEdit(row)} className="rounded-lg bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100">✏️ Edit</button>}
+                                                    {row.status === 'draft' && canCreate && <button type="button" onClick={() => act('finance.petty-cash-vouchers.submit', row.uuid)} className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 ring-1 ring-blue-200 hover:bg-blue-100">📤 Submit</button>}
+                                                    {row.status === 'submitted' && canApprove && <button type="button" onClick={() => act('finance.petty-cash-vouchers.approve', row.uuid)} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100">✅ Approve</button>}
+                                                    {row.status === 'submitted' && canApprove && <button type="button" onClick={() => openActionModal({ routeName: 'finance.petty-cash-vouchers.reject', uuid: row.uuid, title: 'Reject petty cash voucher', subtitle: 'Provide a reason for returning this voucher to draft.', actionLabel: 'Reject Voucher' })} className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100">↩ Reject</button>}
+                                                    {row.status === 'approved' && canPost && <button type="button" onClick={() => act('finance.petty-cash-vouchers.post', row.uuid)} className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100">📘 Post</button>}
+                                                    {['draft', 'submitted', 'approved'].includes(row.status) && canCancel && <button type="button" onClick={() => openActionModal({ routeName: 'finance.petty-cash-vouchers.cancel', uuid: row.uuid, title: 'Cancel petty cash voucher', subtitle: 'Provide a reason for cancelling this voucher.', actionLabel: 'Cancel Voucher' })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200">⛔ Cancel</button>}
                                                 </div>
                                             </td>
                                         </tr>
@@ -285,30 +296,40 @@ export default function PettyCashVouchersIndex({ items, funds, filters, statuses
                         </div>
 
                         <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                            <div className="mb-3 flex items-center justify-between">
+                            <div className="mb-3">
                                 <div>
                                     <h3 className="text-sm font-semibold text-slate-900">Expense Lines</h3>
                                     <p className="mt-1 text-xs text-slate-500">Each line debits an expense ledger. Posting the voucher will credit the selected petty cash fund ledger in GL.</p>
                                 </div>
-                                <button type="button" onClick={addLine} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Add Line</button>
                             </div>
                             <div className="space-y-3">
                                 {(data.lines ?? []).map((line, index) => (
-                                    <div key={index} className="grid gap-3 md:grid-cols-3">
-                                        <SearchableLedgerSelect
-                                            id={`pcv_line_ledger_${index}`}
-                                            label="Expense ledger"
-                                            value={line.expense_ledger_uuid}
-                                            onChange={(value) => updateLine(index, 'expense_ledger_uuid', value)}
-                                            purpose="expense"
-                                            currencyUuid={selectedFundCurrencyUuid}
-                                            disabled={!selectedFundCurrencyUuid}
-                                            error={errors[`lines.${index}.expense_ledger_uuid`]}
-                                        />
-                                        <FloatingInput id={`pcv_line_desc_${index}`} label="Line description" value={line.description} onChange={(e) => updateLine(index, 'description', e.target.value)} />
-                                        <FloatingInput id={`pcv_line_amount_${index}`} label="Amount" type="number" value={line.amount} onChange={(e) => updateLine(index, 'amount', e.target.value)} required />
+                                    <div key={index} className="rounded-xl border border-slate-200 bg-white p-3">
+                                        <div className="mb-3 flex items-center justify-between gap-3">
+                                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Line {index + 1}</div>
+                                            <button type="button" onClick={() => removeLine(index)} className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100">
+                                                Remove
+                                            </button>
+                                        </div>
+                                        <div className="grid gap-3 md:grid-cols-3">
+                                            <SearchableLedgerSelect
+                                                id={`pcv_line_ledger_${index}`}
+                                                label="Expense ledger"
+                                                value={line.expense_ledger_uuid}
+                                                onChange={(value) => updateLine(index, 'expense_ledger_uuid', value)}
+                                                purpose="expense"
+                                                currencyUuid={selectedFundCurrencyUuid}
+                                                disabled={!selectedFundCurrencyUuid}
+                                                error={errors[`lines.${index}.expense_ledger_uuid`]}
+                                            />
+                                            <FloatingInput id={`pcv_line_desc_${index}`} label="Line description" value={line.description} onChange={(e) => updateLine(index, 'description', e.target.value)} />
+                                            <FloatingInput id={`pcv_line_amount_${index}`} label="Amount" type="number" value={line.amount} onChange={(e) => updateLine(index, 'amount', e.target.value)} required />
+                                        </div>
                                     </div>
                                 ))}
+                            </div>
+                            <div className="mt-4 flex justify-end">
+                                <button type="button" onClick={addLine} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">+ Add Line</button>
                             </div>
                         </div>
 

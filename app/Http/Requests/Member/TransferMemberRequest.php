@@ -14,6 +14,7 @@ class TransferMemberRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'outstation_uuid' => ['nullable', 'uuid'],
             'zone_uuid' => ['nullable', 'uuid'],
             'jumuiya_uuid' => ['required', 'uuid'],
             'family_uuid' => ['required', 'uuid'],

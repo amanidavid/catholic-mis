@@ -210,25 +210,28 @@ export default function AuditLogsIndex({ logs, filters, modelTypes, actions }) {
                         {(viewing?.changes ?? []).length === 0 ? (
                             <div className="text-sm text-slate-600">No changes recorded.</div>
                         ) : (
-                            <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
-                                <table className="mis-table divide-y divide-slate-200">
-                                    <thead>
-                                        <tr>
-                                            <th>Field</th>
-                                            <th>From</th>
-                                            <th>To</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {(viewing?.changes ?? []).map((c, idx) => (
-                                            <tr key={idx} className="align-top">
-                                                <td className="text-sm font-semibold text-slate-900">{c.field}</td>
-                                                <td className="text-sm text-slate-700">{c.from}</td>
-                                                <td className="text-sm text-slate-700">{c.to}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className="space-y-3">
+                                {(viewing?.changes ?? []).map((c, idx) => (
+                                    <div key={idx} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                                        <div className="mb-3 flex items-center gap-2">
+                                            <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-100">
+                                                {c.field}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid gap-3 md:grid-cols-2">
+                                            <div className="rounded-lg border border-slate-200 bg-white p-3">
+                                                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Before</div>
+                                                <div className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">{c.from ?? '-'}</div>
+                                            </div>
+
+                                            <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3">
+                                                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">After</div>
+                                                <div className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">{c.to ?? '-'}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>

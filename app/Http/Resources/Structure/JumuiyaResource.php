@@ -16,6 +16,8 @@ class JumuiyaResource extends JsonResource
     {
         return [
             'uuid' => $this->uuid,
+            'outstation_uuid' => optional(optional($this->zone)->outstation)->uuid,
+            'outstation_name' => optional(optional($this->zone)->outstation)->name,
             'zone_uuid' => optional($this->zone)->uuid,
             'zone_name' => optional($this->zone)->name,
             'name' => $this->name,

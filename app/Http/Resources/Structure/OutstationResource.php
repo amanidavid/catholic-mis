@@ -5,17 +5,12 @@ namespace App\Http\Resources\Structure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class ZoneResource extends JsonResource
+class OutstationResource extends JsonResource
 {
-    /**
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
             'uuid' => $this->uuid,
-            'outstation_uuid' => optional($this->outstation)->uuid,
-            'outstation_name' => optional($this->outstation)->name,
             'name' => $this->name,
             'description' => $this->description,
             'established_year' => $this->established_year,

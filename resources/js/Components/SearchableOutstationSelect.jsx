@@ -3,15 +3,11 @@ import { Combobox } from '@headlessui/react';
 import axios from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-export default function SearchableLedgerSelect({
+export default function SearchableOutstationSelect({
     id,
     label,
     value,
     onChange,
-    routeName = 'finance.petty-cash-ledgers.lookup',
-    purpose = 'expense',
-    currencyUuid = '',
-    extraParams = {},
     className,
     disabled = false,
     error,
@@ -24,7 +20,7 @@ export default function SearchableLedgerSelect({
 
     const selected = useMemo(() => {
         if (!value) return null;
-        return options.find((o) => o.uuid === value) ?? { uuid: value, name: value, account_code: '' };
+        return options.find((o) => o.uuid === value) ?? { uuid: value, name: value };
     }, [value, options]);
 
     const fetchOptions = async (nextQuery) => {
@@ -33,23 +29,8 @@ export default function SearchableLedgerSelect({
         setLoading(true);
 
         try {
-            const params = {
-                q: typeof nextQuery === 'string' ? nextQuery.trim() : '',
-                ...extraParams,
-            };
-
-            if (purpose) {
-                params.purpose = purpose;
-            }
-
-            if (currencyUuid) {
-                params.currency_uuid = currencyUuid;
-            }
-
-            const res = await axios.get(route(routeName), {
-                params: {
-                    ...params,
-                },
+            const res = await axios.get(route('outstations.lookup'), {
+                params: { q: typeof nextQuery === 'string' ? nextQuery.trim() : '' },
             });
 
             if (lastFetchRef.current !== fetchId) return;
@@ -73,12 +54,7 @@ export default function SearchableLedgerSelect({
         }, 250);
 
         return () => clearTimeout(t);
-    }, [query, purpose, currencyUuid, disabled]);
-
-    useEffect(() => {
-        setQuery('');
-        setOptions([]);
-    }, [purpose, currencyUuid, routeName, JSON.stringify(extraParams)]);
+    }, [query, disabled]);
 
     useEffect(() => {
         if (disabled) {
@@ -94,12 +70,9 @@ export default function SearchableLedgerSelect({
                         <Combobox.Input
                             id={id}
                             className={`peer h-11 w-full rounded-lg border border-slate-300 bg-white px-3 pt-5 pr-16 text-sm text-slate-900 shadow-sm transition focus:border-indigo-500 focus:ring-indigo-500 ${error ? 'border-rose-300 focus:border-rose-400' : 'focus:border-indigo-300'}`}
-                            displayValue={(opt) => {
-                                if (!opt) return '';
-                                return opt.account_code ? `${opt.account_code} - ${opt.name}` : opt.name;
-                            }}
+                            displayValue={(opt) => opt?.name ?? ''}
                             onChange={(event) => setQuery(event.target.value)}
-                            placeholder="Search ledger..."
+                            placeholder="Search outstation..."
                             onFocus={() => {
                                 setOpen(true);
                                 if (options.length === 0 && !loading) {
@@ -144,7 +117,7 @@ export default function SearchableLedgerSelect({
                         <Combobox.Button
                             type="button"
                             className="absolute inset-y-0 right-2 flex items-center px-2 text-slate-400 hover:text-slate-600"
-                            aria-label="Toggle ledgers"
+                            aria-label="Toggle outstations"
                             onClick={() => setOpen((v) => !v)}
                         >
                             {loading ? (
@@ -163,7 +136,7 @@ export default function SearchableLedgerSelect({
                             >
                                 {options.length === 0 ? (
                                     <div className="px-3 py-2 text-slate-500">
-                                        {query.trim() !== '' ? 'No matches.' : 'Click the arrow to view ledgers, or type to search.'}
+                                        {query.trim() !== '' ? 'No matches.' : 'Click the arrow to view outstations, or type to search.'}
                                     </div>
                                 ) : (
                                     options.map((opt) => (
@@ -174,10 +147,7 @@ export default function SearchableLedgerSelect({
                                                 `cursor-pointer px-3 py-2 ${active ? 'bg-indigo-50 text-indigo-900' : 'text-slate-700'}`
                                             }
                                         >
-                                            <div className="font-semibold">
-                                                {opt.account_code ? `${opt.account_code} - ${opt.name}` : opt.name}
-                                            </div>
-                                            {opt.subtitle ? <div className="text-xs text-slate-500">{opt.subtitle}</div> : null}
+                                            <div className="font-semibold">{opt.name}</div>
                                         </Combobox.Option>
                                     ))
                                 )}

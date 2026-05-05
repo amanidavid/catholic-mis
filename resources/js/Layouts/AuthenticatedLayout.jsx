@@ -293,6 +293,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 group: 'Church Structure',
                 items: [
                     { label: 'Parish', routeName: 'setup.*', href: () => route('setup.index'), icon: icons.church, show: true },
+                    { label: 'Outstations', routeName: 'outstations.*', href: () => route('outstations.index'), icon: icons.network, show: can('outstations.view') },
                     { label: 'Zones', routeName: 'zones.*', href: () => route('zones.index'), icon: icons.map, show: can('zones.view') },
                     { label: 'Christian Communities', routeName: 'jumuiyas.*', href: () => route('jumuiyas.index'), icon: icons.group, show: can('jumuiyas.view') },
                 ],
@@ -300,8 +301,8 @@ export default function AuthenticatedLayout({ header, children }) {
             {
                 group: 'Community Records',
                 items: [
-                    { label: 'Members', routeName: 'members.*', href: () => route('members.index'), icon: icons.user, show: can('members.view') },
                     { label: 'Families', routeName: 'families.*', href: () => route('families.index'), icon: icons.house, show: can('families.view') },
+                    { label: 'Members', routeName: 'members.*', href: () => route('members.index'), icon: icons.user, show: can('members.view') },
                     { label: 'Family Relationships', routeName: 'family-relationships.*', href: () => route('family-relationships.index'), icon: icons.network, show: can('family-relationships.view') },
                     { label: 'Weekly Attendance', routeName: 'weekly-attendance.*', href: () => route('weekly-attendance.index'), icon: icons.history, show: can('weekly-attendance.view') },
                 ],
@@ -333,11 +334,11 @@ export default function AuthenticatedLayout({ header, children }) {
                 group: 'Sacraments',
                 items: [
                     { label: 'Baptisms', routeName: 'baptisms.*', href: () => route('baptisms.index'), icon: icons.baptism, show: can('baptisms.view') },
-                    { label: 'Marriages', routeName: 'marriages.*', href: () => route('marriages.index'), icon: icons.marriage, show: can('marriages.view') },
-                    { label: 'Communions', routeName: 'communions.*', href: () => route('communions.index'), icon: icons.communion, show: can('communions.view') || can('communions.parish.view') },
+                    { label: 'First Communions', routeName: 'communions.*', href: () => route('communions.index'), icon: icons.communion, show: can('communions.view') || can('communions.parish.view') },
                     { label: 'Communion Cycles', routeName: 'communions.cycles.*', href: () => route('communions.cycles.index'), icon: icons.calendarSettings, show: can('communions.cycles.manage') || can('permissions.manage') || can('sacraments.cycle.override') },
                     { label: 'Confirmations', routeName: 'confirmations.*', href: () => route('confirmations.index'), icon: icons.confirmation, show: can('confirmations.view') || can('confirmations.parish.view') },
                     { label: 'Confirmation Cycles', routeName: 'confirmations.cycles.*', href: () => route('confirmations.cycles.index'), icon: icons.calendarCheck, show: can('confirmations.cycles.manage') || can('permissions.manage') || can('sacraments.cycle.override') },
+                    { label: 'Marriages', routeName: 'marriages.*', href: () => route('marriages.index'), icon: icons.marriage, show: can('marriages.view') },
                 ],
             },
             {

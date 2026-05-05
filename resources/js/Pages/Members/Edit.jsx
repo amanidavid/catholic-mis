@@ -6,6 +6,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import SearchableFamilySelect from '@/Components/SearchableFamilySelect';
 import SearchableFamilyRelationshipSelect from '@/Components/SearchableFamilyRelationshipSelect';
 import SearchableJumuiyaSelect from '@/Components/SearchableJumuiyaSelect';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect, useMemo } from 'react';
@@ -23,6 +24,7 @@ export default function MembersEdit({ member }) {
         errors,
         reset,
     } = useForm({
+        outstation_uuid: m?.outstation_uuid ?? '',
         zone_uuid: m?.zone_uuid ?? '',
         jumuiya_uuid: m?.jumuiya_uuid ?? '',
         family_uuid: m?.family_uuid ?? '',
@@ -113,6 +115,22 @@ export default function MembersEdit({ member }) {
                         <div className="text-sm font-semibold text-slate-700">Placement</div>
                         <div className="mt-3 grid gap-4 md:grid-cols-2">
                             {!isScoped && (
+                                <SearchableOutstationSelect
+                                    id="edit_outstation_uuid"
+                                    label="Outstation"
+                                    value={data.outstation_uuid}
+                                    onChange={(uuid) => {
+                                        setData('outstation_uuid', uuid);
+                                        setData('zone_uuid', '');
+                                        setData('jumuiya_uuid', '');
+                                        setData('family_uuid', '');
+                                        setData('is_head_of_family', false);
+                                    }}
+                                    error={friendlyErrors.outstation_uuid}
+                                />
+                            )}
+
+                            {!isScoped && (
                                 <SearchableZoneSelect
                                     id="edit_zone_uuid"
                                     label="Zone"
@@ -123,8 +141,17 @@ export default function MembersEdit({ member }) {
                                         setData('family_uuid', '');
                                         setData('is_head_of_family', false);
                                     }}
+                                    outstationUuid={data.outstation_uuid}
+                                    disabled={!data.outstation_uuid}
                                     error={friendlyErrors.zone_uuid}
                                 />
+                            )}
+
+                            {isScoped && (
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Outstation</div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-900 break-words">{m?.outstation_name || '-'}</div>
+                                </div>
                             )}
 
                             {isScoped && (

@@ -111,6 +111,16 @@ class DashboardController extends Controller
                 ->where('is_active', false)
                 ->count();
 
+            $outstationsActive = DB::table('outstations')
+                ->where('parish_id', $parishId)
+                ->where('is_active', true)
+                ->count();
+
+            $outstationsInactive = DB::table('outstations')
+                ->where('parish_id', $parishId)
+                ->where('is_active', false)
+                ->count();
+
             $jumuiyasActive = DB::table('jumuiyas')
                 ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
                 ->where('zones.parish_id', $parishId)
@@ -172,10 +182,20 @@ class DashboardController extends Controller
                 ->count();
 
             $structure = [
+                'outstations' => ['active' => $outstationsActive, 'inactive' => $outstationsInactive],
                 'zones' => ['active' => $zonesActive, 'inactive' => $zonesInactive],
                 'jumuiyas' => ['active' => $jumuiyasActive, 'inactive' => $jumuiyasInactive],
                 'families' => ['active' => $familiesActive, 'inactive' => $familiesInactive],
                 'members' => ['active' => $membersActive, 'inactive' => $membersInactive],
+            ];
+
+            $cards[] = [
+                'key' => 'outstations',
+                'label' => 'Outstations',
+                'value' => $structure['outstations']['active'] ?? 0,
+                'breakdown' => $structure['outstations'] ?? null,
+                'href' => $user->can('outstations.view') ? route('outstations.index') : $fallbackCommunityHref,
+                'can' => true,
             ];
 
             $cards[] = [
@@ -228,22 +248,6 @@ class DashboardController extends Controller
             ];
         }
 
-        if ($user->can('marriages.view')) {
-            $scopeKey = $fromDt->toDateString().':'.$toDt->toDateString();
-            $byStatus = Cache::remember("dashboard:parish:{$parishId}:marriages:by_status:{$scopeKey}", 300, function () use ($parishId, $fromDt, $toDt) {
-                return $this->statusCounts('marriages', $parishId, $fromDt, $toDt);
-            });
-
-            $cards[] = [
-                'key' => 'marriages',
-                'label' => 'Marriages',
-                'value' => array_sum($byStatus),
-                'breakdown' => $byStatus,
-                'href' => route('marriages.index'),
-                'can' => true,
-            ];
-        }
-
         if ($user->can('communions.view') || $user->can('communions.parish.view')) {
             $scopeKey = $fromDt->toDateString().':'.$toDt->toDateString();
             $byStatus = Cache::remember("dashboard:parish:{$parishId}:communions:by_status:{$scopeKey}", 300, function () use ($parishId, $fromDt, $toDt) {
@@ -254,7 +258,7 @@ class DashboardController extends Controller
 
             $cards[] = [
                 'key' => 'communions',
-                'label' => 'Communions',
+                'label' => 'First Communions',
                 'value' => array_sum($byStatus),
                 'breakdown' => $byStatus,
                 'href' => route('communions.index'),
@@ -276,6 +280,22 @@ class DashboardController extends Controller
                 'value' => array_sum($byStatus),
                 'breakdown' => $byStatus,
                 'href' => route('confirmations.index'),
+                'can' => true,
+            ];
+        }
+
+        if ($user->can('marriages.view')) {
+            $scopeKey = $fromDt->toDateString().':'.$toDt->toDateString();
+            $byStatus = Cache::remember("dashboard:parish:{$parishId}:marriages:by_status:{$scopeKey}", 300, function () use ($parishId, $fromDt, $toDt) {
+                return $this->statusCounts('marriages', $parishId, $fromDt, $toDt);
+            });
+
+            $cards[] = [
+                'key' => 'marriages',
+                'label' => 'Marriages',
+                'value' => array_sum($byStatus),
+                'breakdown' => $byStatus,
+                'href' => route('marriages.index'),
                 'can' => true,
             ];
         }

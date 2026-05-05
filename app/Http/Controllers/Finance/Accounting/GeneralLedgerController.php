@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Finance\Accounting;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Finance\Accounting\GeneralLedgerEntryResource;
-use App\Http\Resources\Finance\Accounting\LedgerOptionResource;
 use App\Models\Finance\GeneralLedger;
 use App\Models\Finance\Ledger;
 use App\Services\Finance\Accounting\GeneralLedgerService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -36,12 +36,6 @@ class GeneralLedgerController extends Controller
         if ($perPage > 100) {
             $perPage = 100;
         }
-
-        $ledgers = Ledger::query()
-            ->select(['id', 'uuid', 'name', 'account_code', 'currency_id'])
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
 
         $report = null;
         $selectedLedger = null;
@@ -74,7 +68,7 @@ class GeneralLedgerController extends Controller
         }
 
         return Inertia::render('Finance/Accounting/GeneralLedger/Index', [
-            'ledgers' => LedgerOptionResource::collection($ledgers)->resolve(),
+            'ledgers' => [],
             'selected_ledger' => $selectedLedger?->only(['uuid', 'name', 'account_code']),
             'opening_balance_signed' => $report['opening_balance_signed'] ?? null,
             'entries' => $entries,
@@ -85,5 +79,35 @@ class GeneralLedgerController extends Controller
                 'per_page' => $perPage,
             ],
         ]);
+    }
+
+    public function lookup(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', GeneralLedger::class);
+
+        $q = is_string($request->query('q')) ? trim((string) $request->query('q')) : '';
+
+        $rows = Ledger::query()
+            ->select(['uuid', 'name', 'account_code'])
+            ->where('is_active', true)
+            ->when($q !== '', function ($qb) use ($q) {
+                $safe = addcslashes($q, '%_\\');
+                $qb->where(function ($w) use ($safe) {
+                    $w->where('name', 'like', $safe.'%')
+                        ->orWhere('account_code', 'like', $safe.'%');
+                });
+            })
+            ->orderBy('name')
+            ->limit(30)
+            ->get()
+            ->map(fn (Ledger $ledger) => [
+                'uuid' => $ledger->uuid,
+                'name' => $ledger->name,
+                'account_code' => $ledger->account_code,
+                'subtitle' => $ledger->account_code ? 'Code: '.$ledger->account_code : null,
+            ])
+            ->values();
+
+        return response()->json(['data' => $rows]);
     }
 }

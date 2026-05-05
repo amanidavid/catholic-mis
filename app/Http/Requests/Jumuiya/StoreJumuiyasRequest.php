@@ -60,9 +60,8 @@ class StoreJumuiyasRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $payload = $this->validated();
-            $zoneUuid = $payload['zone_uuid'] ?? null;
-            $rows = $payload['jumuiyas'] ?? [];
+            $zoneUuid = $this->input('zone_uuid');
+            $rows = $this->input('jumuiyas', []);
 
             if (! is_string($zoneUuid) || $zoneUuid === '' || ! is_array($rows)) {
                 return;

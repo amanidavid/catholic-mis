@@ -131,7 +131,11 @@ class WeeklyAttendanceController extends Controller
 
             if (! $meeting->closed_at) {
                 DB::transaction(function () use ($request, $meeting): void {
-                    $meetingDateCarbon = Carbon::parse($meeting->meeting_date);
+                    $meetingDate = Carbon::parse($meeting->meeting_date)->toDateString();
+                    $now = now();
+                    $userId = (int) $request->user()->id;
+                    $ipAddress = $request->ip();
+                    $userAgent = $request->userAgent();
 
                     $familyIds = Family::query()
                         ->where('jumuiya_id', $meeting->jumuiya_id)
@@ -142,16 +146,24 @@ class WeeklyAttendanceController extends Controller
                         return;
                     }
 
-                    $members = Member::query()
+                    $eligibleMemberIds = DB::table('members')
                         ->whereIn('family_id', $familyIds)
                         ->where('is_active', true)
-                        ->get(['id', 'uuid', 'jumuiya_id']);
+                        ->whereRaw(
+                            'COALESCE((
+                                SELECT mjh.to_jumuiya_id
+                                FROM member_jumuiya_histories mjh
+                                WHERE mjh.member_id = members.id
+                                  AND mjh.effective_date <= ?
+                                ORDER BY mjh.effective_date DESC, mjh.id DESC
+                                LIMIT 1
+                            ), members.jumuiya_id) = ?',
+                            [$meetingDate, (int) $meeting->jumuiya_id]
+                        )
+                        ->pluck('id')
+                        ->all();
 
-                    $eligibleMembers = $members->filter(function (Member $m) use ($meetingDateCarbon, $meeting) {
-                        return $m->effectiveJumuiyaIdAsOf($meetingDateCarbon) === (int) $meeting->jumuiya_id;
-                    });
-
-                    if ($eligibleMembers->count() === 0) {
+                    if (count($eligibleMemberIds) === 0) {
                         return;
                     }
 
@@ -162,34 +174,61 @@ class WeeklyAttendanceController extends Controller
 
                     $alreadyMarkedSet = array_fill_keys($alreadyMarkedMemberIds, true);
 
-                    $toAutoAbsent = $eligibleMembers->filter(function (Member $m) use ($alreadyMarkedSet) {
-                        return ! isset($alreadyMarkedSet[$m->id]);
-                    });
+                    $toAutoAbsentMemberIds = array_values(array_filter(
+                        $eligibleMemberIds,
+                        fn ($memberId) => ! isset($alreadyMarkedSet[$memberId])
+                    ));
 
-                    foreach ($toAutoAbsent as $member) {
-                        $row = JumuiyaWeeklyAttendance::query()->create([
-                            'uuid' => (string) Str::uuid(),
-                            'jumuiya_weekly_meeting_id' => $meeting->id,
-                            'member_id' => $member->id,
-                            'status' => 'absent',
-                            'marked_by_user_id' => (int) $request->user()->id,
-                            'marked_at' => now(),
-                        ]);
+                    if (count($toAutoAbsentMemberIds) === 0) {
+                        return;
+                    }
 
-                        JumuiyaWeeklyAttendanceAudit::query()->create([
-                            'uuid' => (string) Str::uuid(),
-                            'jumuiya_weekly_meeting_id' => $meeting->id,
-                            'member_id' => $member->id,
-                            'jumuiya_weekly_attendance_id' => $row->id,
-                            'action' => 'created',
-                            'old_status' => null,
-                            'new_status' => 'absent',
-                            'performed_by_user_id' => (int) $request->user()->id,
-                            'performed_at' => now(),
-                            'ip_address' => $request->ip(),
-                            'user_agent' => $request->userAgent(),
-                            'notes' => 'Auto-marked absent on open',
-                        ]);
+                    foreach (array_chunk($toAutoAbsentMemberIds, 500) as $memberIdChunk) {
+                        $attendanceRows = [];
+
+                        foreach ($memberIdChunk as $memberId) {
+                            $attendanceRows[] = [
+                                'uuid' => (string) Str::uuid(),
+                                'jumuiya_weekly_meeting_id' => $meeting->id,
+                                'member_id' => $memberId,
+                                'status' => 'absent',
+                                'marked_by_user_id' => $userId,
+                                'marked_at' => $now,
+                                'created_at' => $now,
+                                'updated_at' => $now,
+                            ];
+                        }
+
+                        DB::table('jumuiya_weekly_attendances')->insert($attendanceRows);
+
+                        $insertedAttendanceRows = DB::table('jumuiya_weekly_attendances')
+                            ->where('jumuiya_weekly_meeting_id', $meeting->id)
+                            ->whereIn('member_id', $memberIdChunk)
+                            ->get(['id', 'member_id']);
+
+                        $auditRows = [];
+                        foreach ($insertedAttendanceRows as $attendanceRow) {
+                            $auditRows[] = [
+                                'uuid' => (string) Str::uuid(),
+                                'jumuiya_weekly_meeting_id' => $meeting->id,
+                                'member_id' => $attendanceRow->member_id,
+                                'jumuiya_weekly_attendance_id' => $attendanceRow->id,
+                                'action' => 'created',
+                                'old_status' => null,
+                                'new_status' => 'absent',
+                                'performed_by_user_id' => $userId,
+                                'performed_at' => $now,
+                                'ip_address' => $ipAddress,
+                                'user_agent' => $userAgent,
+                                'notes' => 'Auto-marked absent on open',
+                                'created_at' => $now,
+                                'updated_at' => $now,
+                            ];
+                        }
+
+                        if ($auditRows !== []) {
+                            DB::table('jumuiya_weekly_attendance_audits')->insert($auditRows);
+                        }
                     }
                 });
             }
@@ -334,7 +373,6 @@ class WeeklyAttendanceController extends Controller
         $this->authorize('view', $meeting);
 
         $meetingDate = Carbon::parse($meeting->meeting_date)->toDateString();
-        $meetingDateCarbon = Carbon::parse($meeting->meeting_date);
 
         $perPage = (int) $request->query('per_page', 20);
         if ($perPage < 1) {
@@ -357,12 +395,34 @@ class WeeklyAttendanceController extends Controller
             ->get(['member_id', 'status'])
             ->keyBy('member_id');
 
-        $data = $familiesPage->getCollection()->map(function (Family $family) use ($attendanceRows, $meetingDate, $meetingDateCarbon, $meeting) {
-            $members = $family->members
-                ->map(function (Member $m) use ($attendanceRows, $meetingDate, $meetingDateCarbon, $meeting) {
-                    $status = $attendanceRows->get($m->id)?->status;
+        $familyIds = $familiesPage->getCollection()->pluck('id')->all();
+        $eligibleMemberSet = [];
 
-                    $eligible = $m->effectiveJumuiyaIdAsOf($meetingDateCarbon) === (int) $meeting->jumuiya_id;
+        if ($familyIds !== []) {
+            $eligibleMemberIds = DB::table('members')
+                ->whereIn('family_id', $familyIds)
+                ->where('is_active', true)
+                ->whereRaw(
+                    'COALESCE((
+                        SELECT mjh.to_jumuiya_id
+                        FROM member_jumuiya_histories mjh
+                        WHERE mjh.member_id = members.id
+                          AND mjh.effective_date <= ?
+                        ORDER BY mjh.effective_date DESC, mjh.id DESC
+                        LIMIT 1
+                    ), members.jumuiya_id) = ?',
+                    [$meetingDate, (int) $meeting->jumuiya_id]
+                )
+                ->pluck('id')
+                ->all();
+
+            $eligibleMemberSet = array_fill_keys($eligibleMemberIds, true);
+        }
+
+        $data = $familiesPage->getCollection()->map(function (Family $family) use ($attendanceRows, $meetingDate, $eligibleMemberSet) {
+            $members = $family->members
+                ->map(function (Member $m) use ($attendanceRows, $eligibleMemberSet) {
+                    $status = $attendanceRows->get($m->id)?->status;
 
                     return [
                         'uuid' => $m->uuid,
@@ -370,7 +430,7 @@ class WeeklyAttendanceController extends Controller
                         'middle_name' => $m->middle_name,
                         'last_name' => $m->last_name,
                         'is_active' => (bool) $m->is_active,
-                        'eligible' => (bool) $eligible,
+                        'eligible' => isset($eligibleMemberSet[$m->id]),
                         'status' => $status,
                     ];
                 })
@@ -423,22 +483,43 @@ class WeeklyAttendanceController extends Controller
 
         $status = (string) $validated['status'];
         $notes = $validated['notes'] ?? null;
+        $meetingDate = Carbon::parse($meeting->meeting_date)->toDateString();
+        $now = now();
+        $userId = (int) $request->user()->id;
+        $ipAddress = $request->ip();
+        $userAgent = $request->userAgent();
 
         $members = Member::query()
             ->whereIn('uuid', $memberUuids)
-            ->get(['id', 'uuid', 'jumuiya_id']);
+            ->get(['id', 'uuid']);
 
         if ($members->count() !== count($memberUuids)) {
             return response()->json(['message' => 'One or more selected members are invalid.'], 422);
         }
 
-        $invalidScope = [];
-        foreach ($members as $m) {
-            $effectiveJumuiyaId = $m->effectiveJumuiyaIdAsOf(Carbon::parse($meeting->meeting_date));
-            if ($effectiveJumuiyaId !== (int) $meeting->jumuiya_id) {
-                $invalidScope[] = $m->uuid;
-            }
-        }
+        $eligibleMemberIds = DB::table('members')
+            ->whereIn('id', $members->pluck('id')->all())
+            ->where('is_active', true)
+            ->whereRaw(
+                'COALESCE((
+                    SELECT mjh.to_jumuiya_id
+                    FROM member_jumuiya_histories mjh
+                    WHERE mjh.member_id = members.id
+                      AND mjh.effective_date <= ?
+                    ORDER BY mjh.effective_date DESC, mjh.id DESC
+                    LIMIT 1
+                ), members.jumuiya_id) = ?',
+                [$meetingDate, (int) $meeting->jumuiya_id]
+            )
+            ->pluck('id')
+            ->all();
+
+        $eligibleMemberSet = array_fill_keys($eligibleMemberIds, true);
+        $invalidScope = $members
+            ->filter(fn (Member $m) => ! isset($eligibleMemberSet[$m->id]))
+            ->pluck('uuid')
+            ->values()
+            ->all();
 
         if (count($invalidScope) > 0) {
             Log::warning('Weekly attendance bulk mark blocked: some members not in meeting jumuiya as-of date', [
@@ -447,8 +528,8 @@ class WeeklyAttendanceController extends Controller
                 'meeting_date' => (string) $meeting->meeting_date,
                 'meeting_jumuiya_id' => (int) $meeting->jumuiya_id,
                 'invalid_member_uuids' => $invalidScope,
-                'user_id' => (int) $request->user()->id,
-                'ip' => $request->ip(),
+                'user_id' => $userId,
+                'ip' => $ipAddress,
             ]);
 
             return response()->json([
@@ -466,62 +547,111 @@ class WeeklyAttendanceController extends Controller
                 'meeting_jumuiya_id' => (int) $meeting->jumuiya_id,
                 'member_count' => (int) $members->count(),
                 'status' => $status,
-                'user_id' => (int) $request->user()->id,
-                'ip' => $request->ip(),
+                'user_id' => $userId,
+                'ip' => $ipAddress,
             ]);
 
             $updated = [];
 
-            DB::transaction(function () use ($request, $meeting, $members, $status, $notes, &$updated): void {
-                foreach ($members as $member) {
-                    $row = JumuiyaWeeklyAttendance::query()
-                        ->where('jumuiya_weekly_meeting_id', $meeting->id)
-                        ->where('member_id', $member->id)
-                        ->lockForUpdate()
-                        ->first();
+            DB::transaction(function () use ($meeting, $members, $status, $notes, $now, $userId, $ipAddress, $userAgent, &$updated): void {
+                $existingRows = JumuiyaWeeklyAttendance::query()
+                    ->where('jumuiya_weekly_meeting_id', $meeting->id)
+                    ->whereIn('member_id', $members->pluck('id')->all())
+                    ->lockForUpdate()
+                    ->get(['id', 'member_id', 'status'])
+                    ->keyBy('member_id');
 
+                $newAttendanceRows = [];
+                $newAttendanceMemberMap = [];
+                $auditRows = [];
+
+                foreach ($members as $member) {
+                    $row = $existingRows->get($member->id);
                     $oldStatus = $row?->status;
 
                     if (! $row) {
-                        $row = JumuiyaWeeklyAttendance::query()->create([
+                        $newAttendanceRows[] = [
                             'uuid' => (string) Str::uuid(),
                             'jumuiya_weekly_meeting_id' => $meeting->id,
                             'member_id' => $member->id,
                             'status' => $status,
-                            'marked_by_user_id' => (int) $request->user()->id,
-                            'marked_at' => now(),
-                        ]);
-
-                        $action = 'created';
+                            'marked_by_user_id' => $userId,
+                            'marked_at' => $now,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                        $newAttendanceMemberMap[$member->id] = $member->uuid;
                     } else {
-                        $row->update([
+                        JumuiyaWeeklyAttendance::query()
+                            ->where('id', $row->id)
+                            ->update([
+                                'status' => $status,
+                                'marked_by_user_id' => $userId,
+                                'marked_at' => $now,
+                                'updated_at' => $now,
+                            ]);
+
+                        $auditRows[] = [
+                            'uuid' => (string) Str::uuid(),
+                            'jumuiya_weekly_meeting_id' => $meeting->id,
+                            'member_id' => $member->id,
+                            'jumuiya_weekly_attendance_id' => $row->id,
+                            'action' => 'updated',
+                            'old_status' => $oldStatus,
+                            'new_status' => $status,
+                            'performed_by_user_id' => $userId,
+                            'performed_at' => $now,
+                            'ip_address' => $ipAddress,
+                            'user_agent' => $userAgent,
+                            'notes' => $notes,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+
+                        $updated[] = [
+                            'member_uuid' => $member->uuid,
                             'status' => $status,
-                            'marked_by_user_id' => (int) $request->user()->id,
-                            'marked_at' => now(),
-                        ]);
-
-                        $action = 'updated';
+                        ];
                     }
+                }
 
-                    JumuiyaWeeklyAttendanceAudit::query()->create([
-                        'uuid' => (string) Str::uuid(),
-                        'jumuiya_weekly_meeting_id' => $meeting->id,
-                        'member_id' => $member->id,
-                        'jumuiya_weekly_attendance_id' => $row->id,
-                        'action' => $action,
-                        'old_status' => $oldStatus,
-                        'new_status' => $status,
-                        'performed_by_user_id' => (int) $request->user()->id,
-                        'performed_at' => now(),
-                        'ip_address' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                        'notes' => $notes,
-                    ]);
+                foreach (array_chunk($newAttendanceRows, 500) as $attendanceChunk) {
+                    DB::table('jumuiya_weekly_attendances')->insert($attendanceChunk);
+                }
 
-                    $updated[] = [
-                        'member_uuid' => $member->uuid,
-                        'status' => $status,
-                    ];
+                if ($newAttendanceMemberMap !== []) {
+                    $insertedRows = JumuiyaWeeklyAttendance::query()
+                        ->where('jumuiya_weekly_meeting_id', $meeting->id)
+                        ->whereIn('member_id', array_keys($newAttendanceMemberMap))
+                        ->get(['id', 'member_id']);
+
+                    foreach ($insertedRows as $insertedRow) {
+                        $auditRows[] = [
+                            'uuid' => (string) Str::uuid(),
+                            'jumuiya_weekly_meeting_id' => $meeting->id,
+                            'member_id' => $insertedRow->member_id,
+                            'jumuiya_weekly_attendance_id' => $insertedRow->id,
+                            'action' => 'created',
+                            'old_status' => null,
+                            'new_status' => $status,
+                            'performed_by_user_id' => $userId,
+                            'performed_at' => $now,
+                            'ip_address' => $ipAddress,
+                            'user_agent' => $userAgent,
+                            'notes' => $notes,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+
+                        $updated[] = [
+                            'member_uuid' => $newAttendanceMemberMap[$insertedRow->member_id],
+                            'status' => $status,
+                        ];
+                    }
+                }
+
+                foreach (array_chunk($auditRows, 500) as $auditChunk) {
+                    DB::table('jumuiya_weekly_attendance_audits')->insert($auditChunk);
                 }
             });
 
@@ -530,7 +660,7 @@ class WeeklyAttendanceController extends Controller
                 'meeting_id' => (int) $meeting->id,
                 'updated_count' => (int) count($updated),
                 'duration_ms' => (int) round((microtime(true) - $t0) * 1000),
-                'user_id' => (int) $request->user()->id,
+                'user_id' => $userId,
             ]);
 
             return response()->json([
@@ -545,8 +675,8 @@ class WeeklyAttendanceController extends Controller
                 'meeting_jumuiya_id' => (int) $meeting->jumuiya_id,
                 'member_count' => (int) ($members->count() ?? 0),
                 'status' => $status,
-                'user_id' => (int) $request->user()->id,
-                'ip' => $request->ip(),
+                'user_id' => $userId,
+                'ip' => $ipAddress,
                 'exception' => get_class($e),
                 'message' => $e->getMessage(),
             ]);
@@ -593,7 +723,11 @@ class WeeklyAttendanceController extends Controller
                     ];
                 }
 
-                $meetingDateCarbon = Carbon::parse($lockedMeeting->meeting_date);
+                $meetingDate = Carbon::parse($lockedMeeting->meeting_date)->toDateString();
+                $now = now();
+                $userId = (int) $request->user()->id;
+                $ipAddress = $request->ip();
+                $userAgent = $request->userAgent();
 
                 $familyIds = Family::query()
                     ->where('jumuiya_id', $lockedMeeting->jumuiya_id)
@@ -602,8 +736,8 @@ class WeeklyAttendanceController extends Controller
 
                 if (count($familyIds) === 0) {
                     $lockedMeeting->forceFill([
-                        'closed_at' => now(),
-                        'locked_at' => now(),
+                        'closed_at' => $now,
+                        'locked_at' => $now,
                     ])->save();
 
                     return [
@@ -614,14 +748,22 @@ class WeeklyAttendanceController extends Controller
                     ];
                 }
 
-                $members = Member::query()
+                $eligibleMemberIds = DB::table('members')
                     ->whereIn('family_id', $familyIds)
                     ->where('is_active', true)
-                    ->get(['id', 'uuid', 'jumuiya_id']);
-
-                $eligibleMembers = $members->filter(function (Member $m) use ($meetingDateCarbon, $lockedMeeting) {
-                    return $m->effectiveJumuiyaIdAsOf($meetingDateCarbon) === (int) $lockedMeeting->jumuiya_id;
-                });
+                    ->whereRaw(
+                        'COALESCE((
+                            SELECT mjh.to_jumuiya_id
+                            FROM member_jumuiya_histories mjh
+                            WHERE mjh.member_id = members.id
+                              AND mjh.effective_date <= ?
+                            ORDER BY mjh.effective_date DESC, mjh.id DESC
+                            LIMIT 1
+                        ), members.jumuiya_id) = ?',
+                        [$meetingDate, (int) $lockedMeeting->jumuiya_id]
+                    )
+                    ->pluck('id')
+                    ->all();
 
                 $alreadyMarkedMemberIds = JumuiyaWeeklyAttendance::query()
                     ->where('jumuiya_weekly_meeting_id', $lockedMeeting->id)
@@ -630,42 +772,64 @@ class WeeklyAttendanceController extends Controller
 
                 $alreadyMarkedSet = array_fill_keys($alreadyMarkedMemberIds, true);
 
-                $toMarkAbsent = $eligibleMembers->filter(function (Member $m) use ($alreadyMarkedSet) {
-                    return ! isset($alreadyMarkedSet[$m->id]);
-                });
+                $toMarkAbsentMemberIds = array_values(array_filter(
+                    $eligibleMemberIds,
+                    fn ($memberId) => ! isset($alreadyMarkedSet[$memberId])
+                ));
 
-                $count = 0;
-                foreach ($toMarkAbsent as $member) {
-                    $row = JumuiyaWeeklyAttendance::query()->create([
-                        'uuid' => (string) Str::uuid(),
-                        'jumuiya_weekly_meeting_id' => $lockedMeeting->id,
-                        'member_id' => $member->id,
-                        'status' => 'absent',
-                        'marked_by_user_id' => (int) $request->user()->id,
-                        'marked_at' => now(),
-                    ]);
+                $count = count($toMarkAbsentMemberIds);
 
-                    JumuiyaWeeklyAttendanceAudit::query()->create([
-                        'uuid' => (string) Str::uuid(),
-                        'jumuiya_weekly_meeting_id' => $lockedMeeting->id,
-                        'member_id' => $member->id,
-                        'jumuiya_weekly_attendance_id' => $row->id,
-                        'action' => 'created',
-                        'old_status' => null,
-                        'new_status' => 'absent',
-                        'performed_by_user_id' => (int) $request->user()->id,
-                        'performed_at' => now(),
-                        'ip_address' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                        'notes' => 'Auto-marked absent on close',
-                    ]);
+                foreach (array_chunk($toMarkAbsentMemberIds, 500) as $memberIdChunk) {
+                    $attendanceRows = [];
 
-                    $count++;
+                    foreach ($memberIdChunk as $memberId) {
+                        $attendanceRows[] = [
+                            'uuid' => (string) Str::uuid(),
+                            'jumuiya_weekly_meeting_id' => $lockedMeeting->id,
+                            'member_id' => $memberId,
+                            'status' => 'absent',
+                            'marked_by_user_id' => $userId,
+                            'marked_at' => $now,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+
+                    DB::table('jumuiya_weekly_attendances')->insert($attendanceRows);
+
+                    $insertedAttendanceRows = DB::table('jumuiya_weekly_attendances')
+                        ->where('jumuiya_weekly_meeting_id', $lockedMeeting->id)
+                        ->whereIn('member_id', $memberIdChunk)
+                        ->get(['id', 'member_id']);
+
+                    $auditRows = [];
+                    foreach ($insertedAttendanceRows as $attendanceRow) {
+                        $auditRows[] = [
+                            'uuid' => (string) Str::uuid(),
+                            'jumuiya_weekly_meeting_id' => $lockedMeeting->id,
+                            'member_id' => $attendanceRow->member_id,
+                            'jumuiya_weekly_attendance_id' => $attendanceRow->id,
+                            'action' => 'created',
+                            'old_status' => null,
+                            'new_status' => 'absent',
+                            'performed_by_user_id' => $userId,
+                            'performed_at' => $now,
+                            'ip_address' => $ipAddress,
+                            'user_agent' => $userAgent,
+                            'notes' => 'Auto-marked absent on close',
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+
+                    if ($auditRows !== []) {
+                        DB::table('jumuiya_weekly_attendance_audits')->insert($auditRows);
+                    }
                 }
 
                 $lockedMeeting->forceFill([
-                    'closed_at' => now(),
-                    'locked_at' => now(),
+                    'closed_at' => $now,
+                    'locked_at' => $now,
                 ])->save();
 
                 return [

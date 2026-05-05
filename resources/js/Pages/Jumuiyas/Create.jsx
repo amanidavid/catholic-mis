@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import FloatingInput from '@/Components/FloatingInput';
 import FloatingSelect from '@/Components/FloatingSelect';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SecondaryButton from '@/Components/SecondaryButton';
 import Spinner from '@/Components/Spinner';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -13,6 +14,7 @@ export default function JumuiyasCreate({ zones }) {
     ]);
 
     const { data, setData, post, processing, errors, reset } = useForm({
+        outstation_uuid: '',
         zone_uuid: '',
         jumuiyas: rows,
     });
@@ -52,6 +54,7 @@ export default function JumuiyasCreate({ zones }) {
                 ];
                 setRows(initial);
                 setData('jumuiyas', initial);
+                setData('outstation_uuid', '');
                 setData('zone_uuid', '');
             },
         });
@@ -85,6 +88,16 @@ export default function JumuiyasCreate({ zones }) {
                             </div>
                         )}
 
+                        <SearchableOutstationSelect
+                            id="jumuiyas_outstation_uuid"
+                            label="Outstation"
+                            value={data.outstation_uuid}
+                            onChange={(uuid) => {
+                                setData('outstation_uuid', uuid);
+                                setData('zone_uuid', '');
+                            }}
+                        />
+
                         <FloatingSelect
                             id="jumuiyas_zone_uuid"
                             label="Zone"
@@ -94,8 +107,10 @@ export default function JumuiyasCreate({ zones }) {
                             error={errors.zone_uuid}
                         >
                             <option value="">Select zone</option>
-                            {(zones ?? []).map((z) => (
-                                <option key={z.uuid} value={z.uuid}>{z.name}</option>
+                            {(zones ?? [])
+                                .filter((z) => !data.outstation_uuid || z.outstation_uuid === data.outstation_uuid)
+                                .map((z) => (
+                                <option key={z.uuid} value={z.uuid}>{z.outstation_name ? `${z.name} (${z.outstation_name})` : z.name}</option>
                             ))}
                         </FloatingSelect>
 

@@ -35,6 +35,7 @@ class UpdateMemberRequest extends FormRequest
         $uuid = (string) ($this->route('member')?->uuid ?? '');
 
         return [
+            'outstation_uuid' => ['nullable', 'uuid'],
             'zone_uuid' => ['nullable', 'uuid'],
             'jumuiya_uuid' => ['sometimes', 'uuid'],
             'family_uuid' => ['required', 'uuid'],

@@ -12,6 +12,7 @@ use App\Models\People\Family;
 use App\Models\People\FamilyRelationship;
 use App\Models\People\Member;
 use App\Models\Structure\Jumuiya;
+use App\Models\Structure\Outstation;
 use App\Models\Structure\Zone;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -164,6 +165,7 @@ class FamilyController extends Controller
         $validated = $request->validated();
         $q = $validated['q'] ?? null;
         $perPage = (int) ($validated['per_page'] ?? 10);
+        $outstationUuid = $validated['outstation_uuid'] ?? null;
         $zoneUuid = $validated['zone_uuid'] ?? null;
         $jumuiyaUuid = $validated['jumuiya_uuid'] ?? null;
 
@@ -183,6 +185,14 @@ class FamilyController extends Controller
             $selectedJumuiya = null;
         }
 
+        $selectedOutstationId = null;
+        if (! $scopedJumuiyaId && is_string($outstationUuid) && $outstationUuid !== '') {
+            $selectedOutstationId = (int) (Outstation::query()->where('uuid', $outstationUuid)->value('id') ?? 0);
+            if (! $selectedOutstationId) {
+                $outstationUuid = null;
+            }
+        }
+
         $selectedZoneId = null;
         if (! $scopedJumuiyaId && is_string($zoneUuid) && $zoneUuid !== '') {
             $selectedZoneId = (int) (Zone::query()->where('uuid', $zoneUuid)->value('id') ?? 0);
@@ -194,10 +204,20 @@ class FamilyController extends Controller
         $familiesQuery = Family::query()
             ->with([
                 'jumuiya:id,uuid,name,zone_id',
-                'jumuiya.zone:id,uuid,name',
+                'jumuiya.zone:id,uuid,name,outstation_id',
+                'jumuiya.zone.outstation:id,uuid,name',
                 'headOfFamily:id,uuid,first_name,middle_name,last_name',
             ])
             ->when($scopedJumuiyaId, fn (Builder $qb) => $qb->where('jumuiya_id', $scopedJumuiyaId))
+            ->when($selectedOutstationId, function (Builder $qb) use ($selectedOutstationId) {
+                $qb->whereExists(function ($sub) use ($selectedOutstationId) {
+                    $sub->selectRaw('1')
+                        ->from('jumuiyas')
+                        ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                        ->whereColumn('jumuiyas.id', 'families.jumuiya_id')
+                        ->where('zones.outstation_id', $selectedOutstationId);
+                });
+            })
             ->when($selectedZoneId, function (Builder $qb) use ($selectedZoneId) {
                 $qb->whereExists(function ($sub) use ($selectedZoneId) {
                     $sub->selectRaw('1')
@@ -221,6 +241,7 @@ class FamilyController extends Controller
         return Inertia::render('Families/Index', [
             'filters' => [
                 'q' => $q,
+                'outstation_uuid' => $outstationUuid,
                 'zone_uuid' => $zoneUuid,
                 'jumuiya_uuid' => $jumuiyaUuid,
                 'per_page' => $perPage,

@@ -11,6 +11,8 @@ class FamilyResource extends JsonResource
     {
         return [
             'uuid' => $this->uuid,
+            'outstation_uuid' => $this->jumuiya?->zone?->outstation?->uuid,
+            'outstation_name' => $this->jumuiya?->zone?->outstation?->name,
             'zone_uuid' => $this->jumuiya?->zone?->uuid,
             'zone_name' => $this->jumuiya?->zone?->name,
             'jumuiya_uuid' => $this->jumuiya?->uuid,

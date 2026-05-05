@@ -7,6 +7,7 @@ import ModalHeader from '@/Components/ModalHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SearchableFamilySelect from '@/Components/SearchableFamilySelect';
 import SearchableJumuiyaSelect from '@/Components/SearchableJumuiyaSelect';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { toTitleCase } from '@/lib/formatters';
@@ -24,6 +25,7 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
 
     const [q, setQ] = useState(filters?.q ?? '');
     const [searchBy, setSearchBy] = useState(filters?.search_by ?? 'name');
+    const [outstationUuid, setOutstationUuid] = useState(filters?.outstation_uuid ?? '');
     const [zoneUuid, setZoneUuid] = useState(filters?.zone_uuid ?? '');
     const [jumuiyaUuid, setJumuiyaUuid] = useState(filters?.jumuiya_uuid ?? '');
     const [familyUuid, setFamilyUuid] = useState(filters?.family_uuid ?? '');
@@ -38,6 +40,7 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
             {
                 q: q || undefined,
                 search_by: searchBy || undefined,
+                outstation_uuid: outstationUuid || undefined,
                 zone_uuid: zoneUuid || undefined,
                 jumuiya_uuid: jumuiyaUuid || undefined,
                 family_uuid: familyUuid || undefined,
@@ -49,6 +52,7 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
     const clearSearch = () => {
         setQ('');
         setSearchBy('name');
+        setOutstationUuid('');
         setZoneUuid('');
         setJumuiyaUuid('');
         setFamilyUuid('');
@@ -69,6 +73,8 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
                         {canCreate && (
                             <Link
                                 href={route('members.create', {
+                                    outstation_uuid: outstationUuid || undefined,
+                                    zone_uuid: zoneUuid || undefined,
                                     jumuiya_uuid: jumuiyaUuid || undefined,
                                     family_uuid: familyUuid || undefined,
                                 })}
@@ -107,6 +113,20 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
                             </FloatingSelect>
 
                             <div className="lg:col-span-4">
+                                <SearchableOutstationSelect
+                                    id="members_outstation_filter"
+                                    label="Outstation"
+                                    value={outstationUuid}
+                                    onChange={(uuid) => {
+                                        setOutstationUuid(uuid);
+                                        setZoneUuid('');
+                                        setJumuiyaUuid('');
+                                        setFamilyUuid('');
+                                    }}
+                                />
+                            </div>
+
+                            <div className="lg:col-span-4">
                                 <SearchableZoneSelect
                                     id="members_zone_filter"
                                     label="Zone"
@@ -116,6 +136,8 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
                                         setJumuiyaUuid('');
                                         setFamilyUuid('');
                                     }}
+                                    outstationUuid={outstationUuid}
+                                    disabled={!outstationUuid}
                                 />
                             </div>
 
@@ -241,6 +263,7 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
                     <div className="flex-1 overflow-auto px-6 py-5">
                         {viewing && (
                             <div className="grid gap-4 md:grid-cols-2">
+                                <DetailItem label="Outstation" value={viewing.outstation_name ?? '-'} />
                                 <DetailItem label="Zone" value={viewing.zone_name ?? '-'} />
                                 <DetailItem label="Christian Community" value={viewing.jumuiya_name ?? '-'} />
                                 <DetailItem label="Family" value={viewing.family_name ?? '-'} />
@@ -370,6 +393,7 @@ function MemberRow({ member, striped = false, index, canUpdate, canDelete, canTr
 
 function TransferMemberModal({ open, onClose, member, canTransfer }) {
     const { data, setData, processing, errors, reset, post } = useForm({
+        outstation_uuid: '',
         zone_uuid: '',
         jumuiya_uuid: '',
         family_uuid: '',
@@ -380,6 +404,7 @@ function TransferMemberModal({ open, onClose, member, canTransfer }) {
     useEffect(() => {
         if (!open) return;
         setData({
+            outstation_uuid: '',
             zone_uuid: '',
             jumuiya_uuid: '',
             family_uuid: '',
@@ -421,8 +446,21 @@ function TransferMemberModal({ open, onClose, member, canTransfer }) {
                     <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                         <div className="space-y-5">
                             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                                Select Zone, Christian Community and Family. This will move the member under the selected Family.
+                                Select Outstation, Zone, Christian Community and Family. This will move the member under the selected Family.
                             </div>
+
+                            <SearchableOutstationSelect
+                                id="member_transfer_outstation_uuid"
+                                label="Outstation"
+                                value={data.outstation_uuid}
+                                onChange={(uuid) => {
+                                    setData('outstation_uuid', uuid);
+                                    if (data.zone_uuid) setData('zone_uuid', '');
+                                    if (data.jumuiya_uuid) setData('jumuiya_uuid', '');
+                                    if (data.family_uuid) setData('family_uuid', '');
+                                }}
+                                error={errors.outstation_uuid}
+                            />
 
                             <SearchableZoneSelect
                                 id="member_transfer_zone_uuid"
@@ -433,7 +471,9 @@ function TransferMemberModal({ open, onClose, member, canTransfer }) {
                                     if (data.jumuiya_uuid) setData('jumuiya_uuid', '');
                                     if (data.family_uuid) setData('family_uuid', '');
                                 }}
+                                outstationUuid={data.outstation_uuid}
                                 error={errors.zone_uuid}
+                                disabled={!data.outstation_uuid || processing}
                             />
 
                             <SearchableJumuiyaSelect

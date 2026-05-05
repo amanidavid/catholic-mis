@@ -8,6 +8,7 @@ use App\Http\Requests\Jumuiya\StoreJumuiyasRequest;
 use App\Http\Requests\Jumuiya\UpdateJumuiyaRequest;
 use App\Http\Resources\Structure\JumuiyaResource;
 use App\Models\Structure\Jumuiya;
+use App\Models\Structure\Outstation;
 use App\Models\Structure\Parish;
 use App\Models\Structure\Zone;
 use Illuminate\Database\Eloquent\Builder;
@@ -100,26 +101,53 @@ class JumuiyaController extends Controller
 
         $validated = $request->validated();
         $q = $validated['q'] ?? null;
+        $outstationUuid = $validated['outstation_uuid'] ?? null;
         $zoneUuid = $validated['zone_uuid'] ?? null;
         $perPage = (int) ($validated['per_page'] ?? 10);
 
         $parish = Parish::query()->orderBy('id')->first();
 
         $zones = [];
+        $outstations = [];
         if ($parish) {
-            $zones = Zone::query()
+            $outstations = Outstation::query()
                 ->where('parish_id', $parish->id)
                 ->orderBy('name')
                 ->get(['uuid', 'name']);
+
+            $zones = Zone::query()
+                ->with('outstation:id,name')
+                ->where('parish_id', $parish->id)
+                ->when(is_string($outstationUuid) && $outstationUuid !== '', function (Builder $qb) use ($outstationUuid, $parish) {
+                    $outstationId = (int) Outstation::query()
+                        ->where('parish_id', $parish->id)
+                        ->where('uuid', $outstationUuid)
+                        ->value('id');
+
+                    if ($outstationId > 0) {
+                        $qb->where('outstation_id', $outstationId);
+                    }
+                })
+                ->orderBy('name')
+                ->get(['id', 'uuid', 'name', 'outstation_id'])
+                ->map(fn (Zone $zone) => [
+                    'uuid' => $zone->uuid,
+                    'name' => $zone->name,
+                    'outstation_uuid' => $zone->outstation?->uuid,
+                    'outstation_name' => $zone->outstation?->name,
+                ])
+                ->values();
         }
 
         if (! $parish) {
             return Inertia::render('Jumuiyas/Index', [
                 'filters' => [
                     'q' => $q,
+                    'outstation_uuid' => $outstationUuid,
                     'zone_uuid' => $zoneUuid,
                     'per_page' => $perPage,
                 ],
+                'outstations' => $outstations,
                 'zones' => $zones,
                 'jumuiyas' => [
                     'data' => [],
@@ -138,6 +166,7 @@ class JumuiyaController extends Controller
         }
 
         $zoneIds = Zone::query()->where('parish_id', $parish->id)->pluck('id');
+        $selectedOutstation = null;
 
         $selectedZone = null;
         if (is_string($zoneUuid) && $zoneUuid !== '') {
@@ -147,9 +176,24 @@ class JumuiyaController extends Controller
                 ->first();
         }
 
+        if (is_string($outstationUuid) && $outstationUuid !== '') {
+            $selectedOutstation = Outstation::query()
+                ->where('parish_id', $parish->id)
+                ->where('uuid', $outstationUuid)
+                ->first();
+        }
+
         $jumuiyasQuery = Jumuiya::query()
-            ->with(['zone:id,uuid,name'])
+            ->with(['zone:id,uuid,name,outstation_id', 'zone.outstation:id,uuid,name'])
             ->whereIn('zone_id', $zoneIds)
+            ->when($selectedOutstation, function (Builder $qb) use ($selectedOutstation) {
+                $qb->whereExists(function ($sub) use ($selectedOutstation) {
+                    $sub->selectRaw('1')
+                        ->from('zones')
+                        ->whereColumn('zones.id', 'jumuiyas.zone_id')
+                        ->where('zones.outstation_id', $selectedOutstation->id);
+                });
+            })
             ->when($selectedZone, fn (Builder $qb) => $qb->where('zone_id', $selectedZone->id))
             ->when(is_string($q) && $q !== '', function (Builder $qb) use ($q) {
                 $safe = addcslashes($q, '%_\\');
@@ -164,9 +208,11 @@ class JumuiyaController extends Controller
         return Inertia::render('Jumuiyas/Index', [
             'filters' => [
                 'q' => $q,
+                'outstation_uuid' => $outstationUuid,
                 'zone_uuid' => $zoneUuid,
                 'per_page' => $perPage,
             ],
+            'outstations' => $outstations,
             'zones' => $zones,
             'jumuiyas' => JumuiyaResource::collection($jumuiyas),
         ]);
@@ -179,14 +225,29 @@ class JumuiyaController extends Controller
         $parish = Parish::query()->orderBy('id')->first();
 
         $zones = [];
+        $outstations = [];
         if ($parish) {
-            $zones = Zone::query()
+            $outstations = Outstation::query()
                 ->where('parish_id', $parish->id)
                 ->orderBy('name')
                 ->get(['uuid', 'name']);
+
+            $zones = Zone::query()
+                ->with('outstation:id,name')
+                ->where('parish_id', $parish->id)
+                ->orderBy('name')
+                ->get(['id', 'uuid', 'name', 'outstation_id'])
+                ->map(fn (Zone $zone) => [
+                    'uuid' => $zone->uuid,
+                    'name' => $zone->name,
+                    'outstation_uuid' => $zone->outstation?->uuid,
+                    'outstation_name' => $zone->outstation?->name,
+                ])
+                ->values();
         }
 
         return Inertia::render('Jumuiyas/Create', [
+            'outstations' => $outstations,
             'zones' => $zones,
         ]);
     }

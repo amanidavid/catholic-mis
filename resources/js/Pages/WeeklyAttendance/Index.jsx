@@ -4,6 +4,7 @@ import FloatingInput from '@/Components/FloatingInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import SearchableJumuiyaSelect from '@/Components/SearchableJumuiyaSelect';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import axios from 'axios';
 import { Head, usePage } from '@inertiajs/react';
@@ -81,6 +82,7 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
         return snapToNextSaturday(iso);
     });
 
+    const [outstationUuid, setOutstationUuid] = useState('');
     const [zoneUuid, setZoneUuid] = useState('');
     const [jumuiyaUuid, setJumuiyaUuid] = useState(scoped_jumuiya?.uuid ?? '');
     const [meetingUuid, setMeetingUuid] = useState('');
@@ -131,6 +133,11 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
         }
 
         if (can_select_jumuiya && !scoped_jumuiya) {
+            if (!outstationUuid) {
+                setPageError('Outstation is required to select a Zone.');
+                return;
+            }
+
             if (!zoneUuid) {
                 setPageError('Zone is required to select a Christian Community.');
                 return;
@@ -359,7 +366,7 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
                             </div>
                         </div>
                     ) : (
-                        <div className="mt-5 grid gap-3 sm:grid-cols-3 sm:items-end">
+                        <div className="mt-5 grid gap-3 sm:grid-cols-4 sm:items-end">
                             <div>
                                 <FloatingInput
                                     id="meeting_date"
@@ -382,6 +389,22 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
                             </div>
 
                             {can_select_jumuiya ? (
+                                <SearchableOutstationSelect
+                                    id="outstation_uuid"
+                                    label="Outstation"
+                                    value={outstationUuid}
+                                    onChange={(v) => {
+                                        setOutstationUuid(v);
+                                        setZoneUuid('');
+                                        setJumuiyaUuid('');
+                                    }}
+                                    error={null}
+                                />
+                            ) : (
+                                <div />
+                            )}
+
+                            {can_select_jumuiya ? (
                                 <SearchableZoneSelect
                                     id="zone_uuid"
                                     label="Zone"
@@ -390,6 +413,8 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
                                         setZoneUuid(v);
                                         setJumuiyaUuid('');
                                     }}
+                                    outstationUuid={outstationUuid}
+                                    disabled={!outstationUuid}
                                     error={null}
                                 />
                             ) : (

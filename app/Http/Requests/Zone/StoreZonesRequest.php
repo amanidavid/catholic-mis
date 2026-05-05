@@ -2,11 +2,12 @@
 
 namespace App\Http\Requests\Zone;
 
+use App\Models\Structure\Outstation;
 use App\Models\Structure\Parish;
 use App\Models\Structure\Zone;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use Illuminate\Validation\Rule;
 
 class StoreZonesRequest extends FormRequest
 {
@@ -20,6 +21,7 @@ class StoreZonesRequest extends FormRequest
         $currentYear = (int) now()->year;
 
         return [
+            'outstation_uuid' => ['bail', 'required', 'uuid', Rule::exists(Outstation::class, 'uuid')],
             'zones' => ['bail', 'required', 'array', 'min:1', 'max:200'],
             'zones.*.name' => ['bail', 'required', 'string', 'max:255'],
             'zones.*.description' => ['bail', 'nullable', 'string', 'max:255'],
@@ -85,8 +87,18 @@ class StoreZonesRequest extends FormRequest
                 return;
             }
 
+            $outstationUuid = $this->input('outstation_uuid');
+            $outstationId = is_string($outstationUuid) && $outstationUuid !== ''
+                ? (int) Outstation::query()->where('parish_id', $parishId)->where('uuid', $outstationUuid)->value('id')
+                : 0;
+
+            if (! $outstationId) {
+                $v->errors()->add('outstation_uuid', 'Invalid outstation.');
+                return;
+            }
+
             $existing = Zone::query()
-                ->where('parish_id', $parishId)
+                ->where('outstation_id', $outstationId)
                 ->whereIn('name', $rawNames)
                 ->pluck('name')
                 ->map(fn ($n) => mb_strtolower(trim((string) $n)))

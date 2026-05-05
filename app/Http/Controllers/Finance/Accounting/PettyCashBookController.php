@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Finance\Accounting;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Finance\Accounting\PettyCashBookEntryResource;
-use App\Http\Resources\Finance\Accounting\PettyCashFundIndexResource;
 use App\Models\Finance\GeneralLedger;
 use App\Models\Finance\PettyCashFund;
 use App\Services\Finance\Accounting\GeneralLedgerService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -30,8 +30,6 @@ class PettyCashBookController extends Controller
         $dateFrom = is_string($request->query('date_from')) ? trim((string) $request->query('date_from')) : '';
         $dateTo = is_string($request->query('date_to')) ? trim((string) $request->query('date_to')) : '';
         $perPage = max(10, min(100, (int) ($request->query('per_page') ?? 20)));
-
-        $funds = PettyCashFund::query()->select(['id', 'uuid', 'name', 'code', 'ledger_id', 'currency_id', 'imprest_amount', 'is_active'])->where('is_active', true)->orderBy('name')->get();
 
         $selectedFund = null;
         $entries = null;
@@ -84,7 +82,7 @@ class PettyCashBookController extends Controller
         }
 
         return Inertia::render('Finance/Accounting/PettyCash/Book/Index', [
-            'funds' => PettyCashFundIndexResource::collection($funds)->resolve(),
+            'funds' => [],
             'selected_fund' => $selectedFund ? ['uuid' => $selectedFund->uuid, 'name' => $selectedFund->name] : null,
             'opening_balance_signed' => $openingBalanceSigned,
             'entries' => $entries ? PettyCashBookEntryResource::collection($entries) : null,
@@ -95,5 +93,35 @@ class PettyCashBookController extends Controller
                 'per_page' => $perPage,
             ],
         ]);
+    }
+
+    public function lookup(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->can('finance.petty-cash-book.view'), 403);
+
+        $q = is_string($request->query('q')) ? trim((string) $request->query('q')) : '';
+
+        $rows = PettyCashFund::query()
+            ->select(['uuid', 'name', 'code'])
+            ->where('is_active', true)
+            ->when($q !== '', function ($qb) use ($q) {
+                $safe = addcslashes($q, '%_\\');
+                $qb->where(function ($w) use ($safe) {
+                    $w->where('name', 'like', $safe.'%')
+                        ->orWhere('code', 'like', $safe.'%');
+                });
+            })
+            ->orderBy('name')
+            ->limit(30)
+            ->get()
+            ->map(fn (PettyCashFund $fund) => [
+                'uuid' => $fund->uuid,
+                'name' => $fund->name,
+                'account_code' => $fund->code,
+                'subtitle' => $fund->code ? 'Fund code: '.$fund->code : null,
+            ])
+            ->values();
+
+        return response()->json(['data' => $rows]);
     }
 }

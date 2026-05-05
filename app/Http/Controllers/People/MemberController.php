@@ -14,6 +14,7 @@ use App\Models\People\FamilyRelationship;
 use App\Models\People\Member;
 use App\Models\People\MemberJumuiyaHistory;
 use App\Models\Structure\Jumuiya;
+use App\Models\Structure\Outstation;
 use App\Models\Structure\Zone;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -70,6 +71,7 @@ class MemberController extends Controller
         $q = $validated['q'] ?? null;
         $searchBy = $validated['search_by'] ?? 'name';
         $perPage = (int) ($validated['per_page'] ?? 10);
+        $outstationUuid = $validated['outstation_uuid'] ?? null;
         $zoneUuid = $validated['zone_uuid'] ?? null;
         $jumuiyaUuid = $validated['jumuiya_uuid'] ?? null;
         $familyUuid = $validated['family_uuid'] ?? null;
@@ -100,6 +102,14 @@ class MemberController extends Controller
             }
         }
 
+        $selectedOutstationId = null;
+        if (! $scopedJumuiyaId && is_string($outstationUuid) && $outstationUuid !== '') {
+            $selectedOutstationId = (int) (Outstation::query()->where('uuid', $outstationUuid)->value('id') ?? 0);
+            if (! $selectedOutstationId) {
+                $outstationUuid = null;
+            }
+        }
+
         $selectedZoneId = null;
         if (! $scopedJumuiyaId && is_string($zoneUuid) && $zoneUuid !== '') {
             $selectedZoneId = (int) (Zone::query()->where('uuid', $zoneUuid)->value('id') ?? 0);
@@ -111,12 +121,22 @@ class MemberController extends Controller
         $membersQuery = Member::query()
             ->with([
                 'jumuiya:id,uuid,name,zone_id',
-                'jumuiya.zone:id,uuid,name',
+                'jumuiya.zone:id,uuid,name,outstation_id',
+                'jumuiya.zone.outstation:id,uuid,name',
                 'family:id,uuid,family_name',
                 'user:id,member_id',
                 'user.roles:id,name',
             ])
             ->when($scopedJumuiyaId, fn (Builder $qb) => $qb->where('jumuiya_id', $scopedJumuiyaId))
+            ->when($selectedOutstationId, function (Builder $qb) use ($selectedOutstationId) {
+                $qb->whereExists(function ($sub) use ($selectedOutstationId) {
+                    $sub->select(DB::raw(1))
+                        ->from('jumuiyas')
+                        ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                        ->whereColumn('jumuiyas.id', 'members.jumuiya_id')
+                        ->where('zones.outstation_id', $selectedOutstationId);
+                });
+            })
             ->when($selectedZoneId, function (Builder $qb) use ($selectedZoneId) {
                 $qb->whereExists(function ($sub) use ($selectedZoneId) {
                     $sub->select(DB::raw(1))
@@ -165,6 +185,7 @@ class MemberController extends Controller
             'filters' => [
                 'q' => $q,
                 'search_by' => $searchBy,
+                'outstation_uuid' => $outstationUuid,
                 'zone_uuid' => $zoneUuid,
                 'jumuiya_uuid' => $jumuiyaUuid,
                 'family_uuid' => $familyUuid,
@@ -179,22 +200,55 @@ class MemberController extends Controller
     {
         $this->authorize('create', Member::class);
 
+        $defaultOutstationUuid = $request->query('outstation_uuid');
+        $defaultZoneUuid = $request->query('zone_uuid');
         $defaultJumuiyaUuid = $request->query('jumuiya_uuid');
         $jumuiyaUuidFromQuery = is_string($defaultJumuiyaUuid) && $defaultJumuiyaUuid !== '';
-        $defaultZoneUuid = null;
+        $defaultOutstationName = null;
         $defaultZoneName = null;
         $defaultJumuiyaName = null;
+
+        if (is_string($defaultOutstationUuid) && $defaultOutstationUuid !== '') {
+            $outstation = Outstation::query()
+                ->where('uuid', $defaultOutstationUuid)
+                ->first(['uuid', 'name']);
+
+            if ($outstation) {
+                $defaultOutstationUuid = $outstation->uuid;
+                $defaultOutstationName = $outstation->name;
+            } else {
+                $defaultOutstationUuid = null;
+            }
+        }
+
+        if (is_string($defaultZoneUuid) && $defaultZoneUuid !== '') {
+            $zone = Zone::query()
+                ->with('outstation:id,uuid,name')
+                ->where('uuid', $defaultZoneUuid)
+                ->first(['id', 'uuid', 'name', 'outstation_id']);
+
+            if ($zone) {
+                $defaultZoneUuid = $zone->uuid;
+                $defaultZoneName = $zone->name;
+                $defaultOutstationUuid = $zone->outstation?->uuid ?? $defaultOutstationUuid;
+                $defaultOutstationName = $zone->outstation?->name ?? $defaultOutstationName;
+            } else {
+                $defaultZoneUuid = null;
+            }
+        }
 
         $scopedJumuiyaId = $this->scopedJumuiyaId($request);
         if ($scopedJumuiyaId && (! is_string($defaultJumuiyaUuid) || $defaultJumuiyaUuid === '')) {
             $scoped = Jumuiya::query()
                 ->where('id', $scopedJumuiyaId)
-                ->with('zone:id,uuid,name')
+                ->with('zone:id,uuid,name,outstation_id', 'zone.outstation:id,uuid,name')
                 ->first();
 
             if ($scoped) {
                 $defaultJumuiyaUuid = $scoped->uuid;
                 $defaultJumuiyaName = $scoped->name;
+                $defaultOutstationUuid = $scoped->zone?->outstation?->uuid;
+                $defaultOutstationName = $scoped->zone?->outstation?->name;
                 $defaultZoneUuid = $scoped->zone?->uuid;
                 $defaultZoneName = $scoped->zone?->name;
             }
@@ -203,9 +257,11 @@ class MemberController extends Controller
         if (is_string($defaultJumuiyaUuid) && $defaultJumuiyaUuid !== '' && ! $defaultZoneUuid) {
             $jumuiya = Jumuiya::query()
                 ->where('uuid', $defaultJumuiyaUuid)
-                ->with('zone:id,uuid,name')
+                ->with('zone:id,uuid,name,outstation_id', 'zone.outstation:id,uuid,name')
                 ->first();
 
+            $defaultOutstationUuid = $jumuiya?->zone?->outstation?->uuid;
+            $defaultOutstationName = $jumuiya?->zone?->outstation?->name;
             $defaultZoneUuid = $jumuiya?->zone?->uuid;
             $defaultZoneName = $jumuiya?->zone?->name;
             $defaultJumuiyaName = $jumuiya?->name;
@@ -213,6 +269,8 @@ class MemberController extends Controller
 
         return Inertia::render('Members/Create', [
             'defaults' => [
+                'outstation_uuid' => $defaultOutstationUuid,
+                'outstation_name' => $defaultOutstationName,
                 'zone_uuid' => $defaultZoneUuid,
                 'zone_name' => $defaultZoneName,
                 'jumuiya_uuid' => $defaultJumuiyaUuid,
@@ -234,7 +292,8 @@ class MemberController extends Controller
 
         $member->load([
             'jumuiya:id,uuid,name,zone_id',
-            'jumuiya.zone:id,uuid,name',
+            'jumuiya.zone:id,uuid,name,outstation_id',
+            'jumuiya.zone.outstation:id,uuid,name',
             'family:id,uuid,family_name,head_of_family_member_id',
             'familyRelationship:id,uuid,name',
         ]);

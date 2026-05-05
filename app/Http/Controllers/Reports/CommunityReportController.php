@@ -89,6 +89,7 @@ class CommunityReportController extends Controller
                 ->select('families.jumuiya_id', DB::raw('COUNT(families.id) as families'))
                 ->join('jumuiyas', 'jumuiyas.id', '=', 'families.jumuiya_id')
                 ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                ->join('outstations', 'outstations.id', '=', 'zones.outstation_id')
                 ->where('families.is_active', true)
                 ->where('jumuiyas.is_active', true)
                 ->where('zones.parish_id', $parishId)
@@ -101,6 +102,7 @@ class CommunityReportController extends Controller
                 ->join('families', 'families.id', '=', 'members.family_id')
                 ->join('jumuiyas', 'jumuiyas.id', '=', 'families.jumuiya_id')
                 ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                ->join('outstations', 'outstations.id', '=', 'zones.outstation_id')
                 ->select('families.jumuiya_id', DB::raw('COUNT(members.id) as members'))
                 ->where('members.is_active', true)
                 ->where('families.is_active', true)
@@ -113,6 +115,7 @@ class CommunityReportController extends Controller
 
             $paginator = DB::table('jumuiyas')
                 ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                ->join('outstations', 'outstations.id', '=', 'zones.outstation_id')
                 ->leftJoinSub($activeFamilyCounts, 'fc', function ($j) {
                     $j->on('fc.jumuiya_id', '=', 'jumuiyas.id');
                 })
@@ -127,13 +130,17 @@ class CommunityReportController extends Controller
                 })
                 ->when($like !== null, function ($qb) use ($like) {
                     $qb->where(function ($q) use ($like) {
-                        $q->where('zones.name', 'like', $like)
+                        $q->where('outstations.name', 'like', $like)
+                            ->orWhere('zones.name', 'like', $like)
                             ->orWhere('jumuiyas.name', 'like', $like);
                     });
                 })
+                ->orderBy('outstations.name')
                 ->orderBy('zones.name')
                 ->orderBy('jumuiyas.name')
                 ->select([
+                    'outstations.uuid as outstation_uuid',
+                    'outstations.name as outstation_name',
                     'zones.uuid as zone_uuid',
                     'zones.name as zone_name',
                     'jumuiyas.uuid as jumuiya_uuid',
@@ -146,6 +153,8 @@ class CommunityReportController extends Controller
 
             $rows = $paginator->through(function ($r) {
                 return [
+                    'outstation_uuid' => (string) ($r->outstation_uuid ?? ''),
+                    'outstation_name' => (string) ($r->outstation_name ?? ''),
                     'zone_uuid' => (string) ($r->zone_uuid ?? ''),
                     'zone_name' => (string) ($r->zone_name ?? ''),
                     'jumuiya_uuid' => (string) ($r->jumuiya_uuid ?? ''),

@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import FloatingInput from '@/Components/FloatingInput';
-import FloatingSelect from '@/Components/FloatingSelect';
+import SearchableLedgerSelect from '@/Components/SearchableLedgerSelect';
 import { toTitleCase } from '@/lib/formatters';
 import { Head, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
@@ -50,10 +50,15 @@ export default function PettyCashBookIndex({ funds, selected_fund, opening_balan
 
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
                     <form onSubmit={search} className="grid gap-3 lg:grid-cols-12 lg:items-end">
-                        <FloatingSelect id="pcb_fund" label="Petty cash fund" value={fundUuid} onChange={(e) => setFundUuid(e.target.value)} className="lg:col-span-5">
-                            <option value="">All funds</option>
-                            {(funds ?? []).map((f) => <option key={f.uuid} value={f.uuid}>{toTitleCase(f.name ?? '')}</option>)}
-                        </FloatingSelect>
+                        <SearchableLedgerSelect
+                            id="pcb_fund"
+                            label="Petty cash fund"
+                            value={fundUuid}
+                            onChange={setFundUuid}
+                            routeName="finance.petty-cash-book.lookup"
+                            purpose=""
+                            className="lg:col-span-5"
+                        />
                         <FloatingInput id="pcb_from" label="Date from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="lg:col-span-2" />
                         <FloatingInput id="pcb_to" label="Date to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="lg:col-span-2" />
                         <div className="flex items-center gap-2 lg:col-span-3 lg:justify-end">
@@ -77,8 +82,8 @@ export default function PettyCashBookIndex({ funds, selected_fund, opening_balan
 
                     {entries && (
                         <>
-                            <div className="mt-6 overflow-x-auto">
-                                <div className="overflow-hidden rounded-xl ring-1 ring-slate-200">
+                            <div className="mt-6 overflow-x-auto rounded-xl ring-1 ring-slate-200">
+                                <div className="min-w-[980px] overflow-hidden">
                                     <table className="mis-table divide-y divide-slate-200">
                                         <thead>
                                             <tr>

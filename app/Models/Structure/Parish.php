@@ -35,4 +35,9 @@ class Parish extends BaseModel
     {
         return $this->hasMany(Zone::class);
     }
+
+    public function outstations(): HasMany
+    {
+        return $this->hasMany(Outstation::class);
+    }
 }

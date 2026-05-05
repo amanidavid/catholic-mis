@@ -3,6 +3,7 @@ import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import SearchableJumuiyaSelect from '@/Components/SearchableJumuiyaSelect';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import FloatingInput from '@/Components/FloatingInput';
 import { Head, usePage } from '@inertiajs/react';
@@ -68,6 +69,7 @@ export default function Families({ scoped_jumuiya, can_select_jumuiya }) {
     const [from, setFrom] = useState(() => monthStartIso());
     const [to, setTo] = useState(() => monthEndIso());
 
+    const [outstationUuid, setOutstationUuid] = useState('');
     const [zoneUuid, setZoneUuid] = useState('');
     const [jumuiyaUuid, setJumuiyaUuid] = useState(scoped_jumuiya?.uuid ?? '');
 
@@ -178,6 +180,20 @@ export default function Families({ scoped_jumuiya, can_select_jumuiya }) {
                         ) : (
                             <>
                                 <div className="sm:col-span-1">
+                                    <SearchableOutstationSelect
+                                        id="outstation_uuid"
+                                        label="Outstation"
+                                        value={outstationUuid}
+                                        onChange={(v) => {
+                                            setOutstationUuid(v);
+                                            setZoneUuid('');
+                                            setJumuiyaUuid('');
+                                        }}
+                                        error={null}
+                                    />
+                                </div>
+
+                                <div className="sm:col-span-1">
                                     <SearchableZoneSelect
                                         id="zone_uuid"
                                         label="Zone"
@@ -186,6 +202,8 @@ export default function Families({ scoped_jumuiya, can_select_jumuiya }) {
                                             setZoneUuid(v);
                                             setJumuiyaUuid('');
                                         }}
+                                        outstationUuid={outstationUuid}
+                                        disabled={!outstationUuid}
                                         error={null}
                                     />
                                 </div>

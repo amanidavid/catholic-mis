@@ -8,7 +8,7 @@ use App\Traits\NormalizesNames;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Zone extends BaseModel
+class Outstation extends BaseModel
 {
     use Auditable;
 
@@ -16,17 +16,16 @@ class Zone extends BaseModel
     {
         parent::booted();
 
-        static::saving(function (Zone $model) {
+        static::saving(function (Outstation $model) {
             $model->name = NormalizesNames::normalize($model->name);
         });
     }
 
-    protected $table = 'zones';
+    protected $table = 'outstations';
 
     protected $fillable = [
         'uuid',
         'parish_id',
-        'outstation_id',
         'name',
         'description',
         'established_year',
@@ -38,13 +37,8 @@ class Zone extends BaseModel
         return $this->belongsTo(Parish::class);
     }
 
-    public function outstation(): BelongsTo
+    public function zones(): HasMany
     {
-        return $this->belongsTo(Outstation::class);
-    }
-
-    public function jumuiyas(): HasMany
-    {
-        return $this->hasMany(Jumuiya::class);
+        return $this->hasMany(Zone::class);
     }
 }

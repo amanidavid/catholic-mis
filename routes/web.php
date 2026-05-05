@@ -14,6 +14,7 @@ use App\Http\Controllers\Attendance\WeeklyAttendanceController;
 use App\Http\Controllers\Attendance\WeeklyAttendanceReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Jumuiyas\JumuiyaController;
+use App\Http\Controllers\Outstations\OutstationController;
 use App\Http\Controllers\ParishStaff\ParishStaffController;
 use App\Http\Controllers\ParishStaff\ParishStaffPositionController;
 use App\Http\Controllers\Finance\ChartOfAccounts\AccountGroupController as CoaAccountGroupController;
@@ -133,10 +134,12 @@ Route::middleware('auth')->group(function () {
 
         Route::prefix('general-ledger')->group(function () {
             Route::get('/', [FinanceGeneralLedgerController::class, 'index'])->name('finance.general-ledger.index');
+            Route::get('/lookup', [FinanceGeneralLedgerController::class, 'lookup'])->name('finance.general-ledger.lookup');
         });
 
         Route::prefix('trial-balance')->group(function () {
             Route::get('/', [FinanceTrialBalanceController::class, 'index'])->name('finance.trial-balance.index');
+            Route::get('/export', [FinanceTrialBalanceController::class, 'export'])->name('finance.trial-balance.export');
         });
 
         Route::prefix('petty-cash-funds')->group(function () {
@@ -171,6 +174,7 @@ Route::middleware('auth')->group(function () {
 
         Route::prefix('petty-cash-book')->middleware('can:finance.petty-cash-book.view')->group(function () {
             Route::get('/', [FinancePettyCashBookController::class, 'index'])->name('finance.petty-cash-book.index');
+            Route::get('/lookup', [FinancePettyCashBookController::class, 'lookup'])->name('finance.petty-cash-book.lookup');
         });
     });
 
@@ -193,6 +197,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/zones', [ZoneController::class, 'store'])->name('zones.store');
     Route::patch('/zones/{zone}', [ZoneController::class, 'update'])->name('zones.update');
     Route::delete('/zones/{zone}', [ZoneController::class, 'destroy'])->name('zones.destroy');
+
+    Route::get('/outstations', [OutstationController::class, 'index'])->name('outstations.index');
+    Route::get('/outstations/lookup', [OutstationController::class, 'lookup'])->name('outstations.lookup');
+    Route::post('/outstations', [OutstationController::class, 'store'])->name('outstations.store');
+    Route::patch('/outstations/{outstation}', [OutstationController::class, 'update'])->name('outstations.update');
+    Route::delete('/outstations/{outstation}', [OutstationController::class, 'destroy'])->name('outstations.destroy');
 
     Route::get('/jumuiyas', [JumuiyaController::class, 'index'])->name('jumuiyas.index');
     Route::get('/jumuiyas/create', [JumuiyaController::class, 'create'])->name('jumuiyas.create');

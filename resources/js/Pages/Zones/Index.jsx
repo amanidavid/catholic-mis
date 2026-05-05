@@ -4,6 +4,7 @@ import FloatingInput from '@/Components/FloatingInput';
 import Modal from '@/Components/Modal';
 import ModalHeader from '@/Components/ModalHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SecondaryButton from '@/Components/SecondaryButton';
 import Spinner from '@/Components/Spinner';
 import { toTitleCase } from '@/lib/formatters';
@@ -29,6 +30,7 @@ export default function ZonesIndex({ zones, filters }) {
         errors,
         reset,
     } = useForm({
+        outstation_uuid: '',
         zones: rows,
     });
 
@@ -58,6 +60,7 @@ export default function ZonesIndex({ zones, filters }) {
                 reset();
                 const initial = [{ name: '', description: '', established_year: '' }];
                 setRows(initial);
+                setData('outstation_uuid', '');
                 setData('zones', initial);
                 setAddOpen(false);
             },
@@ -65,14 +68,16 @@ export default function ZonesIndex({ zones, filters }) {
     };
 
     const [q, setQ] = useState(filters?.q ?? '');
+    const [outstationUuid, setOutstationUuid] = useState(filters?.outstation_uuid ?? '');
 
     const applySearch = (e) => {
         e.preventDefault();
-        router.get(route('zones.index'), { q }, { preserveState: true, replace: true });
+        router.get(route('zones.index'), { q, outstation_uuid: outstationUuid || undefined }, { preserveState: true, replace: true });
     };
 
     const clearSearch = () => {
         setQ('');
+        setOutstationUuid('');
         router.get(route('zones.index'), {}, { preserveState: true, replace: true });
     };
 
@@ -115,14 +120,20 @@ export default function ZonesIndex({ zones, filters }) {
                 </div>
 
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
-                    <form onSubmit={applySearch} className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                        <div className="w-full sm:max-w-md">
+                    <form onSubmit={applySearch} className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="grid w-full gap-3 sm:grid-cols-2 lg:max-w-3xl">
                             <FloatingInput
                                 id="zones_q"
                                 label="Search (name)"
                                 value={q}
                                 onChange={(e) => setQ(e.target.value)}
                                 hint=""
+                            />
+                            <SearchableOutstationSelect
+                                id="zones_outstation_filter"
+                                label="Outstation"
+                                value={outstationUuid}
+                                onChange={setOutstationUuid}
                             />
                         </div>
                         <div className="flex items-center gap-2">
@@ -149,6 +160,7 @@ export default function ZonesIndex({ zones, filters }) {
                                     <tr>
                                         <th className="w-16">#</th>
                                         <th>Name</th>
+                                        <th>Outstation</th>
                                         <th>Year</th>
                                         <th>Status</th>
                                         {canManage && <th className="text-right">Actions</th>}
@@ -167,7 +179,7 @@ export default function ZonesIndex({ zones, filters }) {
                                     ))}
                                     {(zones?.data ?? []).length === 0 && (
                                         <tr>
-                                            <td colSpan={canManage ? 5 : 4} className="px-4 py-10 text-center text-sm text-slate-500">
+                                            <td colSpan={canManage ? 6 : 5} className="px-4 py-10 text-center text-sm text-slate-500">
                                                 No zones found.
                                             </td>
                                         </tr>
@@ -199,6 +211,13 @@ export default function ZonesIndex({ zones, filters }) {
                                 Fix the highlighted errors below. Bulk save is processed together, so nothing is saved until all rows are valid.
                             </div>
                         )}
+                        <SearchableOutstationSelect
+                            id="zone_outstation_uuid"
+                            label="Outstation"
+                            value={data.outstation_uuid}
+                            onChange={(uuid) => setData('outstation_uuid', uuid)}
+                            error={errors.outstation_uuid}
+                        />
                         {rows.map((row, idx) => (
                             <div key={idx} className="rounded-xl border border-slate-200 p-4">
                                 <div className="grid gap-4 md:grid-cols-2">
@@ -285,6 +304,7 @@ function ZoneRow({ zone, canManage, striped = false, index, onEdit }) {
             <tr className={`${striped ? 'bg-slate-50/50' : 'bg-white'} hover:bg-indigo-50/40 transition`}>
                 <td className="px-4 py-3 text-sm font-semibold text-slate-700">{index}</td>
                 <td className="px-4 py-3 text-sm font-medium text-slate-900">{toTitleCase(zone.name)}</td>
+                <td className="px-4 py-3 text-sm text-slate-700">{toTitleCase(zone.outstation_name ?? '-')}</td>
                 <td className="px-4 py-3 text-sm text-slate-700">{zone.established_year ?? '-'}</td>
                 <td className="px-4 py-3 text-sm">
                     <span
@@ -425,6 +445,7 @@ function PaginationSummary({ meta }) {
 
 function EditZoneModal({ open, onClose, zone }) {
     const { data, setData, patch, processing, errors, clearErrors } = useForm({
+        outstation_uuid: zone?.outstation_uuid ?? '',
         name: zone?.name ?? '',
         description: zone?.description ?? '',
         established_year: zone?.established_year ?? '',
@@ -436,6 +457,7 @@ function EditZoneModal({ open, onClose, zone }) {
 
         clearErrors();
         setData({
+            outstation_uuid: zone?.outstation_uuid ?? '',
             name: zone?.name ?? '',
             description: zone?.description ?? '',
             established_year: zone?.established_year ?? '',
@@ -469,6 +491,13 @@ function EditZoneModal({ open, onClose, zone }) {
                 />
 
                 <form onSubmit={submit} className="mt-4 space-y-4">
+                    <SearchableOutstationSelect
+                        id={`edit_zone_outstation_${zone.uuid}`}
+                        label="Outstation"
+                        value={data.outstation_uuid}
+                        onChange={(uuid) => setData('outstation_uuid', uuid)}
+                        error={errors.outstation_uuid}
+                    />
                     <div className="grid gap-4 md:grid-cols-2">
                         <FloatingInput
                             id={`edit_zone_name_${zone.uuid}`}
@@ -514,6 +543,7 @@ function EditZoneModal({ open, onClose, zone }) {
                                 onClick={() => {
                                     clearErrors();
                                     setData({
+                                        outstation_uuid: zone?.outstation_uuid ?? '',
                                         name: zone?.name ?? '',
                                         description: zone?.description ?? '',
                                         established_year: zone?.established_year ?? '',

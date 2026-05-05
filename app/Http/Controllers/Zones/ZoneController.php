@@ -8,6 +8,7 @@ use App\Http\Requests\Zone\StoreZonesRequest;
 use App\Http\Requests\Zone\UpdateZoneRequest;
 use App\Http\Resources\Structure\ZoneResource;
 use App\Models\Structure\Parish;
+use App\Models\Structure\Outstation;
 use App\Models\Structure\Jumuiya;
 use App\Models\Structure\Zone;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,6 +46,7 @@ class ZoneController extends Controller
         $this->authorize('viewAny', Zone::class);
 
         $q = $request->query('q');
+        $outstationUuid = $request->query('outstation_uuid');
         $q = is_string($q) ? trim($q) : '';
 
         $parish = Parish::query()->orderBy('id')->first();
@@ -53,12 +55,22 @@ class ZoneController extends Controller
         }
 
         $scopedZoneId = $this->scopedZoneId($request);
+        $selectedOutstationId = null;
+
+        if (is_string($outstationUuid) && $outstationUuid !== '') {
+            $selectedOutstationId = (int) Outstation::query()
+                ->where('parish_id', $parish->id)
+                ->where('uuid', $outstationUuid)
+                ->value('id');
+        }
 
         $safe = addcslashes($q, '%_\\');
 
         $zones = Zone::query()
-            ->select(['uuid', 'name'])
+            ->with(['outstation:id,name'])
+            ->select(['id', 'uuid', 'name', 'outstation_id'])
             ->where('parish_id', $parish->id)
+            ->when($selectedOutstationId, fn (Builder $qb) => $qb->where('outstation_id', $selectedOutstationId))
             ->when($scopedZoneId, fn (Builder $qb) => $qb->where('id', $scopedZoneId))
             ->when($q !== '', function (Builder $qb) use ($safe) {
                 $qb->where(function (Builder $sub) use ($safe) {
@@ -68,7 +80,7 @@ class ZoneController extends Controller
             ->orderBy('name')
             ->limit(20)
             ->get()
-            ->map(fn (Zone $z) => ['uuid' => $z->uuid, 'name' => $z->name])
+            ->map(fn (Zone $z) => ['uuid' => $z->uuid, 'name' => $z->name, 'outstation_name' => $z->outstation?->name])
             ->values();
 
         return response()->json(['data' => $zones]);
@@ -80,16 +92,35 @@ class ZoneController extends Controller
 
         $validated = $request->validated();
         $q = $validated['q'] ?? null;
+        $outstationUuid = $validated['outstation_uuid'] ?? null;
         $perPage = (int) ($validated['per_page'] ?? 10);
 
         $parish = Parish::query()->orderBy('id')->first();
+        $outstations = [];
+        $selectedOutstation = null;
+
+        if ($parish) {
+            $outstations = Outstation::query()
+                ->where('parish_id', $parish->id)
+                ->orderBy('name')
+                ->get(['uuid', 'name']);
+
+            if (is_string($outstationUuid) && $outstationUuid !== '') {
+                $selectedOutstation = Outstation::query()
+                    ->where('parish_id', $parish->id)
+                    ->where('uuid', $outstationUuid)
+                    ->first();
+            }
+        }
 
         if (! $parish) {
             return Inertia::render('Zones/Index', [
                 'filters' => [
                     'q' => $q,
+                    'outstation_uuid' => $outstationUuid,
                     'per_page' => $perPage,
                 ],
+                'outstations' => $outstations,
                 'zones' => [
                     'data' => [],
                     'links' => [],
@@ -107,7 +138,9 @@ class ZoneController extends Controller
         }
 
         $zonesQuery = Zone::query()
+            ->with(['outstation:id,uuid,name'])
             ->where('parish_id', $parish->id)
+            ->when($selectedOutstation, fn (Builder $qb) => $qb->where('outstation_id', $selectedOutstation->id))
             ->when(is_string($q) && $q !== '', function (Builder $qb) use ($q) {
                 $safe = addcslashes($q, '%_\\');
                 $qb->where(function (Builder $sub) use ($safe) {
@@ -121,8 +154,10 @@ class ZoneController extends Controller
         return Inertia::render('Zones/Index', [
             'filters' => [
                 'q' => $q,
+                'outstation_uuid' => $outstationUuid,
                 'per_page' => $perPage,
             ],
+            'outstations' => $outstations,
             'zones' => ZoneResource::collection($zones),
         ]);
     }
@@ -139,12 +174,22 @@ class ZoneController extends Controller
 
         try {
             $payload = $request->validated();
+            $outstation = Outstation::query()
+                ->where('parish_id', $parish->id)
+                ->where('uuid', $payload['outstation_uuid'])
+                ->first();
+
+            if (! $outstation) {
+                return back()->with('error', 'Invalid outstation.');
+            }
+
             $zones = $payload['zones'] ?? [];
 
-            DB::transaction(function () use ($zones, $parish): void {
+            DB::transaction(function () use ($zones, $parish, $outstation): void {
                 foreach ($zones as $zoneInput) {
                     Zone::query()->create([
                         'parish_id' => $parish->id,
+                        'outstation_id' => $outstation->id,
                         'name' => $zoneInput['name'],
                         'description' => $zoneInput['description'] ?? null,
                         'established_year' => $zoneInput['established_year'] ?? null,
@@ -172,8 +217,17 @@ class ZoneController extends Controller
 
         try {
             $data = $request->validated();
+            $outstation = Outstation::query()
+                ->where('parish_id', $parish->id)
+                ->where('uuid', $data['outstation_uuid'])
+                ->first();
+
+            if (! $outstation) {
+                return back()->with('error', 'Invalid outstation.');
+            }
 
             $zone->update([
+                'outstation_id' => $outstation->id,
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
                 'established_year' => $data['established_year'] ?? null,

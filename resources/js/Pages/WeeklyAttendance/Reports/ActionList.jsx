@@ -3,6 +3,7 @@ import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import SearchableJumuiyaSelect from '@/Components/SearchableJumuiyaSelect';
+import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
 import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import FloatingInput from '@/Components/FloatingInput';
 import { Head, usePage } from '@inertiajs/react';
@@ -50,6 +51,7 @@ export default function ActionList({ scoped_jumuiya, can_select_jumuiya }) {
     const [weeks, setWeeks] = useState(12);
     const [minConsecutive, setMinConsecutive] = useState(3);
 
+    const [outstationUuid, setOutstationUuid] = useState('');
     const [zoneUuid, setZoneUuid] = useState('');
     const [jumuiyaUuid, setJumuiyaUuid] = useState(scoped_jumuiya?.uuid ?? '');
 
@@ -152,6 +154,20 @@ export default function ActionList({ scoped_jumuiya, can_select_jumuiya }) {
                         ) : (
                             <>
                                 <div className="sm:col-span-2">
+                                    <SearchableOutstationSelect
+                                        id="outstation_uuid"
+                                        label="Outstation"
+                                        value={outstationUuid}
+                                        onChange={(v) => {
+                                            setOutstationUuid(v);
+                                            setZoneUuid('');
+                                            setJumuiyaUuid('');
+                                        }}
+                                        error={null}
+                                    />
+                                </div>
+
+                                <div className="sm:col-span-2">
                                     <SearchableZoneSelect
                                         id="zone_uuid"
                                         label="Zone"
@@ -160,6 +176,8 @@ export default function ActionList({ scoped_jumuiya, can_select_jumuiya }) {
                                             setZoneUuid(v);
                                             setJumuiyaUuid('');
                                         }}
+                                        outstationUuid={outstationUuid}
+                                        disabled={!outstationUuid}
                                         error={null}
                                     />
                                 </div>

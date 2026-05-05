@@ -14,6 +14,7 @@ class UpdateFamilyRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'outstation_uuid' => ['nullable', 'uuid'],
             'zone_uuid' => ['nullable', 'uuid'],
             'jumuiya_uuid' => ['sometimes', 'uuid'],
             'family_name' => ['required', 'string', 'max:255'],
