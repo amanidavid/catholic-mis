@@ -782,11 +782,6 @@ class MarriageController extends Controller
         if (! $hasBrideFather) $missing[] = 'Bride father details';
         if (! $hasBrideMother) $missing[] = 'Bride mother details';
 
-        $hasGroomBaptism = $marriage->attachments->where('type', 'groom_baptism_certificate')->count() > 0;
-        $hasBrideBaptism = $marriage->attachments->where('type', 'bride_baptism_certificate')->count() > 0;
-        if (! $hasGroomBaptism) $missing[] = 'Groom baptism certificate (PDF)';
-        if (! $hasBrideBaptism) $missing[] = 'Bride baptism certificate (PDF)';
-
         $marriageDate = $marriage->marriage_date ? Carbon::parse($marriage->marriage_date)->startOfDay() : null;
         if (! $marriageDate) {
             $missing[] = 'Marriage date';
@@ -812,14 +807,6 @@ class MarriageController extends Controller
         }
         if (is_string($femaleWitnessPhone) && trim($femaleWitnessPhone) !== '' && ! preg_match(PhoneNormalizer::TZ_REGEX, $femaleWitnessPhone)) {
             $missing[] = 'Maid of honor phone format must be valid';
-        }
-
-        if (! $marriage->bride_member_id) {
-            $hasBrideLetter = $marriage->attachments->where('type', 'bride_home_parish_letter')->count() > 0;
-            if (! $hasBrideLetter) $missing[] = 'Bride home parish letter (external parish clearance)';
-        } elseif ($marriage->bride_parish_id && (int) $marriage->bride_parish_id !== (int) $marriage->groom_parish_id) {
-            $hasBrideLetter = $marriage->attachments->where('type', 'bride_home_parish_letter')->count() > 0;
-            if (! $hasBrideLetter) $missing[] = 'Bride home parish letter (external parish clearance)';
         }
 
         if (! empty($missing)) {

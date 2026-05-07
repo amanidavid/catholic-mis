@@ -11,7 +11,13 @@ import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect, useMemo } from 'react';
 
-export default function MembersCreate({ defaults }) {
+const SACRAMENT_LABELS = {
+    baptism: 'Baptism',
+    communion: 'First Communion',
+    confirmation: 'Confirmation',
+};
+
+export default function MembersCreate({ defaults, marital_status_options }) {
     const defaultOutstation = defaults?.outstation_uuid ?? '';
     const defaultOutstationName = defaults?.outstation_name ?? '';
     const defaultZone = defaults?.zone_uuid ?? '';
@@ -45,7 +51,14 @@ export default function MembersCreate({ defaults }) {
         email: '',
         national_id: '',
         marital_status: '',
+        sacrament_statuses: {
+            baptism: { is_received: false, certificate_no: '' },
+            communion: { is_received: false, certificate_no: '' },
+            confirmation: { is_received: false, certificate_no: '' },
+        },
     });
+
+    const maritalOptions = useMemo(() => marital_status_options ?? {}, [marital_status_options]);
 
     useEffect(() => {
         return () => reset();
@@ -318,11 +331,56 @@ export default function MembersCreate({ defaults }) {
                                 error={friendlyErrors.marital_status}
                             >
                                 <option value="">Select</option>
-                                <option value="single">Single</option>
-                                <option value="married">Married</option>
-                                <option value="widowed">Widowed</option>
-                                <option value="divorced">Divorced</option>
+                                {Object.entries(maritalOptions).map(([value, label]) => (
+                                    <option key={value} value={value}>{label}</option>
+                                ))}
                             </FloatingSelect>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="text-sm font-semibold text-slate-700">Sacrament profile</div>
+                        <p className="mt-1 text-xs text-slate-500">Capture known sacrament status and certificate number. Certificate files stay on the actual sacrament records.</p>
+                        <div className="mt-3 grid gap-4">
+                            {Object.entries(SACRAMENT_LABELS).map(([type, label]) => {
+                                const row = data.sacrament_statuses?.[type] ?? { is_received: false, certificate_no: '' };
+
+                                return (
+                                    <div key={type} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4">
+                                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                            <input
+                                                type="checkbox"
+                                                checked={!!row.is_received}
+                                                onChange={(e) => setData('sacrament_statuses', {
+                                                    ...data.sacrament_statuses,
+                                                    [type]: {
+                                                        ...row,
+                                                        is_received: e.target.checked,
+                                                    },
+                                                })}
+                                                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            {label} received
+                                        </label>
+
+                                        <div className="mt-3 grid gap-4 md:grid-cols-2">
+                                            <FloatingInput
+                                                id={`${type}_certificate_no`}
+                                                label={`${label} certificate number`}
+                                                value={row.certificate_no ?? ''}
+                                                onChange={(e) => setData('sacrament_statuses', {
+                                                    ...data.sacrament_statuses,
+                                                    [type]: {
+                                                        ...row,
+                                                        certificate_no: e.target.value,
+                                                    },
+                                                })}
+                                                error={friendlyErrors[`sacrament_statuses.${type}.certificate_no`]}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 

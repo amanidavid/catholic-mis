@@ -11,7 +11,13 @@ import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect, useMemo } from 'react';
 
-export default function MembersEdit({ member }) {
+const SACRAMENT_LABELS = {
+    baptism: 'Baptism',
+    communion: 'First Communion',
+    confirmation: 'Confirmation',
+};
+
+export default function MembersEdit({ member, marital_status_options }) {
     const m = member?.data ?? member;
 
     const isScoped = useMemo(() => !!m?.jumuiya_uuid && !m?.zone_uuid, [m?.jumuiya_uuid, m?.zone_uuid]);
@@ -40,7 +46,23 @@ export default function MembersEdit({ member }) {
         national_id: m?.national_id ?? '',
         marital_status: m?.marital_status ?? '',
         is_active: m?.is_active ?? true,
+        sacrament_statuses: {
+            baptism: {
+                is_received: m?.sacrament_statuses?.baptism?.is_received ?? false,
+                certificate_no: m?.sacrament_statuses?.baptism?.certificate_no ?? '',
+            },
+            communion: {
+                is_received: m?.sacrament_statuses?.communion?.is_received ?? false,
+                certificate_no: m?.sacrament_statuses?.communion?.certificate_no ?? '',
+            },
+            confirmation: {
+                is_received: m?.sacrament_statuses?.confirmation?.is_received ?? false,
+                certificate_no: m?.sacrament_statuses?.confirmation?.certificate_no ?? '',
+            },
+        },
     });
+
+    const maritalOptions = useMemo(() => marital_status_options ?? {}, [marital_status_options]);
 
     useEffect(() => {
         return () => reset();
@@ -312,10 +334,9 @@ export default function MembersEdit({ member }) {
                                 error={friendlyErrors.marital_status}
                             >
                                 <option value="">Select</option>
-                                <option value="single">Single</option>
-                                <option value="married">Married</option>
-                                <option value="widowed">Widowed</option>
-                                <option value="divorced">Divorced</option>
+                                {Object.entries(maritalOptions).map(([value, label]) => (
+                                    <option key={value} value={value}>{label}</option>
+                                ))}
                             </FloatingSelect>
                         </div>
 
@@ -329,6 +350,68 @@ export default function MembersEdit({ member }) {
                                 />
                                 Active
                             </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="text-sm font-semibold text-slate-700">Sacrament profile</div>
+                        <p className="mt-1 text-xs text-slate-500">Manual values can be edited until an official sacrament record takes over as the source.</p>
+                        <div className="mt-3 grid gap-4">
+                            {Object.entries(SACRAMENT_LABELS).map(([type, label]) => {
+                                const row = data.sacrament_statuses?.[type] ?? { is_received: false, certificate_no: '' };
+                                const source = m?.sacrament_statuses?.[type]?.source_type ?? null;
+                                const locked = !!source && source !== 'manual';
+
+                                return (
+                                    <div key={type} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4">
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!!row.is_received}
+                                                    onChange={(e) => setData('sacrament_statuses', {
+                                                        ...data.sacrament_statuses,
+                                                        [type]: {
+                                                            ...row,
+                                                            is_received: e.target.checked,
+                                                        },
+                                                    })}
+                                                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                    disabled={locked}
+                                                />
+                                                {label} received
+                                            </label>
+                                            {m?.sacrament_statuses?.[type]?.source_label && (
+                                                <div className="text-xs font-medium text-slate-500">{m.sacrament_statuses[type].source_label}</div>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-3 grid gap-4 md:grid-cols-2">
+                                            <FloatingInput
+                                                id={`${type}_certificate_no`}
+                                                label={`${label} certificate number`}
+                                                value={row.certificate_no ?? ''}
+                                                onChange={(e) => setData('sacrament_statuses', {
+                                                    ...data.sacrament_statuses,
+                                                    [type]: {
+                                                        ...row,
+                                                        certificate_no: e.target.value,
+                                                    },
+                                                })}
+                                                error={friendlyErrors[`sacrament_statuses.${type}.certificate_no`]}
+                                                disabled={locked}
+                                            />
+                                            <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current details</div>
+                                                <div className="mt-1 text-sm text-slate-900">{m?.sacrament_statuses?.[type]?.sacrament_date || 'No recorded date'}</div>
+                                                {m?.sacrament_statuses?.[type]?.source_record_uuid && (
+                                                    <div className="mt-1 text-xs text-slate-500 break-all">Source record: {m.sacrament_statuses[type].source_record_uuid}</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 

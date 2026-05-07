@@ -118,17 +118,6 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
         return byType;
     }, [marriageData]);
 
-    const requiredTypes = useMemo(() => {
-        const req = ['groom_baptism_certificate', 'bride_baptism_certificate'];
-        const isExternalBride = !marriageData?.bride?.id;
-        if (isExternalBride) {
-            req.push('bride_home_parish_letter');
-        } else if (marriageData?.bride_parish?.id && marriageData?.groom_parish?.id && marriageData.bride_parish.id !== marriageData.groom_parish.id) {
-            req.push('bride_home_parish_letter');
-        }
-        return req;
-    }, [marriageData]);
-
     const missingRequirements = useMemo(() => {
         const missing = [];
 
@@ -145,17 +134,8 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
         if (!brideFatherOk) missing.push('Bride father details');
         if (!brideMotherOk) missing.push('Bride mother details');
 
-        requiredTypes.forEach((t) => {
-            if (!attachmentsByType?.[t]) {
-                if (t === 'groom_baptism_certificate') missing.push('Groom baptism certificate');
-                else if (t === 'bride_baptism_certificate') missing.push('Bride baptism certificate');
-                else if (t === 'bride_home_parish_letter') missing.push('Bride home parish letter');
-                else missing.push(t);
-            }
-        });
-
         return missing;
-    }, [attachmentsByType, parentsByParty, requiredTypes]);
+    }, [parentsByParty]);
 
     const upload = (e) => {
         e.preventDefault();
@@ -220,14 +200,14 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
         });
     };
 
-    const AttachmentRow = ({ type, label, required }) => {
+    const AttachmentRow = ({ type, label }) => {
         const item = attachmentsByType?.[type];
         return (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <div className="text-sm font-semibold text-slate-900">{label}</div>
-                        <div className="mt-1 text-xs text-slate-500">Type: {type}{required ? ' (required)' : ' (optional)'}</div>
+                        <div className="mt-1 text-xs text-slate-500">Type: {type} (optional)</div>
                         <div className="mt-2 text-xs text-slate-600">{item ? item.original_name : 'Not uploaded.'}</div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -267,7 +247,7 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                 <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Marriage Request</h1>
-                        <p className="mt-1 text-sm text-slate-600">Upload required documents, then submit for parish review.</p>
+                        <p className="mt-1 text-sm text-slate-600">Attach supporting documents if available, then submit for parish review.</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <SecondaryButton type="button" className="h-11" onClick={() => router.get(route('marriages.index'))}>
@@ -347,7 +327,7 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
 
                             {!marriageData?.bride?.id || (marriageData?.bride_parish?.id && marriageData?.groom_parish?.id && marriageData.bride_parish.id !== marriageData.groom_parish.id) ? (
                                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                                    External parish case: bride parish differs from groom parish. Bride home parish letter is required before submission.
+                                    External parish case: bride parish differs from groom parish. You can attach the bride home parish letter as supporting clearance when available.
                                 </div>
                             ) : null}
 
@@ -395,7 +375,7 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                                 <div>
                                     <div className="text-sm font-semibold text-slate-900">Submit readiness</div>
                                     <p className="mt-1 text-xs text-slate-500">
-                                        You can only submit after required parents details and required documents are provided.
+                                        You can submit after the core marriage details and parent information are provided. Documents are optional supporting records.
                                     </p>
                                 </div>
                             </div>
@@ -429,11 +409,11 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                                         className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
                                     >
                                         <option value="">Select type...</option>
-                                        <option value="groom_baptism_certificate">Groom baptism certificate (required)</option>
-                                        <option value="bride_baptism_certificate">Bride baptism certificate (required)</option>
+                                        <option value="groom_baptism_certificate">Groom baptism certificate (optional)</option>
+                                        <option value="bride_baptism_certificate">Bride baptism certificate (optional)</option>
                                         <option value="groom_confirmation_certificate">Groom confirmation certificate (optional)</option>
                                         <option value="bride_confirmation_certificate">Bride confirmation certificate (optional)</option>
-                                        <option value="bride_home_parish_letter">Bride home parish letter (required if external parish)</option>
+                                        <option value="bride_home_parish_letter">Bride home parish letter (optional supporting clearance)</option>
                                         <option value="groom_id_document">Groom ID document (optional)</option>
                                         <option value="bride_id_document">Bride ID document (optional)</option>
                                     </select>
@@ -840,19 +820,11 @@ export default function MarriagesShow({ marriage, schedule, scheduleChanges }) {
                             </div>
 
                             <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                                <div className="text-sm font-semibold text-slate-900">Required documents</div>
+                                <div className="text-sm font-semibold text-slate-900">Supporting documents</div>
                                 <div className="mt-4 space-y-3">
-                                    <AttachmentRow type="groom_baptism_certificate" label="Groom baptism certificate" required />
-                                    <AttachmentRow type="bride_baptism_certificate" label="Bride baptism certificate" required />
-                                    {requiredTypes.includes('bride_home_parish_letter') ? (
-                                        <AttachmentRow type="bride_home_parish_letter" label="Bride home parish letter" required />
-                                    ) : null}
-                                </div>
-                            </div>
-
-                            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                                <div className="text-sm font-semibold text-slate-900">Optional documents</div>
-                                <div className="mt-4 space-y-3">
+                                    <AttachmentRow type="groom_baptism_certificate" label="Groom baptism certificate" />
+                                    <AttachmentRow type="bride_baptism_certificate" label="Bride baptism certificate" />
+                                    <AttachmentRow type="bride_home_parish_letter" label="Bride home parish letter" />
                                     <AttachmentRow type="groom_confirmation_certificate" label="Groom confirmation certificate" />
                                     <AttachmentRow type="bride_confirmation_certificate" label="Bride confirmation certificate" />
                                     <AttachmentRow type="groom_id_document" label="Groom ID document" />

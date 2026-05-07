@@ -112,6 +112,11 @@ class Member extends BaseModel
         return $this->hasOne(User::class);
     }
 
+    public function sacramentStatuses(): HasMany
+    {
+        return $this->hasMany(MemberSacramentStatus::class);
+    }
+
     public function effectiveJumuiyaIdAsOf(CarbonInterface|string $asOfDate): int
     {
         $asOf = $asOfDate instanceof CarbonInterface

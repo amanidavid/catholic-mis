@@ -322,6 +322,7 @@ class WeeklyAttendanceController extends Controller
                         'status' => $validated['status'],
                         'marked_by_user_id' => (int) $request->user()->id,
                         'marked_at' => now(),
+                        'notes' => $validated['notes'] ?? null,
                     ]);
 
                     $action = 'created';
@@ -330,6 +331,7 @@ class WeeklyAttendanceController extends Controller
                         'status' => $validated['status'],
                         'marked_by_user_id' => (int) $request->user()->id,
                         'marked_at' => now(),
+                        'notes' => $validated['notes'] ?? null,
                     ]);
 
                     $action = 'updated';
@@ -355,6 +357,7 @@ class WeeklyAttendanceController extends Controller
                 return response()->json([
                     'member_uuid' => $member->uuid,
                     'status' => $validated['status'],
+                    'notes' => $validated['notes'] ?? null,
                 ]);
             }
 
@@ -392,7 +395,7 @@ class WeeklyAttendanceController extends Controller
 
         $attendanceRows = JumuiyaWeeklyAttendance::query()
             ->where('jumuiya_weekly_meeting_id', $meeting->id)
-            ->get(['member_id', 'status'])
+            ->get(['member_id', 'status', 'notes'])
             ->keyBy('member_id');
 
         $familyIds = $familiesPage->getCollection()->pluck('id')->all();
@@ -432,6 +435,7 @@ class WeeklyAttendanceController extends Controller
                         'is_active' => (bool) $m->is_active,
                         'eligible' => isset($eligibleMemberSet[$m->id]),
                         'status' => $status,
+                        'notes' => $attendanceRows->get($m->id)?->notes,
                     ];
                 })
                 ->values();
@@ -577,6 +581,7 @@ class WeeklyAttendanceController extends Controller
                             'status' => $status,
                             'marked_by_user_id' => $userId,
                             'marked_at' => $now,
+                            'notes' => $notes,
                             'created_at' => $now,
                             'updated_at' => $now,
                         ];
@@ -588,6 +593,7 @@ class WeeklyAttendanceController extends Controller
                                 'status' => $status,
                                 'marked_by_user_id' => $userId,
                                 'marked_at' => $now,
+                                'notes' => $notes,
                                 'updated_at' => $now,
                             ]);
 
@@ -611,6 +617,7 @@ class WeeklyAttendanceController extends Controller
                         $updated[] = [
                             'member_uuid' => $member->uuid,
                             'status' => $status,
+                            'notes' => $notes,
                         ];
                     }
                 }
@@ -646,6 +653,7 @@ class WeeklyAttendanceController extends Controller
                         $updated[] = [
                             'member_uuid' => $newAttendanceMemberMap[$insertedRow->member_id],
                             'status' => $status,
+                            'notes' => $notes,
                         ];
                     }
                 }

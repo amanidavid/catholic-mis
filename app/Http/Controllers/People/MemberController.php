@@ -16,6 +16,8 @@ use App\Models\People\MemberJumuiyaHistory;
 use App\Models\Structure\Jumuiya;
 use App\Models\Structure\Outstation;
 use App\Models\Structure\Zone;
+use App\Services\People\MemberSacramentStatusService;
+use App\Support\MemberMaritalStatuses;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -126,6 +128,7 @@ class MemberController extends Controller
                 'family:id,uuid,family_name',
                 'user:id,member_id',
                 'user.roles:id,name',
+                'sacramentStatuses:id,member_id,sacrament_type,is_received,certificate_no,sacrament_date,source_type,source_record_uuid',
             ])
             ->when($scopedJumuiyaId, fn (Builder $qb) => $qb->where('jumuiya_id', $scopedJumuiyaId))
             ->when($selectedOutstationId, function (Builder $qb) use ($selectedOutstationId) {
@@ -278,6 +281,7 @@ class MemberController extends Controller
                 'jumuiya_name' => $defaultJumuiyaName,
                 'family_uuid' => $request->query('family_uuid'),
             ],
+            'marital_status_options' => MemberMaritalStatuses::formOptions(),
         ]);
     }
 
@@ -296,10 +300,12 @@ class MemberController extends Controller
             'jumuiya.zone.outstation:id,uuid,name',
             'family:id,uuid,family_name,head_of_family_member_id',
             'familyRelationship:id,uuid,name',
+            'sacramentStatuses:id,member_id,sacrament_type,is_received,certificate_no,sacrament_date,source_type,source_record_uuid',
         ]);
 
         return Inertia::render('Members/Edit', [
             'member' => new MemberResource($member),
+            'marital_status_options' => MemberMaritalStatuses::formOptions((string) ($member->marital_status ?? '')),
         ]);
     }
 
@@ -309,6 +315,7 @@ class MemberController extends Controller
 
         $q = $request->query('q');
         $jumuiyaUuid = $request->query('jumuiya_uuid');
+        $outstationUuid = $request->query('outstation_uuid');
         $familyUuid = $request->query('family_uuid');
         $excludeUuids = $request->query('exclude_uuids');
         $allowExternal = $request->query('allow_external');
@@ -330,8 +337,13 @@ class MemberController extends Controller
         }
 
         $selectedJumuiyaId = null;
+        $selectedOutstationId = null;
         if (is_string($jumuiyaUuid) && $jumuiyaUuid !== '') {
             $selectedJumuiyaId = Jumuiya::query()->where('uuid', $jumuiyaUuid)->value('id');
+        }
+
+        if (is_string($outstationUuid) && $outstationUuid !== '') {
+            $selectedOutstationId = Outstation::query()->where('uuid', $outstationUuid)->value('id');
         }
 
         $selectedFamilyId = null;
@@ -364,6 +376,15 @@ class MemberController extends Controller
                         ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
                         ->whereColumn('jumuiyas.id', 'members.jumuiya_id')
                         ->where('zones.parish_id', $userParishId);
+                });
+            })
+            ->when($selectedOutstationId, function (Builder $qb) use ($selectedOutstationId) {
+                $qb->whereExists(function ($sub) use ($selectedOutstationId) {
+                    $sub->select(DB::raw(1))
+                        ->from('jumuiyas')
+                        ->join('zones', 'zones.id', '=', 'jumuiyas.zone_id')
+                        ->whereColumn('jumuiyas.id', 'members.jumuiya_id')
+                        ->where('zones.outstation_id', $selectedOutstationId);
                 });
             })
             ->when($selectedJumuiyaId, fn (Builder $qb) => $qb->where('jumuiya_id', $selectedJumuiyaId))
@@ -471,7 +492,7 @@ class MemberController extends Controller
         }
     }
 
-    public function store(StoreMemberRequest $request): RedirectResponse
+    public function store(StoreMemberRequest $request, MemberSacramentStatusService $memberSacramentStatuses): RedirectResponse
     {
         $this->authorize('create', Member::class);
 
@@ -502,7 +523,7 @@ class MemberController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($validated, $jumuiya, $family, $familyRelationshipId): void {
+            DB::transaction(function () use ($validated, $jumuiya, $family, $familyRelationshipId, $memberSacramentStatuses): void {
                 $member = Member::query()->create([
                     'jumuiya_id' => $jumuiya->id,
                     'family_id' => $family->id,
@@ -525,6 +546,11 @@ class MemberController extends Controller
                         'head_of_family_member_id' => $member->id,
                     ]);
                 }
+
+                $memberSacramentStatuses->syncManualStatuses(
+                    $member,
+                    is_array($validated['sacrament_statuses'] ?? null) ? $validated['sacrament_statuses'] : []
+                );
             });
 
             $parishId = (int) ($request->user()?->parish_id ?? 0);
@@ -540,7 +566,7 @@ class MemberController extends Controller
         }
     }
 
-    public function update(UpdateMemberRequest $request, Member $member): RedirectResponse
+    public function update(UpdateMemberRequest $request, Member $member, MemberSacramentStatusService $memberSacramentStatuses): RedirectResponse
     {
         $this->authorize('update', $member);
 
@@ -585,7 +611,7 @@ class MemberController extends Controller
         try {
             $previousFamilyId = (int) $member->family_id;
 
-            DB::transaction(function () use ($validated, $member, $targetJumuiyaId, $family, $previousFamilyId, $familyRelationshipId): void {
+            DB::transaction(function () use ($validated, $member, $targetJumuiyaId, $family, $previousFamilyId, $familyRelationshipId, $memberSacramentStatuses): void {
                 $member->update([
                     'jumuiya_id' => $targetJumuiyaId,
                     'family_id' => $family->id,
@@ -628,6 +654,11 @@ class MemberController extends Controller
                         'head_of_family_member_id' => null,
                     ]);
                 }
+
+                $memberSacramentStatuses->syncManualStatuses(
+                    $member,
+                    is_array($validated['sacrament_statuses'] ?? null) ? $validated['sacrament_statuses'] : []
+                );
             });
 
             $parishId = (int) ($request->user()?->parish_id ?? 0);

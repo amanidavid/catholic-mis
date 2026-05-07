@@ -181,12 +181,43 @@ class DashboardController extends Controller
                 })
                 ->count();
 
+            $associationsActive = DB::table('parish_associations')
+                ->where('parish_id', $parishId)
+                ->where('is_active', true)
+                ->count();
+
+            $associationsInactive = DB::table('parish_associations')
+                ->where('parish_id', $parishId)
+                ->where('is_active', false)
+                ->count();
+
+            $associationMembers = DB::table('parish_association_members')
+                ->join('parish_associations', 'parish_associations.id', '=', 'parish_association_members.parish_association_id')
+                ->where('parish_associations.parish_id', $parishId)
+                ->where('parish_association_members.is_active', true)
+                ->where(function ($q) {
+                    $q->whereNull('parish_association_members.end_date')
+                        ->orWhere('parish_association_members.end_date', '>=', now()->toDateString());
+                })
+                ->count();
+
+            $associationLeaders = DB::table('parish_association_leaderships')
+                ->join('parish_associations', 'parish_associations.id', '=', 'parish_association_leaderships.parish_association_id')
+                ->where('parish_associations.parish_id', $parishId)
+                ->where('parish_association_leaderships.is_active', true)
+                ->where(function ($q) {
+                    $q->whereNull('parish_association_leaderships.end_date')
+                        ->orWhere('parish_association_leaderships.end_date', '>=', now()->toDateString());
+                })
+                ->count();
+
             $structure = [
                 'outstations' => ['active' => $outstationsActive, 'inactive' => $outstationsInactive],
                 'zones' => ['active' => $zonesActive, 'inactive' => $zonesInactive],
                 'jumuiyas' => ['active' => $jumuiyasActive, 'inactive' => $jumuiyasInactive],
                 'families' => ['active' => $familiesActive, 'inactive' => $familiesInactive],
                 'members' => ['active' => $membersActive, 'inactive' => $membersInactive],
+                'associations' => ['active' => $associationsActive, 'inactive' => $associationsInactive, 'members' => $associationMembers, 'leaders' => $associationLeaders],
             ];
 
             $cards[] = [
@@ -229,6 +260,17 @@ class DashboardController extends Controller
                 'breakdown' => $structure['members'] ?? null,
                 'href' => $user->can('members.view') ? route('members.index') : $fallbackCommunityHref,
                 'can' => true,
+            ];
+
+            $cards[] = [
+                'key' => 'associations',
+                'label' => 'Kitume Groups',
+                'value' => $structure['associations']['active'] ?? 0,
+                'breakdown' => $structure['associations'] ?? null,
+                'href' => $user->can('parish-associations.view')
+                    ? route('parish-associations.index')
+                    : ($user->can('reports.associations.view') ? route('reports.associations.index') : $fallbackCommunityHref),
+                'can' => $user->can('parish-associations.view') || $user->can('reports.associations.view'),
             ];
         }
 

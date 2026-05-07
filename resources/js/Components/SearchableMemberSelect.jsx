@@ -8,6 +8,7 @@ export default function SearchableMemberSelect({
     value,
     onChange,
     onSelect,
+    outstationUuid,
     jumuiyaUuid,
     familyUuid,
     excludeUuids,
@@ -35,6 +36,7 @@ export default function SearchableMemberSelect({
             const res = await axios.get(route('members.lookup'), {
                 params: {
                     q: typeof nextQuery === 'string' ? nextQuery.trim() : '',
+                    outstation_uuid: outstationUuid || undefined,
                     jumuiya_uuid: jumuiyaUuid || undefined,
                     family_uuid: familyUuid || undefined,
                     exclude_uuids: Array.isArray(excludeUuids) && excludeUuids.length ? excludeUuids.join(',') : undefined,
@@ -63,7 +65,7 @@ export default function SearchableMemberSelect({
         }, 250);
 
         return () => clearTimeout(t);
-    }, [query, jumuiyaUuid, familyUuid, disabled]);
+    }, [query, outstationUuid, jumuiyaUuid, familyUuid, disabled]);
 
     useEffect(() => {
         if (disabled) {

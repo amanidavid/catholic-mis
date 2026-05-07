@@ -14,6 +14,8 @@ use App\Models\Sacraments\SacramentScheduleChange;
 use App\Models\Structure\Jumuiya;
 use App\Http\Resources\Sacraments\BaptismResource;
 use App\Services\Certificates\CertificateService;
+use App\Services\People\MemberSacramentStatusService;
+use App\Support\MemberMaritalStatuses;
 use App\Support\PhoneNormalizer;
 use App\Traits\NormalizesNames;
 use Carbon\Carbon;
@@ -807,7 +809,7 @@ class BaptismController extends Controller
         $fatherStatus = strtolower(trim((string) ($father->marital_status ?? '')));
         $motherStatus = strtolower(trim((string) ($mother->marital_status ?? '')));
 
-        if ($fatherStatus !== 'married' || $motherStatus !== 'married') {
+        if (! MemberMaritalStatuses::isMarriageUnion($fatherStatus) || ! MemberMaritalStatuses::isMarriageUnion($motherStatus)) {
             $fatherName = [$father->first_name, $father->middle_name, $father->last_name];
             $fatherName = trim(implode(' ', array_filter($fatherName)));
             $motherName = [$mother->first_name, $mother->middle_name, $mother->last_name];
@@ -1094,7 +1096,11 @@ class BaptismController extends Controller
         return back()->with('success', 'Schedule saved.');
     }
 
-    public function complete(Request $request, Baptism $baptism): RedirectResponse
+    public function complete(
+        Request $request,
+        Baptism $baptism,
+        MemberSacramentStatusService $memberSacramentStatuses
+    ): RedirectResponse
     {
         if ($baptism->status !== Baptism::STATUS_APPROVED) {
             return back()->with('error', 'Only approved baptisms can be marked as completed.');
@@ -1116,16 +1122,24 @@ class BaptismController extends Controller
             'baptism_date' => $baptism->baptism_date ?: $schedule->scheduled_for,
         ])->save();
 
+        $memberSacramentStatuses->syncFromBaptism($baptism->fresh());
+
         return back()->with('success', 'Baptism marked as completed.');
     }
 
-    public function issue(Request $request, Baptism $baptism, CertificateService $certificates): RedirectResponse
+    public function issue(
+        Request $request,
+        Baptism $baptism,
+        CertificateService $certificates,
+        MemberSacramentStatusService $memberSacramentStatuses
+    ): RedirectResponse
     {
         if ($baptism->status !== Baptism::STATUS_COMPLETED) {
             return back()->with('error', 'Only completed baptisms can be issued.');
         }
 
         $issuance = $certificates->issueBaptismCertificate($baptism, $request->user());
+        $memberSacramentStatuses->syncFromBaptism($baptism->fresh());
 
         return back()->with('success', 'Certificate issued: '.$issuance->certificate_no);
     }

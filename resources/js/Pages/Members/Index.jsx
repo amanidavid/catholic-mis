@@ -280,7 +280,10 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
                                 <DetailItem label="Email" value={viewing.email ?? '-'} />
                                 <DetailItem label="Birth date" value={viewing.birth_date ?? '-'} />
                                 <DetailItem label="National ID" value={viewing.national_id ?? '-'} />
-                                <DetailItem label="Marital status" value={viewing.marital_status ?? '-'} />
+                                <DetailItem label="Marital status" value={viewing.marital_status_label ?? viewing.marital_status ?? '-'} />
+                                <DetailItem label="Baptism" value={formatSacramentStatus(viewing?.sacrament_statuses?.baptism)} />
+                                <DetailItem label="Communion" value={formatSacramentStatus(viewing?.sacrament_statuses?.communion)} />
+                                <DetailItem label="Confirmation" value={formatSacramentStatus(viewing?.sacrament_statuses?.confirmation)} />
                             </div>
                         )}
                     </div>
@@ -296,6 +299,28 @@ export default function MembersIndex({ members, filters, jumuiyas }) {
 
         </AuthenticatedLayout>
     );
+}
+
+function formatSacramentStatus(status) {
+    if (!status?.is_received) {
+        return 'No';
+    }
+
+    const parts = ['Yes'];
+
+    if (status?.certificate_no) {
+        parts.push(`Certificate: ${status.certificate_no}`);
+    }
+
+    if (status?.sacrament_date) {
+        parts.push(`Date: ${status.sacrament_date}`);
+    }
+
+    if (status?.source_label) {
+        parts.push(status.source_label);
+    }
+
+    return parts.join(' • ');
 }
 
 function MemberRow({ member, striped = false, index, canUpdate, canDelete, canTransfer, onView, onEdit, onTransfer }) {

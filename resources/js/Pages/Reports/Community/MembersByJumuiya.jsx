@@ -3,12 +3,14 @@ import FloatingInput from '@/Components/FloatingInput';
 import FloatingSelect from '@/Components/FloatingSelect';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
 export default function MembersByJumuiya({ rows, filters, pagination }) {
+    const { auth } = usePage().props;
     const [q, setQ] = useState(filters?.q ?? '');
     const [perPage, setPerPage] = useState(filters?.per_page ?? 50);
+    const canViewMembers = Array.isArray(auth?.user?.permissions) && auth.user.permissions.includes('members.view');
 
     useEffect(() => {
         setQ(filters?.q ?? '');
@@ -135,12 +137,13 @@ export default function MembersByJumuiya({ rows, filters, pagination }) {
                                 <th>Christian Community</th>
                                 <th className="text-right">Families</th>
                                 <th className="text-right">Members</th>
+                                <th className="text-right">Link</th>
                             </tr>
                         </thead>
                         <tbody>
                             {(rows ?? []).length === 0 ? (
                                 <tr>
-                                    <td className="px-3 py-4 text-sm text-slate-500" colSpan={5}>
+                                    <td className="px-3 py-4 text-sm text-slate-500" colSpan={6}>
                                         No results.
                                     </td>
                                 </tr>
@@ -152,6 +155,22 @@ export default function MembersByJumuiya({ rows, filters, pagination }) {
                                         <td>{r.jumuiya_name}</td>
                                         <td className="text-right">{r.families}</td>
                                         <td className="text-right">{r.members}</td>
+                                        <td className="text-right">
+                                            {canViewMembers ? (
+                                                <Link
+                                                    href={route('members.index', {
+                                                        outstation_uuid: r.outstation_uuid || undefined,
+                                                        zone_uuid: r.zone_uuid || undefined,
+                                                        jumuiya_uuid: r.jumuiya_uuid || undefined,
+                                                    })}
+                                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                                                >
+                                                    View Members
+                                                </Link>
+                                            ) : (
+                                                <span className="text-sm text-slate-400">Unavailable</span>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))
                             )}

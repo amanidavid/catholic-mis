@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Sacraments;
 
+use App\Support\MemberMaritalStatuses;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -104,6 +105,7 @@ class BaptismResource extends JsonResource
                                 'uuid' => null,
                                 'full_name' => $name,
                                 'marital_status' => null,
+                                'marital_status_label' => null,
                                 'phone' => null,
                                 'email' => null,
                             ]
@@ -114,6 +116,7 @@ class BaptismResource extends JsonResource
                         'uuid' => (string) $f->uuid,
                         'full_name' => trim(implode(' ', array_filter([$f->first_name, $f->middle_name, $f->last_name]))),
                         'marital_status' => $f->marital_status,
+                        'marital_status_label' => MemberMaritalStatuses::label($f->marital_status),
                         'phone' => $f->phone,
                         'email' => $f->email,
                     ];
@@ -126,6 +129,7 @@ class BaptismResource extends JsonResource
                             'uuid' => null,
                             'full_name' => $name,
                             'marital_status' => null,
+                            'marital_status_label' => null,
                             'phone' => null,
                             'email' => null,
                         ]
@@ -143,6 +147,7 @@ class BaptismResource extends JsonResource
                                 'uuid' => null,
                                 'full_name' => $name,
                                 'marital_status' => null,
+                                'marital_status_label' => null,
                                 'phone' => null,
                                 'email' => null,
                             ]
@@ -153,6 +158,7 @@ class BaptismResource extends JsonResource
                         'uuid' => (string) $m->uuid,
                         'full_name' => trim(implode(' ', array_filter([$m->first_name, $m->middle_name, $m->last_name]))),
                         'marital_status' => $m->marital_status,
+                        'marital_status_label' => MemberMaritalStatuses::label($m->marital_status),
                         'phone' => $m->phone,
                         'email' => $m->email,
                     ];
@@ -165,6 +171,7 @@ class BaptismResource extends JsonResource
                             'uuid' => null,
                             'full_name' => $name,
                             'marital_status' => null,
+                            'marital_status_label' => null,
                             'phone' => null,
                             'email' => null,
                         ]

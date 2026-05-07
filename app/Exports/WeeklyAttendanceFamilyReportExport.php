@@ -27,8 +27,6 @@ class WeeklyAttendanceFamilyReportExport implements FromArray, WithHeadings
             'Eligible',
             'Present',
             'Absent',
-            'Sick',
-            'Travel',
             'Other',
             'Attendance %',
         ];

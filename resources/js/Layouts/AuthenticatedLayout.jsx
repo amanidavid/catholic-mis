@@ -303,6 +303,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 items: [
                     { label: 'Families', routeName: 'families.*', href: () => route('families.index'), icon: icons.house, show: can('families.view') },
                     { label: 'Members', routeName: 'members.*', href: () => route('members.index'), icon: icons.user, show: can('members.view') },
+                    { label: 'Vyama vya Kitume', routeName: 'parish-associations.*', href: () => route('parish-associations.index'), icon: icons.star, show: can('parish-associations.view') },
                     { label: 'Family Relationships', routeName: 'family-relationships.*', href: () => route('family-relationships.index'), icon: icons.network, show: can('family-relationships.view') },
                     { label: 'Weekly Attendance', routeName: 'weekly-attendance.*', href: () => route('weekly-attendance.index'), icon: icons.history, show: can('weekly-attendance.view') },
                 ],
@@ -321,6 +322,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 group: 'Reports',
                 items: [
                     { label: 'Community Summary', routeName: 'reports.community.members-by-jumuiya', href: () => route('reports.community.members-by-jumuiya'), icon: icons.group, show: can('reports.community.view') },
+                    { label: 'Kitume Report', routeName: 'reports.associations.index', href: () => route('reports.associations.index'), icon: icons.star, show: can('reports.associations.view') },
                 ],
             },
             {

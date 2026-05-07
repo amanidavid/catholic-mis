@@ -10,6 +10,7 @@ use App\Models\Sacraments\SacramentProgramCycle;
 use App\Models\Sacraments\SacramentProgramRegistration;
 use App\Models\Structure\Jumuiya;
 use App\Services\Sacraments\SacramentWorkflowEventService;
+use App\Services\People\MemberSacramentStatusService;
 use Carbon\Carbon;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
@@ -21,10 +22,15 @@ use Inertia\Response;
 class CommunionController extends Controller
 {
     protected SacramentWorkflowEventService $workflowEvents;
+    protected MemberSacramentStatusService $memberSacramentStatuses;
 
-    public function __construct(SacramentWorkflowEventService $workflowEvents)
+    public function __construct(
+        SacramentWorkflowEventService $workflowEvents,
+        MemberSacramentStatusService $memberSacramentStatuses
+    )
     {
         $this->workflowEvents = $workflowEvents;
+        $this->memberSacramentStatuses = $memberSacramentStatuses;
     }
 
     private function activeLeadershipJumuiyaIds(int $memberId): array
@@ -675,6 +681,8 @@ class CommunionController extends Controller
             'completed_at' => now(),
         ])->save();
 
+        $this->memberSacramentStatuses->syncFromProgramRegistration($registration->fresh());
+
         $this->workflowEvents->record(
             $request,
             (int) $registration->parish_id,
@@ -713,6 +721,8 @@ class CommunionController extends Controller
             'issued_at' => now(),
             'issued_by_user_id' => (int) $user->id,
         ])->save();
+
+        $this->memberSacramentStatuses->syncFromProgramRegistration($registration->fresh());
 
         $this->workflowEvents->record(
             $request,

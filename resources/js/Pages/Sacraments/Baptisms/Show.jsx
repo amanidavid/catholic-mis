@@ -926,12 +926,12 @@ export default function BaptismsShow({ baptism, marriageCertificate, schedule, s
                             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Father</div>
                                 <div className="mt-1 text-sm font-semibold text-slate-900">{subjectParents?.father?.name ?? '—'}</div>
-                                <div className="mt-1 text-xs text-slate-500">{subjectParents?.father?.marital_status ?? ''}</div>
+                                <div className="mt-1 text-xs text-slate-500">{subjectParents?.father?.marital_status_label ?? subjectParents?.father?.marital_status ?? ''}</div>
                             </div>
                             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mother</div>
                                 <div className="mt-1 text-sm font-semibold text-slate-900">{subjectParents?.mother?.name ?? '—'}</div>
-                                <div className="mt-1 text-xs text-slate-500">{subjectParents?.mother?.marital_status ?? ''}</div>
+                                <div className="mt-1 text-xs text-slate-500">{subjectParents?.mother?.marital_status_label ?? subjectParents?.mother?.marital_status ?? ''}</div>
                             </div>
                         </div>
 

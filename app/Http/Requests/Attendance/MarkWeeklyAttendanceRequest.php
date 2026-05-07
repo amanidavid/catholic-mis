@@ -15,8 +15,8 @@ class MarkWeeklyAttendanceRequest extends FormRequest
     {
         return [
             'member_uuid' => ['required', 'uuid'],
-            'status' => ['required', 'string', 'in:present,absent,sick,travel,other'],
-            'notes' => ['nullable', 'string', 'max:1000'],
+            'status' => ['required', 'string', 'in:present,absent,other'],
+            'notes' => ['nullable', 'required_if:status,other', 'string', 'max:1000'],
         ];
     }
 }

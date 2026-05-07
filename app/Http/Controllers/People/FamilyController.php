@@ -14,6 +14,7 @@ use App\Models\People\Member;
 use App\Models\Structure\Jumuiya;
 use App\Models\Structure\Outstation;
 use App\Models\Structure\Zone;
+use App\Support\MemberMaritalStatuses;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
@@ -121,6 +122,7 @@ class FamilyController extends Controller
                 'uuid' => $m->uuid,
                 'name' => $name,
                 'marital_status' => $m->marital_status,
+                'marital_status_label' => MemberMaritalStatuses::label($m->marital_status),
             ];
         };
 

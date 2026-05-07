@@ -227,6 +227,16 @@ function metricCardTheme(cardKey) {
                 iconWrap: 'bg-amber-100/70 text-amber-800 ring-amber-200',
                 glow: 'from-amber-100/70 to-transparent',
             };
+        case 'associations':
+            return {
+                ...base,
+                card: 'bg-gradient-to-br from-cyan-50 via-white to-white ring-cyan-100',
+                label: 'text-cyan-900/75',
+                value: 'text-cyan-950',
+                viewDetails: 'text-cyan-800',
+                iconWrap: 'bg-cyan-100/70 text-cyan-800 ring-cyan-200',
+                glow: 'from-cyan-100/70 to-transparent',
+            };
         case 'baptisms':
             return {
                 ...base,
@@ -281,10 +291,12 @@ function formatNumber(value) {
 function normalizeBreakdown(breakdown) {
     if (!breakdown || typeof breakdown !== 'object') return [];
 
-    const order = ['active', 'inactive', 'draft', 'submitted', 'approved', 'rejected', 'completed', 'issued'];
+    const order = ['active', 'inactive', 'members', 'leaders', 'draft', 'submitted', 'approved', 'rejected', 'completed', 'issued'];
     const labels = {
         active: 'Active',
         inactive: 'Inactive',
+        members: 'Members',
+        leaders: 'Leaders',
         draft: 'Draft',
         submitted: 'Submitted',
         approved: 'Approved',
@@ -317,6 +329,10 @@ function statusChipClass(status) {
             return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
         case 'inactive':
             return 'bg-rose-50 text-rose-800 ring-rose-200';
+        case 'members':
+            return 'bg-cyan-50 text-cyan-800 ring-cyan-200';
+        case 'leaders':
+            return 'bg-indigo-50 text-indigo-800 ring-indigo-200';
         case 'draft':
             return 'bg-slate-50 text-slate-700 ring-slate-200';
         case 'submitted':

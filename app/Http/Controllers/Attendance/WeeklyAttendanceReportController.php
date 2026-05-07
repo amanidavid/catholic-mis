@@ -113,8 +113,6 @@ class WeeklyAttendanceReportController extends Controller
                     'eligible' => 0,
                     'present' => 0,
                     'absent' => 0,
-                    'sick' => 0,
-                    'travel' => 0,
                     'other' => 0,
                     'attendance_percent' => 0,
                 ],
@@ -150,8 +148,6 @@ class WeeklyAttendanceReportController extends Controller
         $totEligible = 0;
         $totPresent = 0;
         $totAbsent = 0;
-        $totSick = 0;
-        $totTravel = 0;
         $totOther = 0;
         $eligibleCache = [];
 
@@ -161,11 +157,9 @@ class WeeklyAttendanceReportController extends Controller
 
             $present = (int) ($counts['present'] ?? 0);
             $absent = (int) ($counts['absent'] ?? 0);
-            $sick = (int) ($counts['sick'] ?? 0);
-            $travel = (int) ($counts['travel'] ?? 0);
             $other = (int) ($counts['other'] ?? 0);
 
-            $eligible = $present + $absent + $sick + $travel + $other;
+            $eligible = $present + $absent + $other;
 
             if ($eligible === 0 && ! isset($meetingsWithAnyAttendance[$mid])) {
                 $key = Carbon::parse($m->meeting_date)->toDateString();
@@ -184,8 +178,6 @@ class WeeklyAttendanceReportController extends Controller
                 'eligible' => $eligible,
                 'present' => $present,
                 'absent' => $absent,
-                'sick' => $sick,
-                'travel' => $travel,
                 'other' => $other,
                 'attendance_percent' => $attendancePercent,
                 'closed_at' => $m->closed_at ? (string) $m->closed_at : null,
@@ -195,8 +187,6 @@ class WeeklyAttendanceReportController extends Controller
             $totEligible += $eligible;
             $totPresent += $present;
             $totAbsent += $absent;
-            $totSick += $sick;
-            $totTravel += $travel;
             $totOther += $other;
         }
 
@@ -211,8 +201,6 @@ class WeeklyAttendanceReportController extends Controller
                 'eligible' => $totEligible,
                 'present' => $totPresent,
                 'absent' => $totAbsent,
-                'sick' => $totSick,
-                'travel' => $totTravel,
                 'other' => $totOther,
                 'attendance_percent' => $totAttendancePercent,
             ],
@@ -244,8 +232,6 @@ class WeeklyAttendanceReportController extends Controller
                 $r['eligible'] ?? 0,
                 $r['present'] ?? 0,
                 $r['absent'] ?? 0,
-                $r['sick'] ?? 0,
-                $r['travel'] ?? 0,
                 $r['other'] ?? 0,
                 $r['attendance_percent'] ?? 0,
             ];
@@ -681,8 +667,6 @@ class WeeklyAttendanceReportController extends Controller
                 'families.family_name as family_name',
                 DB::raw("SUM(CASE WHEN jwa.status = 'present' THEN 1 ELSE 0 END) as present"),
                 DB::raw("SUM(CASE WHEN jwa.status = 'absent' THEN 1 ELSE 0 END) as absent"),
-                DB::raw("SUM(CASE WHEN jwa.status = 'sick' THEN 1 ELSE 0 END) as sick"),
-                DB::raw("SUM(CASE WHEN jwa.status = 'travel' THEN 1 ELSE 0 END) as travel"),
                 DB::raw("SUM(CASE WHEN jwa.status = 'other' THEN 1 ELSE 0 END) as other"),
                 DB::raw('COUNT(jwa.id) as eligible'),
             ])
@@ -700,8 +684,6 @@ class WeeklyAttendanceReportController extends Controller
             $eligible = (int) ($r->eligible ?? 0);
             $present = (int) ($r->present ?? 0);
             $absent = (int) ($r->absent ?? 0);
-            $sick = (int) ($r->sick ?? 0);
-            $travel = (int) ($r->travel ?? 0);
             $other = (int) ($r->other ?? 0);
             $attendancePercent = $eligible > 0 ? round(($present / $eligible) * 100, 1) : 0;
 
@@ -711,8 +693,6 @@ class WeeklyAttendanceReportController extends Controller
                 'eligible' => $eligible,
                 'present' => $present,
                 'absent' => $absent,
-                'sick' => $sick,
-                'travel' => $travel,
                 'other' => $other,
                 'attendance_percent' => $attendancePercent,
             ];
@@ -770,8 +750,6 @@ class WeeklyAttendanceReportController extends Controller
                 'families.family_name as family_name',
                 DB::raw("SUM(CASE WHEN jwa.status = 'present' THEN 1 ELSE 0 END) as present"),
                 DB::raw("SUM(CASE WHEN jwa.status = 'absent' THEN 1 ELSE 0 END) as absent"),
-                DB::raw("SUM(CASE WHEN jwa.status = 'sick' THEN 1 ELSE 0 END) as sick"),
-                DB::raw("SUM(CASE WHEN jwa.status = 'travel' THEN 1 ELSE 0 END) as travel"),
                 DB::raw("SUM(CASE WHEN jwa.status = 'other' THEN 1 ELSE 0 END) as other"),
                 DB::raw('COUNT(jwa.id) as eligible'),
             ])
@@ -788,8 +766,6 @@ class WeeklyAttendanceReportController extends Controller
             $eligible = (int) ($r->eligible ?? 0);
             $present = (int) ($r->present ?? 0);
             $absent = (int) ($r->absent ?? 0);
-            $sick = (int) ($r->sick ?? 0);
-            $travel = (int) ($r->travel ?? 0);
             $other = (int) ($r->other ?? 0);
             $attendancePercent = $eligible > 0 ? round(($present / $eligible) * 100, 1) : 0;
 
@@ -798,8 +774,6 @@ class WeeklyAttendanceReportController extends Controller
                 $eligible,
                 $present,
                 $absent,
-                $sick,
-                $travel,
                 $other,
                 $attendancePercent,
             ];
@@ -877,8 +851,6 @@ class WeeklyAttendanceReportController extends Controller
                 'families.family_name as family_name',
                 DB::raw("SUM(CASE WHEN jwa.status = 'present' THEN 1 ELSE 0 END) as present"),
                 DB::raw("SUM(CASE WHEN jwa.status = 'absent' THEN 1 ELSE 0 END) as absent"),
-                DB::raw("SUM(CASE WHEN jwa.status = 'sick' THEN 1 ELSE 0 END) as sick"),
-                DB::raw("SUM(CASE WHEN jwa.status = 'travel' THEN 1 ELSE 0 END) as travel"),
                 DB::raw("SUM(CASE WHEN jwa.status = 'other' THEN 1 ELSE 0 END) as other"),
                 DB::raw('COUNT(jwa.id) as eligible'),
             ])
@@ -907,8 +879,6 @@ class WeeklyAttendanceReportController extends Controller
             $eligible = (int) ($r->eligible ?? 0);
             $present = (int) ($r->present ?? 0);
             $absent = (int) ($r->absent ?? 0);
-            $sick = (int) ($r->sick ?? 0);
-            $travel = (int) ($r->travel ?? 0);
             $other = (int) ($r->other ?? 0);
             $attendancePercent = $eligible > 0 ? round(($present / $eligible) * 100, 1) : 0;
 
@@ -925,8 +895,6 @@ class WeeklyAttendanceReportController extends Controller
                 'eligible' => $eligible,
                 'present' => $present,
                 'absent' => $absent,
-                'sick' => $sick,
-                'travel' => $travel,
                 'other' => $other,
                 'attendance_percent' => $attendancePercent,
             ];
@@ -990,8 +958,6 @@ class WeeklyAttendanceReportController extends Controller
                 'families.family_name as family_name',
                 DB::raw("SUM(CASE WHEN jwa.status = 'present' THEN 1 ELSE 0 END) as present"),
                 DB::raw("SUM(CASE WHEN jwa.status = 'absent' THEN 1 ELSE 0 END) as absent"),
-                DB::raw("SUM(CASE WHEN jwa.status = 'sick' THEN 1 ELSE 0 END) as sick"),
-                DB::raw("SUM(CASE WHEN jwa.status = 'travel' THEN 1 ELSE 0 END) as travel"),
                 DB::raw("SUM(CASE WHEN jwa.status = 'other' THEN 1 ELSE 0 END) as other"),
                 DB::raw('COUNT(jwa.id) as eligible'),
             ])
@@ -1020,8 +986,6 @@ class WeeklyAttendanceReportController extends Controller
             $eligible = (int) ($r->eligible ?? 0);
             $present = (int) ($r->present ?? 0);
             $absent = (int) ($r->absent ?? 0);
-            $sick = (int) ($r->sick ?? 0);
-            $travel = (int) ($r->travel ?? 0);
             $other = (int) ($r->other ?? 0);
             $attendancePercent = $eligible > 0 ? round(($present / $eligible) * 100, 1) : 0;
 
@@ -1037,8 +1001,6 @@ class WeeklyAttendanceReportController extends Controller
                 $eligible,
                 $present,
                 $absent,
-                $sick,
-                $travel,
                 $other,
                 $attendancePercent,
             ];

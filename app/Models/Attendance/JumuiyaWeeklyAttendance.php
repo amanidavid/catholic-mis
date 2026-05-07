@@ -18,6 +18,7 @@ class JumuiyaWeeklyAttendance extends BaseModel
         'status',
         'marked_by_user_id',
         'marked_at',
+        'notes',
     ];
 
     protected function casts(): array

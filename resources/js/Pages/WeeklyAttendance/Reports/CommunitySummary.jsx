@@ -28,8 +28,6 @@ const STATUS_COLS = [
     { key: 'eligible', label: 'Eligible' },
     { key: 'present', label: 'Present' },
     { key: 'absent', label: 'Absent' },
-    { key: 'sick', label: 'Sick' },
-    { key: 'travel', label: 'Travel' },
     { key: 'other', label: 'Other' },
 ];
 

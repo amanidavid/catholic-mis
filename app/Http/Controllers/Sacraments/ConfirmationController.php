@@ -10,6 +10,7 @@ use App\Models\Sacraments\SacramentProgramCycle;
 use App\Models\Sacraments\SacramentProgramRegistration;
 use App\Models\Structure\Jumuiya;
 use App\Services\Sacraments\SacramentWorkflowEventService;
+use App\Services\People\MemberSacramentStatusService;
 use Carbon\Carbon;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
@@ -23,10 +24,15 @@ class ConfirmationController extends Controller
     private const TYPE_TRANSFER_APPROVAL_LETTER = 'transfer_approval_letter';
 
     protected SacramentWorkflowEventService $workflowEvents;
+    protected MemberSacramentStatusService $memberSacramentStatuses;
 
-    public function __construct(SacramentWorkflowEventService $workflowEvents)
+    public function __construct(
+        SacramentWorkflowEventService $workflowEvents,
+        MemberSacramentStatusService $memberSacramentStatuses
+    )
     {
         $this->workflowEvents = $workflowEvents;
+        $this->memberSacramentStatuses = $memberSacramentStatuses;
     }
 
     private function activeLeadershipJumuiyaIds(int $memberId): array
@@ -692,6 +698,8 @@ class ConfirmationController extends Controller
             'completed_at' => now(),
         ])->save();
 
+        $this->memberSacramentStatuses->syncFromProgramRegistration($registration->fresh());
+
         $this->workflowEvents->record(
             $request,
             (int) $registration->parish_id,
@@ -730,6 +738,8 @@ class ConfirmationController extends Controller
             'issued_at' => now(),
             'issued_by_user_id' => (int) $user->id,
         ])->save();
+
+        $this->memberSacramentStatuses->syncFromProgramRegistration($registration->fresh());
 
         $this->workflowEvents->record(
             $request,

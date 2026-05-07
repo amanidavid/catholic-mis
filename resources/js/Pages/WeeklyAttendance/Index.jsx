@@ -1,6 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import InputError from '@/Components/InputError';
 import FloatingInput from '@/Components/FloatingInput';
+import Modal from '@/Components/Modal';
+import ModalHeader from '@/Components/ModalHeader';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import SearchableJumuiyaSelect from '@/Components/SearchableJumuiyaSelect';
@@ -13,16 +15,12 @@ import { useMemo, useState } from 'react';
 const STATUS_OPTIONS = [
     { value: 'present', label: 'Present' },
     { value: 'absent', label: 'Absent' },
-    { value: 'sick', label: 'Sick' },
-    { value: 'travel', label: 'Travel' },
     { value: 'other', label: 'Other' },
 ];
 
 const STATUS_STYLES = {
     present: 'bg-emerald-50 text-emerald-800 ring-emerald-200 hover:bg-emerald-100',
     absent: 'bg-rose-50 text-rose-800 ring-rose-200 hover:bg-rose-100',
-    sick: 'bg-amber-50 text-amber-900 ring-amber-200 hover:bg-amber-100',
-    travel: 'bg-sky-50 text-sky-900 ring-sky-200 hover:bg-sky-100',
     other: 'bg-slate-50 text-slate-800 ring-slate-200 hover:bg-slate-100',
 };
 
@@ -100,9 +98,28 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
     const [bulkStatus, setBulkStatus] = useState('');
 
     const [pageError, setPageError] = useState('');
+    const [otherReasonModal, setOtherReasonModal] = useState({
+        open: false,
+        mode: null,
+        memberUuid: null,
+        memberName: '',
+    });
+    const [otherReason, setOtherReason] = useState('');
+    const [otherReasonError, setOtherReasonError] = useState('');
 
     const flashSuccess = (message) => {
         window.dispatchEvent(new CustomEvent('app:flash', { detail: { type: 'success', message } }));
+    };
+
+    const closeOtherReasonModal = () => {
+        setOtherReasonModal({
+            open: false,
+            mode: null,
+            memberUuid: null,
+            memberName: '',
+        });
+        setOtherReason('');
+        setOtherReasonError('');
     };
 
     const fetchFamilyReport = async (meetingId, nextPage = 1, nextPerPage = perPage) => {
@@ -212,7 +229,7 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
         }
     };
 
-    const bulkMarkSelected = async () => {
+    const applyBulkStatus = async (notes = undefined) => {
         if (!meetingUuid) return;
         if (meetingClosed) return;
         if (bulkApplying) return;
@@ -240,18 +257,19 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
                 {
                     member_uuids: memberUuids,
                     status: bulkStatus,
+                    notes,
                 },
                 { timeout: 30000 },
             );
 
             const updated = Array.isArray(res?.data?.updated) ? res.data.updated : [];
-            const updateMap = new Map(updated.map((u) => [u.member_uuid, u.status]));
+            const updateMap = new Map(updated.map((u) => [u.member_uuid, { status: u.status, notes: u.notes ?? null }]));
 
             setFamilies((prev) =>
                 prev.map((f) => ({
                     ...f,
                     members: Array.isArray(f.members)
-                        ? f.members.map((m) => (updateMap.has(m.uuid) ? { ...m, status: updateMap.get(m.uuid) } : m))
+                        ? f.members.map((m) => (updateMap.has(m.uuid) ? { ...m, ...updateMap.get(m.uuid) } : m))
                         : f.members,
                 })),
             );
@@ -282,7 +300,23 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
         }
     };
 
-    const setMemberStatus = async (memberUuid, status) => {
+    const bulkMarkSelected = async () => {
+        if (bulkStatus === 'other') {
+            setOtherReasonModal({
+                open: true,
+                mode: 'bulk',
+                memberUuid: null,
+                memberName: '',
+            });
+            setOtherReason('');
+            setOtherReasonError('');
+            return;
+        }
+
+        await applyBulkStatus(undefined);
+    };
+
+    const applyMemberStatus = async (memberUuid, status, notes = undefined) => {
         if (!meetingUuid) return;
         if (meetingClosed) return;
 
@@ -292,13 +326,14 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
             await axios.post(route('weekly-attendance.meetings.mark', meetingUuid), {
                 member_uuid: memberUuid,
                 status,
+                notes,
             });
 
             setFamilies((prev) =>
                 prev.map((f) => ({
                     ...f,
                     members: Array.isArray(f.members)
-                        ? f.members.map((m) => (m.uuid === memberUuid ? { ...m, status } : m))
+                        ? f.members.map((m) => (m.uuid === memberUuid ? { ...m, status, notes: notes ?? null } : m))
                         : f.members,
                 })),
             );
@@ -307,6 +342,43 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
         } catch (e) {
             const msg = e?.response?.data?.message || e?.message || 'Unable to save attendance.';
             setPageError(String(msg));
+        }
+    };
+
+    const setMemberStatus = async (memberUuid, status, memberName = '') => {
+        if (status === 'other') {
+            setOtherReasonModal({
+                open: true,
+                mode: 'single',
+                memberUuid,
+                memberName,
+            });
+            setOtherReason('');
+            setOtherReasonError('');
+            return;
+        }
+
+        await applyMemberStatus(memberUuid, status, undefined);
+    };
+
+    const submitOtherReason = async () => {
+        const trimmedReason = otherReason.trim();
+        if (!trimmedReason) {
+            setOtherReasonError('Reason is required for the Other attendance status.');
+            return;
+        }
+
+        setOtherReasonError('');
+
+        if (otherReasonModal.mode === 'bulk') {
+            await applyBulkStatus(trimmedReason);
+            closeOtherReasonModal();
+            return;
+        }
+
+        if (otherReasonModal.mode === 'single' && otherReasonModal.memberUuid) {
+            await applyMemberStatus(otherReasonModal.memberUuid, 'other', trimmedReason);
+            closeOtherReasonModal();
         }
     };
 
@@ -598,6 +670,9 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
                                                             {toTitleCase([m.first_name, m.middle_name, m.last_name].filter(Boolean).join(' '))}
                                                         </div>
                                                         <div className="text-xs text-slate-500">Status: {m.status || 'Not marked'}</div>
+                                                        {m.status === 'other' && m.notes && (
+                                                            <div className="mt-1 text-xs text-amber-700">Reason: {m.notes}</div>
+                                                        )}
                                                         {m.eligible === false && (
                                                             <div className="mt-1 text-xs font-semibold text-amber-700">Not eligible for this Christian Community on this date.</div>
                                                         )}
@@ -626,7 +701,7 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
                                                                         key={opt.value}
                                                                         type="button"
                                                                         className={cls}
-                                                                        onClick={() => setMemberStatus(m.uuid, opt.value)}
+                                                                        onClick={() => setMemberStatus(m.uuid, opt.value, toTitleCase([m.first_name, m.middle_name, m.last_name].filter(Boolean).join(' ')))}
                                                                         disabled={!canRecord || loading || m.eligible !== true}
                                                                     >
                                                                         {opt.label}
@@ -645,6 +720,54 @@ export default function WeeklyAttendanceIndex({ scoped_jumuiya, can_select_jumui
                     </div>
                 )}
             </div>
+
+            <Modal show={otherReasonModal.open} onClose={closeOtherReasonModal} maxWidth="lg">
+                <div className="p-6">
+                    <ModalHeader
+                        title="Attendance Reason"
+                        subtitle={otherReasonModal.mode === 'bulk'
+                            ? 'Please provide a reason before saving the Other attendance status for the selected members.'
+                            : 'Please provide a reason before saving the Other attendance status for this member.'}
+                        onClose={closeOtherReasonModal}
+                    />
+
+                    {otherReasonModal.mode === 'single' && otherReasonModal.memberName ? (
+                        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                            Member: <span className="font-semibold text-slate-900">{otherReasonModal.memberName}</span>
+                        </div>
+                    ) : null}
+
+                    {otherReasonModal.mode === 'bulk' ? (
+                        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                            Selected members: <span className="font-semibold text-slate-900">{selectedMembers.size}</span>
+                        </div>
+                    ) : null}
+
+                    <div>
+                        <label className="mb-1 block text-sm font-semibold text-slate-700" htmlFor="attendance_other_reason">
+                            Reason
+                        </label>
+                        <textarea
+                            id="attendance_other_reason"
+                            value={otherReason}
+                            onChange={(e) => setOtherReason(e.target.value)}
+                            className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm"
+                            rows={4}
+                            placeholder="Enter a brief formal reason."
+                        />
+                        <InputError className="mt-2" message={otherReasonError} />
+                    </div>
+
+                    <div className="mt-6 flex items-center justify-end gap-2">
+                        <SecondaryButton type="button" onClick={closeOtherReasonModal}>
+                            Cancel
+                        </SecondaryButton>
+                        <PrimaryButton type="button" onClick={submitOtherReason} disabled={bulkApplying || loading}>
+                            Save Reason
+                        </PrimaryButton>
+                    </div>
+                </div>
+            </Modal>
         </AuthenticatedLayout>
     );
 }

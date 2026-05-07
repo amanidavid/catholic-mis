@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\People;
 
+use App\Models\People\MemberSacramentStatus;
+use App\Support\MemberMaritalStatuses;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -13,6 +15,30 @@ class MemberResource extends JsonResource
         if ($this->relationLoaded('family') && $this->family) {
             $isHead = (int) ($this->family->head_of_family_member_id ?? 0) === (int) $this->id;
         }
+
+        $statusRows = $this->relationLoaded('sacramentStatuses')
+            ? $this->sacramentStatuses->keyBy('sacrament_type')
+            : collect();
+
+        $mapStatus = function (string $type) use ($statusRows): array {
+            /** @var MemberSacramentStatus|null $row */
+            $row = $statusRows->get($type);
+            $sourceType = (string) ($row?->source_type ?? '');
+
+            return [
+                'is_received' => (bool) ($row?->is_received ?? false),
+                'certificate_no' => $row?->certificate_no,
+                'sacrament_date' => $row?->sacrament_date?->format('Y-m-d'),
+                'source_type' => $sourceType !== '' ? $sourceType : null,
+                'source_record_uuid' => $row?->source_record_uuid,
+                'source_label' => match ($sourceType) {
+                    MemberSacramentStatus::SOURCE_BAPTISM => 'Linked baptism record',
+                    MemberSacramentStatus::SOURCE_PROGRAM_REGISTRATION => 'Linked sacrament registration',
+                    MemberSacramentStatus::SOURCE_MANUAL => 'Manual member profile entry',
+                    default => null,
+                },
+            ];
+        };
 
         return [
             'uuid' => $this->uuid,
@@ -44,7 +70,13 @@ class MemberResource extends JsonResource
             'email' => $this->email,
             'national_id' => $this->national_id,
             'marital_status' => $this->marital_status,
+            'marital_status_label' => MemberMaritalStatuses::label($this->marital_status),
             'is_active' => (bool) $this->is_active,
+            'sacrament_statuses' => [
+                'baptism' => $mapStatus(MemberSacramentStatus::TYPE_BAPTISM),
+                'communion' => $mapStatus(MemberSacramentStatus::TYPE_COMMUNION),
+                'confirmation' => $mapStatus(MemberSacramentStatus::TYPE_CONFIRMATION),
+            ],
         ];
     }
 }

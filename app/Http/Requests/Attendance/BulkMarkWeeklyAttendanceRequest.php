@@ -16,8 +16,8 @@ class BulkMarkWeeklyAttendanceRequest extends FormRequest
         return [
             'member_uuids' => ['required', 'array', 'min:1'],
             'member_uuids.*' => ['required', 'string', 'uuid'],
-            'status' => ['required', 'string', 'in:present,absent,sick,travel,other'],
-            'notes' => ['nullable', 'string', 'max:500'],
+            'status' => ['required', 'string', 'in:present,absent,other'],
+            'notes' => ['nullable', 'required_if:status,other', 'string', 'max:500'],
         ];
     }
 }

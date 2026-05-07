@@ -6,6 +6,7 @@ use App\Http\Controllers\AccessControl\RoleController;
 use App\Http\Controllers\AccessControl\UserAccessController;
 use App\Http\Controllers\Leadership\JumuiyaLeadershipController;
 use App\Http\Controllers\Leadership\JumuiyaLeadershipRoleController;
+use App\Http\Controllers\Kitume\ParishAssociationController;
 use App\Http\Controllers\People\FamilyController;
 use App\Http\Controllers\People\FamilyRelationshipController;
 use App\Http\Controllers\People\MemberController;
@@ -47,6 +48,7 @@ use App\Http\Controllers\Sacraments\MarriageAttachmentController;
 use App\Http\Controllers\Sacraments\MarriageController;
 use App\Http\Controllers\Sacraments\ProgramRegistrationAttachmentController;
 use App\Http\Controllers\Reports\CommunityReportController;
+use App\Http\Controllers\Reports\ParishAssociationReportController;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -96,6 +98,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/community/members-by-jumuiya', [CommunityReportController::class, 'membersByJumuiya'])
             ->middleware('can:reports.community.view')
             ->name('reports.community.members-by-jumuiya');
+        Route::get('/associations', [ParishAssociationReportController::class, 'index'])
+            ->middleware('can:reports.associations.view')
+            ->name('reports.associations.index');
     });
 
     Route::prefix('finance')->group(function () {
@@ -247,6 +252,28 @@ Route::middleware('auth')->group(function () {
     Route::patch('/members/{member}', [MemberController::class, 'update'])->name('members.update');
     Route::post('/members/{member}/transfer', [MemberController::class, 'transfer'])->name('members.transfer');
     Route::delete('/members/{member}', [MemberController::class, 'destroy'])->name('members.destroy');
+
+    Route::prefix('parish-associations')->group(function () {
+        Route::get('/', [ParishAssociationController::class, 'index'])->name('parish-associations.index');
+        Route::get('/{parishAssociation}/members', [ParishAssociationController::class, 'members'])->name('parish-associations.members.index');
+        Route::get('/{parishAssociation}/leaders', [ParishAssociationController::class, 'leaders'])->name('parish-associations.leaders.index');
+        Route::get('/{parishAssociation}/leader-roles', [ParishAssociationController::class, 'leaderRoles'])->name('parish-associations.leader-roles.index');
+        Route::post('/', [ParishAssociationController::class, 'store'])->name('parish-associations.store');
+        Route::patch('/{parishAssociation}', [ParishAssociationController::class, 'update'])->name('parish-associations.update');
+        Route::delete('/{parishAssociation}', [ParishAssociationController::class, 'destroy'])->name('parish-associations.destroy');
+
+        Route::post('/{parishAssociation}/members', [ParishAssociationController::class, 'storeMember'])->name('parish-associations.members.store');
+        Route::patch('/members/{membership}', [ParishAssociationController::class, 'updateMember'])->name('parish-associations.members.update');
+        Route::delete('/members/{membership}', [ParishAssociationController::class, 'destroyMember'])->name('parish-associations.members.destroy');
+
+        Route::post('/{parishAssociation}/leadership', [ParishAssociationController::class, 'storeLeadership'])->name('parish-associations.leadership.store');
+        Route::patch('/leadership/{leadership}', [ParishAssociationController::class, 'updateLeadership'])->name('parish-associations.leadership.update');
+        Route::delete('/leadership/{leadership}', [ParishAssociationController::class, 'destroyLeadership'])->name('parish-associations.leadership.destroy');
+
+        Route::post('/leader-roles', [ParishAssociationController::class, 'storeLeaderRole'])->name('parish-associations.leader-roles.store');
+        Route::patch('/leader-roles/{role}', [ParishAssociationController::class, 'updateLeaderRole'])->name('parish-associations.leader-roles.update');
+        Route::delete('/leader-roles/{role}', [ParishAssociationController::class, 'destroyLeaderRole'])->name('parish-associations.leader-roles.destroy');
+    });
 
     Route::get('/family-relationships', [FamilyRelationshipController::class, 'index'])->name('family-relationships.index');
     Route::get('/family-relationships/lookup', [FamilyRelationshipController::class, 'lookup'])->name('family-relationships.lookup');
