@@ -34,6 +34,9 @@ use App\Models\Finance\PettyCashFund;
 use App\Models\Finance\PettyCashReplenishment;
 use App\Models\Finance\PettyCashVoucher;
 use App\Models\Finance\TrialBalance;
+use App\Models\Pastoral\DeceasedRegisterEntry;
+use App\Models\Pastoral\PastoralServiceCategory;
+use App\Models\Pastoral\PastoralServiceRequest;
 use App\Policies\FamilyPolicy;
 use App\Policies\FamilyRelationshipPolicy;
 use App\Policies\JumuiyaLeadershipPolicy;
@@ -56,6 +59,9 @@ use App\Policies\PettyCashFundPolicy;
 use App\Policies\PettyCashReplenishmentPolicy;
 use App\Policies\PettyCashVoucherPolicy;
 use App\Policies\TrialBalancePolicy;
+use App\Policies\DeceasedRegisterEntryPolicy;
+use App\Policies\ServiceCategoryPolicy;
+use App\Policies\ServiceRequestPolicy;
 use App\Policies\MemberPolicy;
 use App\Policies\AuditLogPolicy;
 use App\Policies\ParishStaffPolicy;
@@ -116,6 +122,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Bank::class, BankPolicy::class);
         Gate::policy(BankAccount::class, BankAccountPolicy::class);
         Gate::policy(BankAccountTransaction::class, BankAccountTransactionPolicy::class);
+        Gate::policy(PastoralServiceCategory::class, ServiceCategoryPolicy::class);
+        Gate::policy(PastoralServiceRequest::class, ServiceRequestPolicy::class);
+        Gate::policy(DeceasedRegisterEntry::class, DeceasedRegisterEntryPolicy::class);
 
         Permission::observe(PermissionObserver::class);
 

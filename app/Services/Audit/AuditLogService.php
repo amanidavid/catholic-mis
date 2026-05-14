@@ -15,7 +15,7 @@ class AuditLogService
     {
         return AuditLog::where('model_type', $modelType)
             ->where('model_id', $modelId)
-            ->with(['changedBy:id,uuid,email'])
+            ->with(['changedBy:id,uuid,email,member_id', 'changedBy.member:id,phone'])
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
     }
@@ -25,7 +25,7 @@ class AuditLogService
      */
     public function getFilteredAuditLogs(array $filters = [], int $perPage = 50): LengthAwarePaginator
     {
-        $query = AuditLog::query()->with(['changedBy:id,uuid,email']);
+        $query = AuditLog::query()->with(['changedBy:id,uuid,email,member_id', 'changedBy.member:id,phone']);
 
         if (isset($filters['model_type'])) {
             $query->where('model_type', $filters['model_type']);

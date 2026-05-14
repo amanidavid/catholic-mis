@@ -83,6 +83,9 @@ class AuditLogController extends Controller
                 'model' => $this->modelLabel($log->model_type),
                 'action' => $log->action,
                 'changed_by' => $log->relationLoaded('changedBy') && $log->changedBy ? ($log->changedBy->email ?? null) : null,
+                'changed_by_phone' => $log->relationLoaded('changedBy') && $log->changedBy
+                    ? ($log->changedBy->member?->phone ?? null)
+                    : null,
                 'description' => $log->description,
                 'changes' => $this->prettyDiff($old, $new, $fkMaps),
             ];

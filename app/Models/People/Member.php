@@ -76,6 +76,8 @@ class Member extends BaseModel
         'national_id',
         'marital_status',
         'is_active',
+        'is_deceased',
+        'date_of_death',
     ];
 
     protected function casts(): array
@@ -84,6 +86,8 @@ class Member extends BaseModel
             ...parent::casts(),
             'birth_date' => 'date',
             'is_active' => 'boolean',
+            'is_deceased' => 'boolean',
+            'date_of_death' => 'date',
         ];
     }
 

@@ -158,7 +158,10 @@ export default function AuditLogsIndex({ logs, filters, modelTypes, actions }) {
                                                     {r.action ?? '-'}
                                                 </span>
                                             </td>
-                                            <td className="text-sm text-slate-700">{r.changed_by ?? '-'}</td>
+                                            <td className="text-sm text-slate-700">
+                                                <div>{r.changed_by ?? '-'}</div>
+                                                <div className="text-xs text-slate-500">{r.changed_by_phone ?? '-'}</div>
+                                            </td>
                                             <td className="text-sm text-slate-700">{r.description ?? '-'}</td>
                                             <td className="text-right">
                                                 <button

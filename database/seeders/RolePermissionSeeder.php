@@ -210,6 +210,42 @@ class RolePermissionSeeder extends Seeder
             'certificates.view',
             'certificates.issue',
             'certificates.verify',
+
+            'service-categories.view',
+            'service-categories.create',
+            'service-categories.update',
+            'service-categories.delete',
+
+            'service-requests.view',
+            'service-requests.view-all',
+            'service-requests.create',
+            'service-requests.update',
+            'service-requests.submit',
+            'service-requests.schedule',
+            'service-requests.progress',
+            'service-requests.complete',
+            'service-requests.cancel',
+            'service-requests.delete',
+
+            'deceased-register.view',
+            'deceased-register.view-all',
+            'deceased-register.create',
+            'deceased-register.update',
+            'deceased-register.delete',
+
+            'contributions.catalogs.view',
+            'contributions.catalogs.create',
+            'contributions.catalogs.update',
+            'contributions.catalogs.delete',
+            'contributions.rules.view',
+            'contributions.rules.create',
+            'contributions.rules.update',
+            'contributions.rules.delete',
+            'contributions.obligations.view',
+            'contributions.obligations.create',
+            'contributions.obligations.update',
+            'contributions.obligations.delete',
+            'contributions.transactions.create',
         ];
 
         foreach ($permissions as $permissionName) {

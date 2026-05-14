@@ -18,6 +18,9 @@ use App\Http\Controllers\Jumuiyas\JumuiyaController;
 use App\Http\Controllers\Outstations\OutstationController;
 use App\Http\Controllers\ParishStaff\ParishStaffController;
 use App\Http\Controllers\ParishStaff\ParishStaffPositionController;
+use App\Http\Controllers\Pastoral\DeceasedRegisterController;
+use App\Http\Controllers\Pastoral\ServiceCategoryController;
+use App\Http\Controllers\Pastoral\ServiceRequestController;
 use App\Http\Controllers\Finance\ChartOfAccounts\AccountGroupController as CoaAccountGroupController;
 use App\Http\Controllers\Finance\ChartOfAccounts\AccountSubtypeController as CoaAccountSubtypeController;
 use App\Http\Controllers\Finance\ChartOfAccounts\AccountTypeController as CoaAccountTypeController;
@@ -34,6 +37,10 @@ use App\Http\Controllers\Finance\Accounting\PettyCashReplenishmentController as 
 use App\Http\Controllers\Finance\Accounting\PettyCashBookController as FinancePettyCashBookController;
 use App\Http\Controllers\Finance\Accounting\TrialBalanceController as FinanceTrialBalanceController;
 use App\Http\Controllers\Finance\Accounting\DoubleEntryController as FinanceDoubleEntryController;
+use App\Http\Controllers\Finance\Contribution\ContributionCatalogController as FinanceContributionCatalogController;
+use App\Http\Controllers\Finance\Contribution\ContributionRuleController as FinanceContributionRuleController;
+use App\Http\Controllers\Finance\Contribution\ContributionPaymentRequestController as FinanceContributionPaymentRequestController;
+use App\Http\Controllers\Finance\Contribution\ContributionTransactionController as FinanceContributionTransactionController;
 use App\Http\Controllers\Setup\SetupController;
 use App\Http\Controllers\Zones\ZoneController;
 use App\Http\Controllers\Clergy\InstitutionController;
@@ -181,6 +188,62 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [FinancePettyCashBookController::class, 'index'])->name('finance.petty-cash-book.index');
             Route::get('/lookup', [FinancePettyCashBookController::class, 'lookup'])->name('finance.petty-cash-book.lookup');
         });
+
+        Route::prefix('contribution')->group(function () {
+            Route::prefix('catalogs')->group(function () {
+                Route::get('/', [FinanceContributionCatalogController::class, 'index'])
+                    ->middleware('can:contributions.catalogs.view')
+                    ->name('finance.contribution.catalogs.index');
+                Route::post('/', [FinanceContributionCatalogController::class, 'store'])
+                    ->middleware('can:contributions.catalogs.create')
+                    ->name('finance.contribution.catalogs.store');
+                Route::patch('/{uuid}', [FinanceContributionCatalogController::class, 'update'])
+                    ->middleware('can:contributions.catalogs.update')
+                    ->name('finance.contribution.catalogs.update');
+                Route::delete('/{uuid}', [FinanceContributionCatalogController::class, 'destroy'])
+                    ->middleware('can:contributions.catalogs.delete')
+                    ->name('finance.contribution.catalogs.destroy');
+            });
+
+            Route::prefix('rules')->group(function () {
+                Route::get('/', [FinanceContributionRuleController::class, 'index'])
+                    ->middleware('can:contributions.rules.view')
+                    ->name('finance.contribution.rules.index');
+                Route::post('/', [FinanceContributionRuleController::class, 'store'])
+                    ->middleware('can:contributions.rules.create')
+                    ->name('finance.contribution.rules.store');
+                Route::patch('/{uuid}', [FinanceContributionRuleController::class, 'update'])
+                    ->middleware('can:contributions.rules.update')
+                    ->name('finance.contribution.rules.update');
+                Route::delete('/{uuid}', [FinanceContributionRuleController::class, 'destroy'])
+                    ->middleware('can:contributions.rules.delete')
+                    ->name('finance.contribution.rules.destroy');
+            });
+
+            Route::prefix('payment-requests')->group(function () {
+                Route::get('/', [FinanceContributionPaymentRequestController::class, 'index'])
+                    ->middleware('can:contributions.obligations.view')
+                    ->name('finance.contribution.payment-requests.index');
+                Route::post('/', [FinanceContributionPaymentRequestController::class, 'store'])
+                    ->middleware('can:contributions.obligations.create')
+                    ->name('finance.contribution.payment-requests.store');
+                Route::get('/{uuid}', [FinanceContributionPaymentRequestController::class, 'show'])
+                    ->middleware('can:contributions.obligations.view')
+                    ->name('finance.contribution.payment-requests.show');
+            });
+
+            Route::prefix('transactions')->group(function () {
+                Route::post('/', [FinanceContributionTransactionController::class, 'store'])
+                    ->middleware('can:contributions.transactions.create')
+                    ->name('finance.contribution.transactions.store');
+                Route::post('/{uuid}/waive', [FinanceContributionTransactionController::class, 'waive'])
+                    ->middleware('can:contributions.obligations.update')
+                    ->name('finance.contribution.transactions.waive');
+                Route::post('/{uuid}/cancel', [FinanceContributionTransactionController::class, 'cancel'])
+                    ->middleware('can:contributions.obligations.update')
+                    ->name('finance.contribution.transactions.cancel');
+            });
+        });
     });
 
     Route::middleware('can:permissions.manage')->prefix('access-control')->group(function () {
@@ -252,6 +315,80 @@ Route::middleware('auth')->group(function () {
     Route::patch('/members/{member}', [MemberController::class, 'update'])->name('members.update');
     Route::post('/members/{member}/transfer', [MemberController::class, 'transfer'])->name('members.transfer');
     Route::delete('/members/{member}', [MemberController::class, 'destroy'])->name('members.destroy');
+
+    Route::prefix('pastoral')->group(function () {
+        Route::prefix('service-categories')->group(function () {
+            Route::get('/', [ServiceCategoryController::class, 'index'])
+                ->middleware('can:service-categories.view')
+                ->name('pastoral.service-categories.index');
+            Route::post('/', [ServiceCategoryController::class, 'store'])
+                ->middleware('can:service-categories.create')
+                ->name('pastoral.service-categories.store');
+            Route::patch('/{serviceCategory}', [ServiceCategoryController::class, 'update'])
+                ->middleware('can:service-categories.update')
+                ->name('pastoral.service-categories.update');
+            Route::delete('/{serviceCategory}', [ServiceCategoryController::class, 'destroy'])
+                ->middleware('can:service-categories.delete')
+                ->name('pastoral.service-categories.destroy');
+        });
+
+        Route::prefix('service-requests')->group(function () {
+            Route::get('/', [ServiceRequestController::class, 'index'])
+                ->middleware('can:service-requests.view')
+                ->name('pastoral.service-requests.index');
+            Route::get('/create', [ServiceRequestController::class, 'create'])
+                ->middleware('can:service-requests.create')
+                ->name('pastoral.service-requests.create');
+            Route::post('/', [ServiceRequestController::class, 'store'])
+                ->middleware('can:service-requests.create')
+                ->name('pastoral.service-requests.store');
+            Route::get('/{serviceRequest}', [ServiceRequestController::class, 'show'])
+                ->middleware('can:service-requests.view')
+                ->name('pastoral.service-requests.show');
+            Route::patch('/{serviceRequest}', [ServiceRequestController::class, 'update'])
+                ->middleware('can:service-requests.update')
+                ->name('pastoral.service-requests.update');
+            Route::post('/{serviceRequest}/submit', [ServiceRequestController::class, 'submit'])
+                ->middleware('can:service-requests.submit')
+                ->name('pastoral.service-requests.submit');
+            Route::post('/{serviceRequest}/schedule', [ServiceRequestController::class, 'schedule'])
+                ->middleware('can:service-requests.schedule')
+                ->name('pastoral.service-requests.schedule');
+            Route::post('/{serviceRequest}/progress', [ServiceRequestController::class, 'progress'])
+                ->middleware('can:service-requests.progress')
+                ->name('pastoral.service-requests.progress');
+            Route::post('/{serviceRequest}/complete', [ServiceRequestController::class, 'complete'])
+                ->middleware('can:service-requests.complete')
+                ->name('pastoral.service-requests.complete');
+            Route::post('/{serviceRequest}/cancel', [ServiceRequestController::class, 'cancel'])
+                ->middleware('can:service-requests.cancel')
+                ->name('pastoral.service-requests.cancel');
+            Route::delete('/{serviceRequest}', [ServiceRequestController::class, 'destroy'])
+                ->middleware('can:service-requests.delete')
+                ->name('pastoral.service-requests.destroy');
+        });
+
+        Route::prefix('deceased-register')->group(function () {
+            Route::get('/', [DeceasedRegisterController::class, 'index'])
+                ->middleware('can:deceased-register.view')
+                ->name('pastoral.deceased-register.index');
+            Route::get('/create', [DeceasedRegisterController::class, 'create'])
+                ->middleware('can:deceased-register.create')
+                ->name('pastoral.deceased-register.create');
+            Route::post('/', [DeceasedRegisterController::class, 'store'])
+                ->middleware('can:deceased-register.create')
+                ->name('pastoral.deceased-register.store');
+            Route::get('/{deceasedRegisterEntry}/edit', [DeceasedRegisterController::class, 'edit'])
+                ->middleware('can:deceased-register.update')
+                ->name('pastoral.deceased-register.edit');
+            Route::patch('/{deceasedRegisterEntry}', [DeceasedRegisterController::class, 'update'])
+                ->middleware('can:deceased-register.update')
+                ->name('pastoral.deceased-register.update');
+            Route::delete('/{deceasedRegisterEntry}', [DeceasedRegisterController::class, 'destroy'])
+                ->middleware('can:deceased-register.delete')
+                ->name('pastoral.deceased-register.destroy');
+        });
+    });
 
     Route::prefix('parish-associations')->group(function () {
         Route::get('/', [ParishAssociationController::class, 'index'])->name('parish-associations.index');

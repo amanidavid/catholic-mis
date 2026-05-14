@@ -269,6 +269,26 @@ const icons = {
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 14h5" />
         </svg>
     ),
+    contributions: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18" />
+        </svg>
+    ),
+    catalogs: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+    ),
+    rules: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+    ),
+    obligations: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+    ),
 };
 
 export default function AuthenticatedLayout({ header, children }) {
@@ -304,6 +324,9 @@ export default function AuthenticatedLayout({ header, children }) {
                     { label: 'Families', routeName: 'families.*', href: () => route('families.index'), icon: icons.house, show: can('families.view') },
                     { label: 'Members', routeName: 'members.*', href: () => route('members.index'), icon: icons.user, show: can('members.view') },
                     { label: 'Vyama vya Kitume', routeName: 'parish-associations.*', href: () => route('parish-associations.index'), icon: icons.star, show: can('parish-associations.view') },
+                    { label: 'Service Categories', routeName: 'pastoral.service-categories.*', href: () => route('pastoral.service-categories.index'), icon: icons.list, show: can('service-categories.view') },
+                    { label: 'Service Requests', routeName: 'pastoral.service-requests.*', href: () => route('pastoral.service-requests.index'), icon: icons.history, show: can('service-requests.view') },
+                    { label: 'Order of Christian Funerals', routeName: 'pastoral.deceased-register.*', href: () => route('pastoral.deceased-register.index'), icon: icons.badge, show: can('deceased-register.view') },
                     { label: 'Family Relationships', routeName: 'family-relationships.*', href: () => route('family-relationships.index'), icon: icons.network, show: can('family-relationships.view') },
                     { label: 'Weekly Attendance', routeName: 'weekly-attendance.*', href: () => route('weekly-attendance.index'), icon: icons.history, show: can('weekly-attendance.view') },
                 ],
@@ -398,6 +421,17 @@ export default function AuthenticatedLayout({ header, children }) {
                             { label: 'Petty Cash Vouchers', routeName: 'finance.petty-cash-vouchers.*', href: () => route('finance.petty-cash-vouchers.index'), icon: icons.pettyCash, show: can('finance.petty-cash-vouchers.view') },
                             { label: 'Petty Cash Replenishments', routeName: 'finance.petty-cash-replenishments.*', href: () => route('finance.petty-cash-replenishments.index'), icon: icons.pettyCash, show: can('finance.petty-cash-replenishments.view') },
                             { label: 'Petty Cash Book', routeName: 'finance.petty-cash-book.*', href: () => route('finance.petty-cash-book.index'), icon: icons.pettyCash, show: can('finance.petty-cash-book.view') },
+                        ],
+                    },
+
+                    {
+                        label: 'Contributions',
+                        isSection: true,
+                        show: true,
+                        children: [
+                            { label: 'Catalogs', routeName: 'finance.contribution.catalogs.*', href: () => route('finance.contribution.catalogs.index'), icon: icons.catalogs, show: can('contributions.catalogs.view') },
+                            { label: 'Rules', routeName: 'finance.contribution.rules.*', href: () => route('finance.contribution.rules.index'), icon: icons.rules, show: can('contributions.rules.view') },
+                            { label: 'Payment Requests', routeName: 'finance.contribution.payment-requests.*', href: () => route('finance.contribution.payment-requests.index'), icon: icons.obligations, show: can('contributions.obligations.view') },
                         ],
                     },
                 ],

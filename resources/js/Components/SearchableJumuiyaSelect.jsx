@@ -12,9 +12,10 @@ export default function SearchableJumuiyaSelect({
     className,
     disabled = false,
     error,
+    initialSelected = null,
 }) {
     const [query, setQuery] = useState('');
-    const [options, setOptions] = useState([]);
+    const [options, setOptions] = useState(initialSelected ? [initialSelected] : []);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     const lastFetchRef = useRef(0);
@@ -40,10 +41,26 @@ export default function SearchableJumuiyaSelect({
             if (lastFetchRef.current !== fetchId) return;
 
             const data = res?.data?.data;
-            setOptions(Array.isArray(data) ? data : []);
+            let newOptions = Array.isArray(data) ? data : [];
+
+            // Always preserve initialSelected in options if it exists
+            if (initialSelected) {
+                const existingIndex = newOptions.findIndex((o) => o.uuid === initialSelected.uuid);
+                if (existingIndex >= 0) {
+                    // Move to front if already exists
+                    const existing = newOptions[existingIndex];
+                    newOptions.splice(existingIndex, 1);
+                    newOptions.unshift(existing);
+                } else {
+                    // Add to front if not exists
+                    newOptions.unshift(initialSelected);
+                }
+            }
+
+            setOptions(newOptions);
         } catch {
             if (lastFetchRef.current !== fetchId) return;
-            setOptions([]);
+            setOptions(initialSelected ? [initialSelected] : []);
         } finally {
             if (lastFetchRef.current !== fetchId) return;
             setLoading(false);
@@ -52,24 +69,33 @@ export default function SearchableJumuiyaSelect({
 
     useEffect(() => {
         if (disabled) return;
+        // Skip initial fetch if we have an initialSelected value
+        if (initialSelected && query === '') return;
 
         const t = setTimeout(() => {
             fetchOptions(query);
         }, 250);
 
         return () => clearTimeout(t);
-    }, [query, zoneUuid, disabled]);
+    }, [query, zoneUuid, disabled, initialSelected]);
 
     useEffect(() => {
         if (disabled) return;
 
         setQuery('');
-        setOptions([]);
+        setOptions(initialSelected ? [initialSelected] : []);
         setOpen(false);
         if (zoneUuid) {
             fetchOptions('');
         }
     }, [zoneUuid, disabled]);
+
+    useEffect(() => {
+        // Ensure initialSelected is in options when it changes
+        if (initialSelected && !options.find((o) => o.uuid === initialSelected.uuid)) {
+            setOptions((prev) => [initialSelected, ...prev]);
+        }
+    }, [initialSelected]);
 
     useEffect(() => {
         if (disabled) {
