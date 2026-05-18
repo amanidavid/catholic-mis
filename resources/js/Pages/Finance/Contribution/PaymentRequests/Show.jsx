@@ -179,7 +179,7 @@ function PaymentModal({ open, close, item, data, setData, submit, processing, er
     return (
         <Modal show={open} onClose={close} maxWidth="sm">
             <div className="p-6">
-                <ModalHeader title="Record Payment" subtitle="Record a payment for this obligation." onClose={close} showRequiredNote />
+                <ModalHeader title="Record Payment" subtitle="Record a payment for this request." onClose={close} showRequiredNote />
                 <form onSubmit={submit} className="mt-4 space-y-4">
                     {item?.payer_member_uuid ? (
                         <div>
@@ -222,7 +222,7 @@ function WaiverModal({ open, close, item, onWaive }) {
     return (
         <Modal show={open} onClose={close} maxWidth="md">
             <div className="p-6">
-                <ModalHeader title="Waive Obligation" subtitle="This will waive the remaining balance of this obligation." onClose={close} />
+                <ModalHeader title="Waive Payment Request" subtitle="This will waive the remaining balance of this payment request." onClose={close} />
                 <div className="mt-4 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-800">
                     Are you sure you want to waive <span className="font-semibold">{Number(item?.balance ?? 0).toLocaleString()} {item?.currency_code ?? ''}</span> for <span className="font-semibold">{item?.rule_snapshot_name ?? ''}</span>?
                 </div>
@@ -239,13 +239,13 @@ function CancelModal({ open, close, item, onCancel }) {
     return (
         <Modal show={open} onClose={close} maxWidth="md">
             <div className="p-6">
-                <ModalHeader title="Cancel Obligation" subtitle="This will cancel this obligation." onClose={close} />
+                <ModalHeader title="Cancel Payment Request" subtitle="This will cancel this payment request." onClose={close} />
                 <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
                     Are you sure you want to cancel <span className="font-semibold">{item.rule_snapshot_name}</span>?
                 </div>
                 <div className="mt-5 flex items-center justify-end gap-2">
                     <SecondaryButton type="button" onClick={close} className="h-11 rounded-lg text-sm font-semibold normal-case tracking-normal">Cancel</SecondaryButton>
-                    <PrimaryButton type="button" onClick={onCancel} className="h-11 rounded-lg bg-rose-600 text-sm font-semibold text-white hover:bg-rose-700">Cancel Obligation</PrimaryButton>
+                    <PrimaryButton type="button" onClick={onCancel} className="h-11 rounded-lg bg-rose-600 text-sm font-semibold text-white hover:bg-rose-700">Cancel Request</PrimaryButton>
                 </div>
             </div>
         </Modal>

@@ -125,25 +125,37 @@ export default function ContributionPaymentRequestsIndex({ items, catalogs, filt
                 </div>
 
                 <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
-                    <form onSubmit={applySearch} className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                        <div className="w-full sm:max-w-md">
+                    <form onSubmit={applySearch} className="space-y-3">
+                        <div className="w-full md:max-w-xl">
                             <FloatingInput id="obligations_q" label="Search (name, code, member)" value={q} onChange={(e) => setQ(e.target.value)} />
                         </div>
-                        <div className="flex items-center gap-2">
-                            <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
-                                <option value="">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="partial">Partial</option>
-                                <option value="paid">Paid</option>
-                                <option value="waived">Waived</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
-                            <select value={catalogUuid} onChange={(e) => setCatalogUuid(e.target.value)} className="h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
-                                <option value="">All Catalogs</option>
-                                {catalogs.map((c) => <option key={c.uuid} value={c.uuid}>{c.name}</option>)}
-                            </select>
-                            <PrimaryButton type="submit" className="h-11 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700">Search</PrimaryButton>
-                            <SecondaryButton type="button" onClick={clearSearch} className="h-11 rounded-lg text-sm font-semibold normal-case tracking-normal">Clear</SecondaryButton>
+                        <div className="grid gap-3 md:grid-cols-6 items-end">
+                            <div className="md:col-span-2">
+                                <FloatingSelect id="filter_status" label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
+                                    <option value="">All status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="partial">Partial</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="waived">Waived</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </FloatingSelect>
+                            </div>
+                            <div className="md:col-span-2">
+                                <FloatingSelect id="filter_catalog" label="Catalog" value={catalogUuid} onChange={(e) => setCatalogUuid(e.target.value)}>
+                                    <option value="">All catalogs</option>
+                                    {catalogs.map((c) => <option key={c.uuid} value={c.uuid}>{c.name}</option>)}
+                                </FloatingSelect>
+                            </div>
+                            <div className="md:col-span-1">
+                                <FloatingInput id="filter_from" label="From date" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                            </div>
+                            <div className="md:col-span-1">
+                                <FloatingInput id="filter_to" label="To date" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                            </div>
+                            <div className="md:col-span-6 flex gap-2 md:justify-end">
+                                <PrimaryButton type="submit" className="h-11 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700">Search</PrimaryButton>
+                                <SecondaryButton type="button" onClick={clearSearch} className="h-11 rounded-lg text-sm font-semibold normal-case tracking-normal">Clear</SecondaryButton>
+                            </div>
                         </div>
                     </form>
 
@@ -261,7 +273,7 @@ export default function ContributionPaymentRequestsIndex({ items, catalogs, filt
                     <div className="p-4 sm:p-6">
                         <ModalHeader title="Create payment request" subtitle="Create a manual contribution payment request." onClose={close} showRequiredNote />
                         <form onSubmit={submit} className="mt-4 space-y-4">
-                            <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+                            <div className="grid gap-3 sm:gap-4 md:grid-cols-1">
                                 <FloatingSelect id="pr_catalog" label="Contribution Catalog" required value={data.contribution_catalog_uuid} onChange={(e) => setData('contribution_catalog_uuid', e.target.value)} error={errors.contribution_catalog_uuid}>
                                     <option value="">Select catalog</option>
                                     {catalogs.map((c) => <option key={c.uuid} value={c.uuid}>{c.name} ({c.code})</option>)}

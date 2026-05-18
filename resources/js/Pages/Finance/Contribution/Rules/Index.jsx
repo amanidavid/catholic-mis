@@ -23,6 +23,7 @@ export default function ContributionRulesIndex({ items, catalogs, filters }) {
     const [open, setOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
+    const [viewOpen, setViewOpen] = useState(false);
     const [selected, setSelected] = useState(null);
 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
@@ -80,6 +81,16 @@ export default function ContributionRulesIndex({ items, catalogs, filters }) {
         setSelected(null);
         reset();
         clearErrors();
+    };
+
+    const openView = (item) => {
+        setSelected(item);
+        setViewOpen(true);
+    };
+
+    const closeView = () => {
+        setViewOpen(false);
+        setSelected(null);
     };
 
     const closeDelete = () => {
@@ -143,6 +154,8 @@ export default function ContributionRulesIndex({ items, catalogs, filters }) {
                                         <th>Amount</th>
                                         <th>Required</th>
                                         <th>Partial</th>
+                                        <th>Effective From</th>
+                                        <th>Effective To</th>
                                         <th>Status</th>
                                         {(canUpdate || canDelete) && <th className="w-32">Actions</th>}
                                     </tr>
@@ -152,7 +165,9 @@ export default function ContributionRulesIndex({ items, catalogs, filters }) {
                                         <tr key={item.uuid} className="transition hover:bg-blue-50/40">
                                             <td className="px-4 py-3 text-sm text-slate-600">{(items?.meta?.from ?? 1) + idx}</td>
                                             <td className="px-4 py-3 text-sm">
-                                                <div className="font-semibold text-slate-900">{item.catalog_name}</div>
+                                                <button type="button" onClick={() => openView(item)} className="font-semibold text-slate-900 hover:underline">
+                                                    {item.catalog_name}
+                                                </button>
                                                 <div className="text-xs text-slate-500">{item.catalog_code}</div>
                                             </td>
                                             <td className="px-4 py-3 text-sm font-semibold text-slate-900">{item.amount} {item.currency_code}</td>
@@ -162,12 +177,25 @@ export default function ContributionRulesIndex({ items, catalogs, filters }) {
                                             <td className="px-4 py-3 text-sm">
                                                 <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${item.allow_partial_payment ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-slate-50 text-slate-700 ring-1 ring-slate-200'}`}>{item.allow_partial_payment ? 'Yes' : 'No'}</span>
                                             </td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{item.effective_from ?? '-'}</td>
+                                            <td className="px-4 py-3 text-sm text-slate-700">{item.effective_to ?? '-'}</td>
                                             <td className="px-4 py-3 text-sm">
                                                 <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${item.is_active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'}`}>{item.is_active ? 'Active' : 'Inactive'}</span>
                                             </td>
                                             {(canUpdate || canDelete) && (
                                                 <td className="px-4 py-3 text-sm">
                                                     <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openView(item)}
+                                                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+                                                            title="View"
+                                                        >
+                                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                            </svg>
+                                                        </button>
                                                         {canUpdate && (
                                                             <button
                                                                 type="button"
@@ -201,7 +229,7 @@ export default function ContributionRulesIndex({ items, catalogs, filters }) {
                                             )}
                                         </tr>
                                     ))}
-                                    {tableRows.length === 0 && <tr><td colSpan={(canUpdate || canDelete) ? 7 : 6} className="px-4 py-10 text-center text-sm text-slate-500">No contribution rules found.</td></tr>}
+                                    {tableRows.length === 0 && <tr><td colSpan={(canUpdate || canDelete) ? 9 : 8} className="px-4 py-10 text-center text-sm text-slate-500">No contribution rules found.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
@@ -217,6 +245,7 @@ export default function ContributionRulesIndex({ items, catalogs, filters }) {
             <RuleModal open={open} close={close} data={data} setData={setData} catalogs={catalogs} submit={submit} processing={processing} errors={errors} title="Add contribution rule" submitLabel="Save rule" />
             <RuleModal open={editOpen} close={closeEdit} data={data} setData={setData} catalogs={catalogs} submit={update} processing={processing} errors={errors} title="Update contribution rule" submitLabel="Update rule" editing />
             <DeleteModal open={deleteOpen} close={closeDelete} item={selected} onDelete={handleDelete} />
+            <ViewRuleModal open={viewOpen} close={closeView} item={selected} />
         </AuthenticatedLayout>
     );
 }
@@ -277,6 +306,59 @@ function DeleteModal({ open, close, item, onDelete }) {
                 <div className="mt-5 flex items-center justify-end gap-2">
                     <SecondaryButton type="button" onClick={close} className="h-11 rounded-lg text-sm font-semibold normal-case tracking-normal">Cancel</SecondaryButton>
                     <PrimaryButton type="button" onClick={onDelete} className="h-11 rounded-lg bg-rose-600 text-sm font-semibold text-white hover:bg-rose-700">Delete</PrimaryButton>
+                </div>
+            </div>
+        </Modal>
+    );
+}
+
+function ViewRuleModal({ open, close, item }) {
+    return (
+        <Modal show={open} onClose={close} maxWidth="md">
+            <div className="p-4 sm:p-6">
+                <ModalHeader title="Rule details" subtitle="Read-only view of the contribution rule." onClose={close} />
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-slate-200 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Catalog</div>
+                        <div className="mt-1 text-sm text-slate-900">{item?.catalog_name} <span className="text-slate-500">({item?.catalog_code})</span></div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Amount</div>
+                        <div className="mt-1 text-sm text-slate-900">{item?.amount} {item?.currency_code}</div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Required</div>
+                        <div className="mt-1 text-sm">{item?.is_required ? 'Yes' : 'No'}</div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Allow Partial Payment</div>
+                        <div className="mt-1 text-sm">{item?.allow_partial_payment ? 'Yes' : 'No'}</div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Waiver Allowed</div>
+                        <div className="mt-1 text-sm">{item?.waiver_allowed ? 'Yes' : 'No'}</div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sort Order</div>
+                        <div className="mt-1 text-sm">{item?.sort_order ?? 0}</div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Effective From</div>
+                        <div className="mt-1 text-sm">{item?.effective_from || '-'}</div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Effective To</div>
+                        <div className="mt-1 text-sm">{item?.effective_to || '-'}</div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 p-3 sm:col-span-2">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</div>
+                        <div className="mt-1 text-sm">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${item?.is_active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'}`}>{item?.is_active ? 'Active' : 'Inactive'}</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-4 flex items-center justify-end">
+                    <SecondaryButton type="button" onClick={close} className="h-11 rounded-lg text-sm font-semibold normal-case tracking-normal">Close</SecondaryButton>
                 </div>
             </div>
         </Modal>
