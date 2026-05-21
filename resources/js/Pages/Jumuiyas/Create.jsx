@@ -1,14 +1,14 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import FloatingInput from '@/Components/FloatingInput';
-import FloatingSelect from '@/Components/FloatingSelect';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SearchableOutstationSelect from '@/Components/SearchableOutstationSelect';
+import SearchableZoneSelect from '@/Components/SearchableZoneSelect';
 import SecondaryButton from '@/Components/SecondaryButton';
 import Spinner from '@/Components/Spinner';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
-export default function JumuiyasCreate({ zones }) {
+export default function JumuiyasCreate() {
     const [rows, setRows] = useState([
         { name: '', meeting_day: '', established_year: '' },
     ]);
@@ -98,21 +98,14 @@ export default function JumuiyasCreate({ zones }) {
                             }}
                         />
 
-                        <FloatingSelect
+                        <SearchableZoneSelect
                             id="jumuiyas_zone_uuid"
-                            label="Zone"
-                            required
+                            label="Zone *"
                             value={data.zone_uuid}
-                            onChange={(e) => setData('zone_uuid', e.target.value)}
+                            onChange={(uuid) => setData('zone_uuid', uuid)}
+                            outstationUuid={data.outstation_uuid}
                             error={errors.zone_uuid}
-                        >
-                            <option value="">Select zone</option>
-                            {(zones ?? [])
-                                .filter((z) => !data.outstation_uuid || z.outstation_uuid === data.outstation_uuid)
-                                .map((z) => (
-                                <option key={z.uuid} value={z.uuid}>{z.outstation_name ? `${z.name} (${z.outstation_name})` : z.name}</option>
-                            ))}
-                        </FloatingSelect>
+                        />
 
                         {rows.map((row, idx) => (
                             <div key={idx} className="rounded-xl border border-slate-200 p-4">

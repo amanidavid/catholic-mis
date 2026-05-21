@@ -1,0 +1,537 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Mar 27, 2026 at 06:17 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `e_office`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `account_groups`
+--
+
+CREATE TABLE `account_groups` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` char(36) NOT NULL,
+  `name` varchar(30) NOT NULL,
+  `code` tinyint(3) UNSIGNED NOT NULL COMMENT '1=Assets, 2=Expenses, 3=Revenue, 4=Liabilities, 5=Capital',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `account_groups`
+--
+
+INSERT INTO `account_groups` (`id`, `uuid`, `name`, `code`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, '019c094a-80f9-728e-ae20-9a9e18aea8f2', 'Assets', 1, 1, '2026-01-29 07:26:43', '2026-01-29 10:19:23'),
+(2, '019c094a-8119-7112-a01c-65c3ad70ffa1', 'Expenses', 2, 1, '2026-01-29 07:26:43', '2026-01-29 07:26:43'),
+(3, '019c094a-811e-73bc-abce-8ae30d8607e1', 'Revenue', 3, 1, '2026-01-29 07:26:43', '2026-01-29 07:26:43'),
+(4, '019c094a-8121-71f2-adf9-00cca1fd8960', 'Liabilities', 4, 1, '2026-01-29 07:26:43', '2026-01-29 07:26:43'),
+(5, '019c094a-8126-7312-b9dc-ca68722bb74f', 'Capital', 5, 1, '2026-01-29 07:26:43', '2026-01-29 07:26:43'),
+(6, '019c09e6-8ac2-7086-9e5d-3c0fd4850537', 'Berk Lucas', 7, 1, '2026-01-29 10:17:09', '2026-01-29 10:17:09');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `account_subtypes`
+--
+
+CREATE TABLE `account_subtypes` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` char(36) NOT NULL,
+  `name` varchar(60) NOT NULL,
+  `account_type_id` bigint(20) UNSIGNED NOT NULL,
+  `created_by` bigint(20) UNSIGNED NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `account_subtypes`
+--
+
+INSERT INTO `account_subtypes` (`id`, `uuid`, `name`, `account_type_id`, `created_by`, `is_active`, `created_at`, `updated_at`) VALUES
+(2, '019c094d-03c8-7172-abde-fc0f5ac642a8', 'Cash and Cash Equivalents', 1, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(4, '019c094d-03d9-72c9-8cd9-074e982698dd', 'Inventory', 1, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(5, '019c094d-03dc-7114-90fa-b2dab9231d7c', 'Prepaid Expenses', 1, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(6, '019c094d-03df-719c-a536-d95f6a26c4b1', 'Short-term Investments', 1, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(7, '019c094d-03e2-726d-8efa-ff420c9f955c', 'Property, Plant and Equipment', 2, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(8, '019c094d-03e5-70ce-b181-566a0fcb545a', 'Intangible Assets', 2, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(9, '019c094d-03e8-719d-9d82-0b17956cde17', 'Long-term Investments', 2, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(10, '019c094d-03ea-725b-8219-3351aa22aa5d', 'Other Non-Current Assets', 2, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(11, '019c094d-03ed-7357-ba42-653fbd820e7e', 'Main Account', 1, 1, 1, '2026-01-29 07:29:28', '2026-02-25 06:29:15'),
+(13, '019c094d-03f3-7357-a6f8-70b2b6728444', 'Direct Materials', 3, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(14, '019c094d-03f6-7193-a4fa-a793a3238c25', 'Manufacturing Overhead', 3, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(15, '019c094d-03f8-70ad-9ae3-cfd3a20bf848', 'Bank Charges', 1, 1, 1, '2026-01-29 07:29:28', '2026-02-25 06:23:51'),
+(16, '019c094d-03fb-73ff-9166-0a2ca65a95a9', 'Selling Expenses', 4, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(18, '019c094d-0401-7253-bcb4-2c1f44413f9c', 'Bank Accounts', 1, 1, 1, '2026-01-29 07:29:28', '2026-02-25 06:22:18'),
+(19, '019c094d-0403-7371-b67e-22102c4b03b5', 'Utilities', 4, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(20, '019c094d-0406-720f-bf2d-ede811bc5be4', 'Rent', 4, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(21, '019c094d-0409-709b-b717-ac67bd67790d', 'Salaries and Wages', 4, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(22, '019c094d-040c-71d0-aba1-6f77d83e015e', 'Sales Revenue', 5, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(23, '019c094d-040f-7246-ac21-c0f284c8dc72', 'Service Revenue', 5, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(24, '019c094d-0412-73df-aa6a-ed4bf01cf956', 'Product Revenue', 5, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(27, '019c094d-041b-7298-88df-a13e3a6056d5', 'Other Income', 6, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(29, '019c094d-0420-71e2-aab5-2cb6e54ca11d', 'Short-term Loans', 7, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(30, '019c094d-0423-7117-9e00-1a5b0f5ba6db', 'Account Payable', 7, 1, 1, '2026-01-29 07:29:28', '2026-02-25 05:18:40'),
+(31, '019c094d-0426-728d-98f2-82bb21e6d54e', 'Tax Payable', 7, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(32, '019c094d-0429-7062-92ca-6891541a5ce2', 'Unearned Revenue', 7, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(33, '019c094d-042d-71b6-8292-0c0853901fe0', 'Long-term Loans', 8, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(36, '019c094d-0435-73de-9e67-3d933f77c78c', 'Other Long-term Liabilities', 8, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(37, '019c094d-0438-73cd-a726-dd0e8049786e', 'Owner\'s Equity', 9, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(38, '019c094d-043b-73b7-a376-f649d4fa4518', 'Share Capital', 9, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(39, '019c094d-043e-7035-a777-91a86eeb771e', 'Retained Earnings', 9, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(40, '019c094d-0441-7343-8ba1-0d90514bb504', 'Reserves', 9, 1, 1, '2026-01-29 07:29:28', '2026-01-29 07:29:28'),
+(41, '019c099c-45c5-7332-ac4c-a1beaa4d698c', 'Simba Account', 1, 3, 1, '2026-01-29 08:56:02', '2026-02-25 06:30:39'),
+(42, '019c099c-6f98-71d6-b687-d6b4db26f35c', 'Simba Account', 2, 3, 0, '2026-01-29 08:56:13', '2026-02-25 05:26:02'),
+(43, '019c099c-baf1-723d-83e1-6527d20915ad', 'cash in hands', 2, 3, 1, '2026-01-29 08:56:32', '2026-01-29 08:56:32'),
+(45, '019c09b2-d947-719e-a0c4-d1db5c6ec0d1', 'Account Receivable', 2, 3, 1, '2026-01-29 09:20:41', '2026-02-25 05:31:49'),
+(49, '019c09b5-0d1e-738e-80b8-03a671bf0cf2', 'sex', 7, 3, 0, '2026-01-29 09:23:06', '2026-01-29 09:23:06'),
+(52, '019c09bc-3efc-70c8-9e73-55a92e637676', 'Payroll Account', 4, 3, 1, '2026-01-29 09:30:57', '2026-02-25 05:20:44'),
+(53, '019c09bf-9af8-7343-ac29-deffc34b4df1', 'Regina Berg', 8, 3, 0, '2026-01-29 09:34:37', '2026-01-29 09:34:37'),
+(55, '019c09ed-0642-7048-8e0a-622714ac094e', 'Zeus Mclaughlin', 6, 3, 0, '2026-01-29 10:24:14', '2026-01-29 10:24:14');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `account_types`
+--
+
+CREATE TABLE `account_types` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` char(36) NOT NULL,
+  `name` varchar(60) NOT NULL,
+  `account_group_id` bigint(20) UNSIGNED NOT NULL,
+  `created_by` bigint(20) UNSIGNED NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `account_types`
+--
+
+INSERT INTO `account_types` (`id`, `uuid`, `name`, `account_group_id`, `created_by`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, '019c094a-9070-73f6-a2f6-8db012b9b0f7', 'Current Assets', 1, 1, 1, '2026-01-29 07:26:47', '2026-01-29 07:26:47'),
+(2, '019c094a-908c-7146-afc4-29655675566c', 'Non-Current Assets', 1, 1, 1, '2026-01-29 07:26:47', '2026-01-29 07:26:47'),
+(3, '019c094a-9092-711b-b123-84b36137b888', 'Direct Expenses', 2, 1, 1, '2026-01-29 07:26:47', '2026-01-29 07:26:47'),
+(4, '019c094a-9095-7133-ae7d-a02f6b1953ed', 'Indirect Expenses', 2, 1, 1, '2026-01-29 07:26:47', '2026-01-29 07:26:47'),
+(5, '019c094a-9099-703b-ba20-f7c88ae9552c', 'Direct Revenue', 3, 1, 1, '2026-01-29 07:26:47', '2026-01-29 07:26:47'),
+(6, '019c094a-909f-70da-a150-bbcb4ed9ba07', 'Indirect Revenue', 3, 1, 1, '2026-01-29 07:26:47', '2026-01-29 07:26:47'),
+(7, '019c094a-90a3-72c4-9e58-6ab116f80c61', 'Current Liabilities', 4, 1, 1, '2026-01-29 07:26:47', '2026-01-29 07:26:47'),
+(8, '019c094a-90a6-7311-9ee1-49239e559355', 'Non-Current Liabilities', 4, 1, 1, '2026-01-29 07:26:47', '2026-01-29 07:26:47'),
+(9, '019c094a-90a9-739a-b5bc-0046daff8377', 'Capital', 5, 1, 1, '2026-01-29 07:26:47', '2026-01-29 11:49:34'),
+(10, '019c09ed-b705-72ce-b9c7-e8fda6563ed8', 'Chaim Logan', 6, 3, 1, '2026-01-29 10:24:59', '2026-01-29 10:24:59');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `banks`
+--
+
+CREATE TABLE `banks` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` char(36) DEFAULT NULL,
+  `bank_name` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `banks`
+--
+
+INSERT INTO `banks` (`id`, `uuid`, `bank_name`, `created_at`, `updated_at`) VALUES
+(1, '019c66fa-4906-73d2-9299-5d6327b9fc94', 'CRDB Bank', '2026-02-16 12:03:24', '2026-02-17 10:49:53'),
+(2, '019c6bdd-18eb-7398-a988-e408de786d25', 'Nmb', '2026-02-17 10:49:37', '2026-02-17 10:49:37');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bank_accounts`
+--
+
+CREATE TABLE `bank_accounts` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` varchar(40) NOT NULL,
+  `bank_id` bigint(20) UNSIGNED NOT NULL,
+  `currency_id` bigint(20) UNSIGNED NOT NULL,
+  `account_name` varchar(120) NOT NULL,
+  `account_number` varchar(20) NOT NULL,
+  `swiftcode` varchar(15) DEFAULT NULL,
+  `branch` varchar(25) DEFAULT NULL,
+  `user_id` bigint(20) UNSIGNED NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bank_account_charges`
+--
+
+CREATE TABLE `bank_account_charges` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` char(36) NOT NULL,
+  `company_bank_account_id` bigint(20) UNSIGNED NOT NULL,
+  `company_id` bigint(20) UNSIGNED NOT NULL,
+  `currency_id` bigint(20) UNSIGNED NOT NULL,
+  `charge_date` date NOT NULL,
+  `amount` decimal(16,4) NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `reference_no` varchar(100) DEFAULT NULL,
+  `bank_account_transaction_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `transactable_type` varchar(255) NOT NULL,
+  `transactable_id` bigint(20) UNSIGNED NOT NULL,
+  `created_by` bigint(20) UNSIGNED NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `bank_account_charges`
+--
+
+INSERT INTO `bank_account_charges` (`id`, `uuid`, `company_bank_account_id`, `company_id`, `currency_id`, `charge_date`, `amount`, `description`, `reference_no`, `bank_account_transaction_id`, `transactable_type`, `transactable_id`, `created_by`, `created_at`, `updated_at`) VALUES
+(1, '019c66fa-4921-718a-941a-9fc41936289e', 1, 1, 1, '2026-02-16', 0.0000, 'Opening charge', NULL, NULL, 'manual', 0, 1, '2026-02-16 12:03:24', '2026-02-16 12:03:24'),
+(2, '019c66fa-493e-701b-858e-f5860c49e7c4', 2, 1, 1, '2026-02-16', 0.0000, 'Opening charge', NULL, NULL, 'manual', 0, 1, '2026-02-16 12:03:24', '2026-02-16 12:03:24'),
+(3, '019c6a0d-a117-70bc-bf3e-a9389ebcf0e5', 2, 1, 1, '2026-02-17', 3000.0000, 'ddddd', NULL, 1, 'manual', 0, 3, '2026-02-17 02:23:24', '2026-02-17 02:23:24');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bank_account_daily_balances`
+--
+
+CREATE TABLE `bank_account_daily_balances` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` char(36) NOT NULL,
+  `company_bank_account_id` bigint(20) UNSIGNED NOT NULL,
+  `company_id` bigint(20) UNSIGNED NOT NULL,
+  `currency_id` bigint(20) UNSIGNED NOT NULL,
+  `balance_date` date NOT NULL,
+  `opening_balance` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `total_outflows` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `total_inflows` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `closing_balance` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `created_by` bigint(20) UNSIGNED NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `bank_account_daily_balances`
+--
+
+INSERT INTO `bank_account_daily_balances` (`id`, `uuid`, `company_bank_account_id`, `company_id`, `currency_id`, `balance_date`, `opening_balance`, `total_outflows`, `total_inflows`, `closing_balance`, `created_by`, `created_at`, `updated_at`) VALUES
+(1, '019c680b-6a37-70a3-9e54-1440237aa6e1', 2, 1, 1, '2026-02-16', 0.0000, 0.0000, 100000.0000, 100000.0000, 3, '2026-02-16 17:01:44', '2026-02-16 17:01:44'),
+(2, '019c6a5c-a525-714e-8978-63c1b7d9e64d', 2, 1, 1, '2026-02-17', 100000.0000, 40000.0000, 500000.0000, 560000.0000, 3, '2026-02-17 03:49:42', '2026-02-17 08:40:37'),
+(3, '019c9343-087c-739a-a62a-878cb2b8f9fc', 2, 1, 1, '2026-02-25', 560000.0000, 80000.0000, 110000.0000, 590000.0000, 2, '2026-02-25 02:26:09', '2026-03-09 05:49:34'),
+(6, '019cd1d2-d008-712a-99df-07938b17b8c6', 2, 1, 1, '2026-03-09', 590000.0000, 0.0000, 200000.0000, 790000.0000, 3, '2026-03-09 05:59:39', '2026-03-09 06:00:25');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bank_account_transactions`
+--
+
+CREATE TABLE `bank_account_transactions` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` char(36) NOT NULL,
+  `company_bank_account_id` bigint(20) UNSIGNED NOT NULL,
+  `company_id` bigint(20) UNSIGNED NOT NULL,
+  `currency_id` bigint(20) UNSIGNED NOT NULL,
+  `transaction_date` date NOT NULL,
+  `direction` enum('inflow','outflow') NOT NULL,
+  `amount` decimal(16,4) NOT NULL,
+  `reference_no` varchar(100) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `transactable_type` varchar(255) NOT NULL,
+  `transactable_id` bigint(20) UNSIGNED NOT NULL,
+  `created_by` bigint(20) UNSIGNED NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `bank_account_transactions`
+--
+
+INSERT INTO `bank_account_transactions` (`id`, `uuid`, `company_bank_account_id`, `company_id`, `currency_id`, `transaction_date`, `direction`, `amount`, `reference_no`, `description`, `transactable_type`, `transactable_id`, `created_by`, `created_at`, `updated_at`) VALUES
+(1, '019c680b-6b13-7010-baa5-df441822b61f', 2, 1, 1, '2026-02-16', 'inflow', 100000.0000, NULL, 'Open balance', 'manual', 0, 3, '2026-02-16 17:01:44', '2026-02-16 17:01:44'),
+(2, '019c6a5c-a53b-717c-bab3-d94e5f9f74fa', 2, 1, 1, '2026-02-17', 'inflow', 500000.0000, NULL, NULL, 'manual', 0, 3, '2026-02-17 03:49:42', '2026-02-17 03:49:42'),
+(3, '019c6b66-fc64-73ac-a17e-b9ce52b76ac7', 2, 1, 1, '2026-02-17', 'outflow', 40000.0000, 'txw 3456', 'Cash Request Payment - 019c69fe-0a34-7333-ad53-549ce5a0aa5c', 'App\\Models\\CashRequestPayment', 11, 2, '2026-02-17 08:40:37', '2026-02-17 08:40:37'),
+(4, '019c9343-08b3-7238-9dc1-e110804a1c8a', 2, 1, 1, '2026-02-25', 'outflow', 80000.0000, '3daddqzxcsd', 'Cash Request Payment - 019c6818-2fae-727e-8d32-b8496e739529', 'App\\Models\\CashRequestPayment', 13, 2, '2026-02-25 02:26:09', '2026-02-25 02:26:09'),
+(5, '019c9437-8c4a-71ff-a2a6-854cbe01bf27', 2, 1, 1, '2026-02-25', 'inflow', 50000.0000, 'asdewartys', 'Invoice Payment - INV-20260220-000003', 'App\\Models\\InvoicePaymentTracker', 8, 5, '2026-02-25 06:53:14', '2026-02-25 06:53:14'),
+(6, '019c94e1-2c3b-7176-80de-ae7ed0a20877', 2, 1, 1, '2026-02-25', 'inflow', 10000.0000, 'asdewartys', 'Invoice Payment - INV-20260220-000003', 'App\\Models\\InvoicePaymentTracker', 11, 5, '2026-02-25 09:58:30', '2026-02-25 09:58:30'),
+(7, '019cd1c9-9476-71c7-9811-0ac3023a82cc', 2, 1, 1, '2026-02-25', 'inflow', 50000.0000, 'asdewartys', 'Amendment adjustment - Invoice Payment - INV-20260220-000003', 'App\\Models\\InvoicePaymentTracker', 8, 3, '2026-03-09 05:49:34', '2026-03-09 05:49:34'),
+(8, '019cd1cf-3a07-7273-9ae6-4cdb9a685a2b', 2, 1, 1, '2026-03-09', 'inflow', 100000.0000, '67efyt2qfdf', 'Invoice Payment - INV-20260219-000002', 'App\\Models\\InvoicePaymentTracker', 12, 3, '2026-03-09 05:55:44', '2026-03-09 05:59:39'),
+(9, '019cd1d3-8220-7377-9c97-c371c2e5ac62', 2, 1, 1, '2026-03-09', 'inflow', 100000.0000, '67efyt2qfdf', 'Amendment adjustment - Invoice Payment - INV-20260219-000002', 'App\\Models\\InvoicePaymentTracker', 12, 3, '2026-03-09 06:00:25', '2026-03-09 06:00:25');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ledgers`
+--
+
+CREATE TABLE `ledgers` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `uuid` char(36) NOT NULL,
+  `name` varchar(80) NOT NULL,
+  `account_code` varchar(50) DEFAULT NULL COMMENT 'Format: 1-1-1-001',
+  `account_subtype_id` bigint(20) UNSIGNED NOT NULL,
+  `currency_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `opening_balance` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `opening_balance_type` enum('debit','credit') NOT NULL DEFAULT 'debit',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_by` bigint(20) UNSIGNED NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `ledgers`
+--
+
+INSERT INTO `ledgers` (`id`, `uuid`, `name`, `account_code`, `account_subtype_id`, `currency_id`, `opening_balance`, `opening_balance_type`, `is_active`, `created_by`, `created_at`, `updated_at`) VALUES
+(1, '019c6a28-3121-70a9-be7d-76aea46af217', 'Cash in Hand', '900', 2, NULL, 0.0000, 'debit', 1, 3, '2026-02-17 02:52:24', '2026-02-17 02:52:24'),
+(2, '019c6a29-07df-726c-bf09-e76cd5fdf99c', 'Cash At Bank', '901', 4, NULL, 0.0000, 'debit', 1, 3, '2026-02-17 02:53:19', '2026-02-17 02:53:19'),
+(3, '019c6a29-94e0-7050-aecb-2a9171fc2ff2', 'Petty Cash', '902', 5, NULL, 0.0000, 'debit', 1, 3, '2026-02-17 02:53:55', '2026-02-17 02:53:55'),
+(4, '019c9424-e32c-73ef-af5b-97a952264eb4', 'Payroll Account', '20260625', 18, NULL, 0.0000, 'debit', 1, 5, '2026-02-25 06:32:51', '2026-02-25 06:32:51'),
+(5, '019c9425-9ba5-7149-b689-634c233dda0a', 'Main Account', '20250223', 18, NULL, 0.0000, 'debit', 1, 5, '2026-02-25 06:33:38', '2026-02-25 06:33:38'),
+(6, '019c9426-1bd1-7244-a32b-cd289b267261', 'Simba Account', '20260626', 18, NULL, 0.0000, 'debit', 1, 5, '2026-02-25 06:34:11', '2026-02-25 06:34:11'),
+(7, '019c9427-1e47-72e9-9876-5010b590522c', 'Project Account', '202606288', 18, NULL, 0.0000, 'debit', 1, 5, '2026-02-25 06:35:17', '2026-02-25 06:35:17'),
+(8, '019c9429-0718-71fe-bdba-e55c7e99c416', 'Trade Recivables', '20260620', 45, NULL, 0.0000, 'debit', 1, 5, '2026-02-25 06:37:22', '2026-02-25 06:37:22');
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `account_groups`
+--
+ALTER TABLE `account_groups`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `account_groups_uuid_unique` (`uuid`),
+  ADD UNIQUE KEY `account_groups_code_unique` (`code`),
+  ADD KEY `idx_account_groups_name` (`name`),
+  ADD KEY `idx_account_groups_code` (`code`);
+
+--
+-- Indexes for table `account_subtypes`
+--
+ALTER TABLE `account_subtypes`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `account_subtypes_uuid_unique` (`uuid`),
+  ADD KEY `account_subtypes_created_by_foreign` (`created_by`),
+  ADD KEY `idx_account_subtypes_type` (`account_type_id`),
+  ADD KEY `idx_account_subtypes_name` (`name`),
+  ADD KEY `idx_account_subtypes_type_active` (`account_type_id`,`is_active`);
+
+--
+-- Indexes for table `account_types`
+--
+ALTER TABLE `account_types`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `account_types_uuid_unique` (`uuid`),
+  ADD KEY `idx_account_types_group` (`account_group_id`),
+  ADD KEY `idx_account_types_name` (`name`),
+  ADD KEY `idx_account_types_group_active` (`account_group_id`,`is_active`);
+
+--
+-- Indexes for table `banks`
+--
+ALTER TABLE `banks`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `banks_uuid_unique` (`uuid`);
+
+--
+-- Indexes for table `bank_accounts`
+--
+ALTER TABLE `bank_accounts`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `bank_account_charges`
+--
+ALTER TABLE `bank_account_charges`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `bank_account_charges_uuid_unique` (`uuid`),
+  ADD KEY `bank_account_charges_company_id_foreign` (`company_id`),
+  ADD KEY `bank_account_charges_currency_id_foreign` (`currency_id`),
+  ADD KEY `bank_account_charges_bank_account_transaction_id_foreign` (`bank_account_transaction_id`),
+  ADD KEY `bac_transactable_idx` (`transactable_type`,`transactable_id`),
+  ADD KEY `bank_account_charges_created_by_foreign` (`created_by`),
+  ADD KEY `bac_acct_date_id_idx` (`company_bank_account_id`,`charge_date`,`id`),
+  ADD KEY `bank_account_charges_charge_date_index` (`charge_date`),
+  ADD KEY `bank_account_charges_reference_no_index` (`reference_no`);
+
+--
+-- Indexes for table `bank_account_daily_balances`
+--
+ALTER TABLE `bank_account_daily_balances`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `bab_acct_date_uq` (`company_bank_account_id`,`balance_date`),
+  ADD UNIQUE KEY `bank_account_daily_balances_uuid_unique` (`uuid`),
+  ADD KEY `bank_account_daily_balances_company_id_foreign` (`company_id`),
+  ADD KEY `bank_account_daily_balances_currency_id_foreign` (`currency_id`),
+  ADD KEY `bank_account_daily_balances_created_by_foreign` (`created_by`);
+
+--
+-- Indexes for table `bank_account_transactions`
+--
+ALTER TABLE `bank_account_transactions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `bank_account_transactions_company_bank_account_id_foreign` (`company_bank_account_id`),
+  ADD KEY `bank_account_transactions_company_id_foreign` (`company_id`),
+  ADD KEY `bank_account_transactions_currency_id_foreign` (`currency_id`);
+
+--
+-- Indexes for table `ledgers`
+--
+ALTER TABLE `ledgers`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `ledgers_uuid_unique` (`uuid`),
+  ADD UNIQUE KEY `ledgers_account_code_unique` (`account_code`),
+  ADD KEY `ledgers_created_by_foreign` (`created_by`),
+  ADD KEY `idx_ledgers_subtype` (`account_subtype_id`),
+  ADD KEY `idx_ledgers_code` (`account_code`),
+  ADD KEY `idx_ledgers_name` (`name`),
+  ADD KEY `idx_ledgers_subtype_active` (`account_subtype_id`,`is_active`),
+  ADD KEY `idx_ledgers_currency` (`currency_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `account_groups`
+--
+ALTER TABLE `account_groups`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `account_subtypes`
+--
+ALTER TABLE `account_subtypes`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+
+--
+-- AUTO_INCREMENT for table `account_types`
+--
+ALTER TABLE `account_types`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `banks`
+--
+ALTER TABLE `banks`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `bank_accounts`
+--
+ALTER TABLE `bank_accounts`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `bank_account_charges`
+--
+ALTER TABLE `bank_account_charges`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `bank_account_daily_balances`
+--
+ALTER TABLE `bank_account_daily_balances`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `bank_account_transactions`
+--
+ALTER TABLE `bank_account_transactions`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT for table `ledgers`
+--
+ALTER TABLE `ledgers`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `account_subtypes`
+--
+ALTER TABLE `account_subtypes`
+  ADD CONSTRAINT `account_subtypes_account_type_id_foreign` FOREIGN KEY (`account_type_id`) REFERENCES `account_types` (`id`),
+  ADD CONSTRAINT `account_subtypes_created_by_foreign` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `account_types`
+--
+ALTER TABLE `account_types`
+  ADD CONSTRAINT `account_types_account_group_id_foreign` FOREIGN KEY (`account_group_id`) REFERENCES `account_groups` (`id`);
+
+--
+-- Constraints for table `bank_account_charges`
+--
+ALTER TABLE `bank_account_charges`
+  ADD CONSTRAINT `bank_account_charges_bank_account_transaction_id_foreign` FOREIGN KEY (`bank_account_transaction_id`) REFERENCES `bank_account_transactions` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `bank_account_charges_company_bank_account_id_foreign` FOREIGN KEY (`company_bank_account_id`) REFERENCES `company_bank_accounts` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `bank_account_charges_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `bank_account_charges_created_by_foreign` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `bank_account_charges_currency_id_foreign` FOREIGN KEY (`currency_id`) REFERENCES `currencies` (`id`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `bank_account_daily_balances`
+--
+ALTER TABLE `bank_account_daily_balances`
+  ADD CONSTRAINT `bank_account_daily_balances_company_bank_account_id_foreign` FOREIGN KEY (`company_bank_account_id`) REFERENCES `company_bank_accounts` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `bank_account_daily_balances_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `bank_account_daily_balances_created_by_foreign` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `bank_account_daily_balances_currency_id_foreign` FOREIGN KEY (`currency_id`) REFERENCES `currencies` (`id`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `bank_account_transactions`
+--
+ALTER TABLE `bank_account_transactions`
+  ADD CONSTRAINT `bank_account_transactions_company_bank_account_id_foreign` FOREIGN KEY (`company_bank_account_id`) REFERENCES `company_bank_accounts` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `bank_account_transactions_company_id_foreign` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `bank_account_transactions_currency_id_foreign` FOREIGN KEY (`currency_id`) REFERENCES `currencies` (`id`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `ledgers`
+--
+ALTER TABLE `ledgers`
+  ADD CONSTRAINT `ledgers_account_subtype_id_foreign` FOREIGN KEY (`account_subtype_id`) REFERENCES `account_subtypes` (`id`),
+  ADD CONSTRAINT `ledgers_created_by_foreign` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
